@@ -1,0 +1,32 @@
+#ifndef nEXOHalflifeVsTimePlot_hh
+#define nEXOHalflifeVsTimePlot_hh
+
+#include <iostream>
+#include <map>
+
+#include "TNamed.h"
+#include "TGraph.h"
+#include "TCanvas.h"
+#include "TH1D.h"
+#include "TGaxis.h"
+#include "TPaveText.h"
+#include "TText.h"
+#include "TLegend.h"
+
+#include "nEXOSensPlot.hh"
+#include "nEXONuclearMatrixElement.hh"
+#include "nEXOUtils.hh"
+
+class nEXOHalflifeVsTimePlot : public nEXOSensPlot
+{
+public:
+  nEXOHalflifeVsTimePlot(const char* name = 0, const char* title = 0);
+  virtual ~nEXOHalflifeVsTimePlot();
+
+protected:
+  
+  ClassDef(nEXOHalflifeVsTimePlot,1) // Base class for nEXO sensitivity plots
+};
+
+#endif
+

@@ -1,0 +1,12 @@
+#include "nEXONuclearMatrixElement.hh"
+
+ClassImp(nEXONuclearMatrixElement);
+
+nEXONuclearMatrixElement::nEXONuclearMatrixElement(NuclearMatrixElement_t nme) : fNME(nme)
+{
+
+}
+
+nEXONuclearMatrixElement::~nEXONuclearMatrixElement()
+{
+}

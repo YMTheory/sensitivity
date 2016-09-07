@@ -1,0 +1,32 @@
+#ifndef nEXONuOscPars_hh
+#define nEXONuOscPars_hh
+
+#include <iostream>
+
+#include "TROOT.h"
+
+class 
+{
+public:
+
+  //Global fits to neutrino oscillation parameters, arXiv:1205.4018v4
+  Double_t s12_cv;	Double_t m12_cv;
+  Double_t s13_n_cv;	Double_t m13_n_cv;
+  Double_t s13_i_cv;	Double_t m13_i_cv;
+  
+  Double_t s12_68	[2];	Double_t m12_68         [2];
+  Double_t s13_n_68	[2];	Double_t m13_n_68	[2];
+  Double_t s13_i_68	[2];	Double_t m13_i_68	[2];
+  
+  Double_t s12_90	[2];	Double_t m12_90	        [2];
+  Double_t s13_n_90	[2];	Double_t m13_n_90	[2];
+  Double_t s13_i_90	[2];	Double_t m13_i_90	[2];
+  
+  Double_t s12_95	[2];	Double_t m12_95	        [2];
+  Double_t s13_n_95	[2];	Double_t m13_n_95	[2];
+  Double_t s13_i_95	[2];	Double_t m13_i_95	[2];
+
+  ClassDef(nEXONuOscPars,1)	// Class to carry neutrino oscillation parameters
+};
+
+#endif

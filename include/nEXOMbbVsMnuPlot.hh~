@@ -1,0 +1,32 @@
+#ifndef nEXOMbbVsMnuPlot_hh
+#define nEXOMbbVsMnuPlot_hh
+
+#include <iostream>
+#include <map>
+
+#include "TNamed.h"
+#include "TGraph.h"
+#include "TCanvas.h"
+#include "TH1D.h"
+#include "TGaxis.h"
+#include "TPaveText.h"
+#include "TText.h"
+#include "TLegend.h"
+
+#include "nEXOSensPlot.hh"
+#include "nEXONuclearMatrixElement.hh"
+#include "nEXOUtils.hh"
+
+class nEXOMbbVsMnuPlot : public nEXOSensPlot
+{
+public:
+  nEXOMbbVsMnuPlot(const char* name = 0, const char* title = 0);
+  virtual ~nEXOMbbVsMnuPlot();
+
+protected:
+  
+  ClassDef(nEXOMbbVsMnuPlot,1) // Class for mbb vs mnu plots
+};
+
+#endif
+

@@ -1,0 +1,9 @@
+#include "nEXOSensPlot.hh"
+
+ClassImp(nEXOSensPlot);
+
+nEXOSensPlot::nEXOSensPlot()
+{
+}
+
+nEXOSensPlot::~nEXOSensPlot() {}
