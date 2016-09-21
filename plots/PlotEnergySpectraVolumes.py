@@ -231,6 +231,9 @@ def MakePlot( inpkl , outname = 'energy_vols.pdf' ):
 
     leg = plt.legend(loc="upper left",bbox_to_anchor = (1,0.5),prop={'size':legend_fontsize})
 
+    #plt.minorticks_on #off 
+    #plt.grid(False, which='both')
+
     fig.set_size_inches(8,4.5)
     plt.savefig( outname, bbox_extra_artists=(leg,), bbox_inches='tight' )
 

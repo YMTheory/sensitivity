@@ -7,7 +7,7 @@ import cPickle as pickle
 matplotlib.rcParams['font.family'] = 'Times New Roman'
 #matplotlib.rcParams['text.usetex'] = True
 
-plot_vs_total_mass = False  ## True to plot vs m_tot, False to plot vs m_min
+plot_vs_total_mass = True  ## True to plot vs m_tot, False to plot vs m_min
 
 
 allowed_regions = pickle.load(open("allowed_regions.pkl","rb"))
@@ -88,12 +88,13 @@ ax2.fill_between(xlim,[lmax_batag, lmax_batag],[lmin_batag, lmin_batag],edgecolo
 
 #ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_proj, lmin_curr]), r"EXO-200 current"+"\n"+r"($T_{1/2}=1.1\times10^{25}$ yr)", ha="left", va="center", fontsize=12)
 #ax1.text( xlim[0]*1.15, 0.85*np.mean([lmax_proj, lmax_curr]), r"EXO-200 projected"+"\n"+r"($T_{1/2}=5.7\times10^{25}$ yr)", ha="left", va="center", fontsize=12)
-ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_curr, lmax_curr]), r"EXO-200 Nature 510, 229 (2014)", ha="left", va="center", fontsize=12)
+ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_curr, lmax_curr]), r"EXO-200", ha="left", va="center", fontsize=12)
+ax1.text( (xlim[0]*23.0,xlim[0]*5.20)[plot_vs_total_mass], 0.83*np.mean([lmin_curr, lmax_curr]), r"Nature 510, 229 (2014)", ha="left", va="center", fontsize=9, fontstyle='italic')
 ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_proj, lmax_proj]), r"EXO-200 Phase-II", ha="left", va="center", fontsize=12)
 ax1.text( xlim[0]*1.15, 0.95*np.mean([lmin_notag, lmax_notag]), r"nEXO 5 Years", ha="left", va="center", fontsize=12)
 ax1.text( xlim[0]*1.15, 0.95*np.mean([lmax_notag, lmax_batag]), r"nEXO 5 Years w/ Ba-tagging", ha="left", va="center", fontsize=12)
 
-plt.savefig("sens_nexo"+suffix+"_batag.pdf")
+plt.savefig("sens_nexo"+suffix+"_batag_v0.png")
 
 
 plt.show()

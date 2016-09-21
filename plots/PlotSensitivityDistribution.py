@@ -6,6 +6,12 @@ import glob, os
 import matplotlib.pyplot as plt
 import numpy as np
 
+import matplotlib
+matplotlib.rcParams['mathtext.fontset'] = 'custom'
+matplotlib.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
+matplotlib.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
+matplotlib.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
+
 nEXOlib = '/data/data033/exo/software/nEXO_Sensitivity/quick/v5/lib/libnEXOSensitivity.so'
 ROOT.gSystem.Load(nEXOlib)
 
@@ -15,7 +21,7 @@ def fill_between(x, y1, y2=0, **kwargs):
     ax = plt.gca()
     plt.fill_between(x, y1, y2, **kwargs)
     p = plt.Rectangle((1e-20, 1e-20), 1e-20, 1e-20, **kwargs)
-    ax.add_patch(p)
+    #ax.add_patch(p)
     return p
 
 def iterrange( x, nsig=4.0 ):
@@ -29,6 +35,9 @@ def iterrange( x, nsig=4.0 ):
     return [np.max([0,cmu-nsig*cstd]), cmu + nsig*cstd]
 
 def PlotSensitivity( s, median, unit = 1, nbins=None, crange=[], CL=0.68, xlab="90% CL upper limit", ylab="Number of Toy Fits", plot_title="" ):
+
+    axis_label_fontsize = 15
+    legend_fontsize = 14
 
     ## estimate desired bins if not specified
     if( not nbins):
@@ -63,9 +72,9 @@ def PlotSensitivity( s, median, unit = 1, nbins=None, crange=[], CL=0.68, xlab="
         label_unit = r"%s $\times$ 10$^{%d}$"%(label_unit, np.log10(unit))
     plt.plot( [median, median], [0, med_val], 'r', linewidth=1.5, label=label_unit)
 
-    plt.legend(loc="upper right")
-    plt.xlabel(xlab)
-    plt.ylabel(ylab)
+    plt.legend(loc="upper right",prop={'size':legend_fontsize})
+    plt.xlabel(xlab, fontsize=axis_label_fontsize)
+    plt.ylabel(ylab, fontsize=axis_label_fontsize)
     if( plot_title ):
         plt.title(plot_title)
     
@@ -83,10 +92,10 @@ def MakePlots(inpkl, outdir):
     sens_unit = results['sens_unit']
 
     sens_fig_minos = PlotSensitivity( ul_minos, ul_minos_median, plot_title="Upper Limit Distribution in %.1f Years"%(livetime), xlab=r"$0\nu\beta\beta$ Upper Limit (90% CL) [cts]" )
-    plt.savefig( os.path.join( outdir, "UpperLimitDistribution.pdf" ) )
+    plt.savefig( os.path.join( outdir, "UpperLimitDistribution.png" ) )
     
-    sens_fig_prof = PlotSensitivity( sens_minos, sens_minos_median, unit=sens_unit, plot_title="Sensitivity Distribution in %.1f Years"%(livetime), xlab=r"T$_{1/2}$ [10$^{27}$ yr]" )
-    plt.savefig( os.path.join( outdir, "SensitivityDistribution.pdf" ) )
+    sens_fig_prof = PlotSensitivity( sens_minos, sens_minos_median, unit=sens_unit, plot_title="Sensitivity Distribution in %.1f Years"%(livetime), xlab=r"$^{136}$Xe  $0\nu\beta\beta$  T$_{1/2}$ [10$^{27}$ yr]" )
+    plt.savefig( os.path.join( outdir, "SensitivityDistribution.png" ) )
 
     plt.show()
 
