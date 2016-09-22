@@ -94,7 +94,7 @@ ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_proj, lmax_proj]), r"EXO-200 Phase-II
 ax1.text( xlim[0]*1.15, 0.95*np.mean([lmin_notag, lmax_notag]), r"nEXO 5 Years", ha="left", va="center", fontsize=12)
 ax1.text( xlim[0]*1.15, 0.95*np.mean([lmax_notag, lmax_batag]), r"nEXO 5 Years w/ Ba-tagging", ha="left", va="center", fontsize=12)
 
-plt.savefig("sens_nexo"+suffix+"_batag_v0.png")
+plt.savefig("sens_nexo"+suffix+"_batag_v0.pdf")
 
 
 plt.show()

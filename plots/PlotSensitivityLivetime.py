@@ -169,7 +169,7 @@ def ReadDiscFiles( infiles, outpkl, livetimes = [5.0], signals = [0.0], mass = 3
     pickle.dump(results, open( outpkl, 'wb'))
 
 
-def MakePlot( inpkl, outname = 'out_sens_plot.pdf', discpkl = None, imprpkl = None, labels = False, exo200 = True):
+def MakePlot( inpkl, outname = 'out_sens_plot', discpkl = None, imprpkl = None, labels = False, exo200 = True):
 
     axis_label_fontsize = 15
     legend_fontsize = 14
@@ -232,7 +232,8 @@ def MakePlot( inpkl, outname = 'out_sens_plot.pdf', discpkl = None, imprpkl = No
     plt.ylabel(r"$^{136}$Xe  $0\nu\beta\beta$  T$_{1/2}$ [yr]", fontsize=axis_label_fontsize)
 
     plt.xlim([-0.2, livetimes[-1]])
-    plt.ylim([(0.1*sens_unit,0.01*sens_unit)[exo200], 25*sens_unit])
+    #plt.ylim([(0.1*sens_unit,0.01*sens_unit)[exo200], 25*sens_unit])
+    plt.ylim([(0.1*sens_unit,0.01*sens_unit)[exo200], 75*sens_unit])
     plt.yscale('log')
     plt.legend(loc="lower right",numpoints=1,prop={'size':legend_fontsize})
     fig.set_size_inches(7.5,5)
@@ -246,7 +247,8 @@ def MakePlot( inpkl, outname = 'out_sens_plot.pdf', discpkl = None, imprpkl = No
 
     plt.minorticks_on
     ax.grid(True, which='both')
-    plt.savefig( outname )
+    plt.savefig( outname+'.pdf', bbox_inches='tight' )
+    plt.savefig( outname+'.png', bbox_inches='tight' )
 
     plt.show()
 
@@ -355,7 +357,7 @@ def MakePlot5p5( inpkl, bapkl, outname = 'out_sens_plot.pdf', discpkl = None, ba
 
     plt.minorticks_on
     ax.grid(True, which='both')
-    plt.savefig( outname )
+    plt.savefig( outname, bbox_inches='tight' )
 
     plt.show()
 
@@ -428,6 +430,13 @@ def MakePlot3( senspkl, bapkl, imprpkl, outname = 'out_sens3_plot.pdf', labels =
 
     plt.minorticks_on
     ax.grid(True, which='both')
-    plt.savefig( outname )
+    plt.savefig( outname+'.pdf', bbox_inches='tight' )
+    plt.savefig( outname+'.png', bbox_inches='tight' )
 
     plt.show()
+
+if __name__ == "__main__":
+
+    
+    # MakePlot( "batag_sens_time.pkl", "plot_nexo_sens_vs_time", discpkl = "batag_disc_time.pkl" , imprpkl = None, labels = True, exo200 = True)
+    MakePlot3( "sens_time_dbv73.pkl","batag_sens_time.pkl","sens_optimistic_time.pkl",outname="nexo_sens_designs_v1", exo200=False)
