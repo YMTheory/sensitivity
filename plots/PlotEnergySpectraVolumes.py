@@ -58,7 +58,7 @@ def ReadTable( infile, outpkl, livetime = 5.0, bb0n_halflife = 6.2e27 ):
         #if table.fIsotope == 'K-40':
         #    continue
 
-        table.Print()
+        # table.Print()
       
         for s in range(table.fSuffixes.size()):
             
@@ -151,58 +151,94 @@ def ConvertHistogram( inhist ):
         ws.append(inhist.GetBinContent(i))
     return nb, cs, ws
 
-def PlotVolume( vol, mult, ax, pdfs, nbins, hrange ):
+def SumAll(pdfs, vol, mult):
+    
+    sum_vol = {'cs':[],'ws':[]}
+    
+    for component in pdfs:
+        #if component == 'bb0n':
+        #    continue
 
-    for component in pdfs:#reversed(sorted(pdfs.keys())):
         pdf = pdfs[component]
         pdf_vol = pdf[mult][vol]
-        ax.hist(pdf_vol['cs'], weights=pdf_vol['ws'], edgecolor=pdf['color'], color=pdf['color'], bins=nbins, histtype='stepfilled', alpha=pdf['alpha'] , hatch=pdf['hatch'], range=hrange, label=pdf['legend'])
 
+        if len(sum_vol['cs']) == 0:
+            for c in pdf_vol['cs']:
+                sum_vol['cs'].append(c)
+                sum_vol['ws'].append(0)
+        
+        for i in range(len(sum_vol['cs'])):
+            sum_vol['ws'][i] += pdf_vol['ws'][i]
 
-def MakePlot( inpkl , outname = 'energy_vols.pdf' ):
+    return sum_vol
+
+def PlotVolume( vol, mult, ax, pdfs, nbins, hrange, sumon):
+    
+    compOrder = ['bb2n','other','bb0n']
+
+    for component in compOrder: #pdfs:#reversed(sorted(pdfs.keys())):
+        pdf = pdfs[component]
+        pdf_vol = pdf[mult][vol]
+            
+        ax.hist(pdf_vol['cs'], weights=pdf_vol['ws'], edgecolor=pdf['edgecolor'], color=pdf['color'], bins=nbins, histtype='stepfilled', alpha=pdf['alpha'] , hatch=pdf['hatch'], range=hrange, label=pdf['legend'])            
+
+    if sumon:
+        sum_vol = SumAll(pdfs,vol,mult)
+        ax.hist(sum_vol['cs'], weights=sum_vol['ws'], linewidth=1.1, edgecolor='black', facecolor='None', histtype='stepfilled', bins=nbins, range=hrange, label='Sum')            
+        
+def MakePlot( inpkl , outname, transp = 0, closeup = False, sumon = False ):
 
     axis_label_fontsize = 14
     legend_fontsize = 14
     labels_fontsize = 14
 
     histos = pickle.load(open(inpkl,'rb'))
-    hrange = [800,3500]
+    hrange = [800,3500] 
+    if closeup:
+        hrange = [2000,3000]
     hnb = (hrange[-1]-hrange[0])/20
 
     vols = ['fv','3t','2t','1t']
     components = ['bb2n','bb0n','other']
-    colors = ['lightgreen','red','darkgreen']
-    alphas = [0.75,0.5,0.5]
+    colors = ['lightblue','red','darkgreen'] # ['lightgreen','red','darkgreen']
+    edgecolors = ['black','black','black'] # ['darkblue','darkred','darkgreen']
+    if sumon:
+        edgecolors = colors
+    if transp == 0:
+        alphas = [0.75,0.4,0.3]
+    elif transp == 1:
+        alphas = [0.75,0.5,0.5]
     hatchs = ['','','']
-    legends = [r'$2\nu\beta\beta$',r'$0\nu\beta\beta$','Other Bgd.']
+    legends = [r'$2\nu\beta\beta$',r'$0\nu\beta\beta$','Other Bgds.']
     mults = ['ss','ms']
 
     pdfs = {}
-    for component, color, alpha, hatch, legend in zip(components,colors, alphas, hatchs, legends):
+    for component, color, alpha, hatch, legend, edgecolor in zip(components,colors, alphas, hatchs, legends, edgecolors):
         pdfs[component] = {}
         pdfs[component]['color'] = color
         pdfs[component]['alpha'] = alpha
         pdfs[component]['hatch'] = hatch
         pdfs[component]['legend'] = legend
+        pdfs[component]['edgecolor'] = edgecolor
         for mult in mults:
             pdfs[component][mult] = {}
             for vol in vols:
                 pdfs[component][mult][vol] = {}
-                pdfs[component][mult][vol]['nb'], pdfs[component][mult][vol]['cs'], pdfs[component][mult][vol]['ws'] = ConvertHistogram(ProjectVolume(component,mult,vol,histos))
-       
+                pdfs[component][mult][vol]['nb'], pdfs[component][mult][vol]['cs'], pdfs[component][mult][vol]['ws'] = ConvertHistogram(ProjectVolume(component,mult,vol,histos))       
+
     fig, ((ax_ss_fv, ax_ss_3t, ax_ss_2t, ax_ss_1t), (ax_ms_fv, ax_ms_3t, ax_ms_2t, ax_ms_1t)) = plt.subplots(2, 4, sharex=True, sharey=True)
     
     #fig.xlabel("Energy [keV]", fontsize=axis_label_fontsize)
     #fig.ylabel("Events / 20 keV [cts]", fontsize=axis_label_fontsize)
 
-    PlotVolume('fv', 'ss', ax_ss_fv, pdfs, hnb, hrange)
-    PlotVolume('3t', 'ss', ax_ss_3t, pdfs, hnb, hrange)
-    PlotVolume('2t', 'ss', ax_ss_2t, pdfs, hnb, hrange)
-    PlotVolume('1t', 'ss', ax_ss_1t, pdfs, hnb, hrange)
-    PlotVolume('fv', 'ms', ax_ms_fv, pdfs, hnb, hrange)
-    PlotVolume('3t', 'ms', ax_ms_3t, pdfs, hnb, hrange)
-    PlotVolume('2t', 'ms', ax_ms_2t, pdfs, hnb, hrange)
-    PlotVolume('1t', 'ms', ax_ms_1t, pdfs, hnb, hrange)
+    PlotVolume('fv', 'ss', ax_ss_fv, pdfs, hnb, hrange, sumon)
+    PlotVolume('3t', 'ss', ax_ss_3t, pdfs, hnb, hrange, sumon)
+    PlotVolume('2t', 'ss', ax_ss_2t, pdfs, hnb, hrange, sumon)
+    PlotVolume('1t', 'ss', ax_ss_1t, pdfs, hnb, hrange, sumon)
+    PlotVolume('fv', 'ms', ax_ms_fv, pdfs, hnb, hrange, sumon)
+    PlotVolume('3t', 'ms', ax_ms_3t, pdfs, hnb, hrange, sumon)
+    PlotVolume('2t', 'ms', ax_ms_2t, pdfs, hnb, hrange, sumon)
+    PlotVolume('1t', 'ms', ax_ms_1t, pdfs, hnb, hrange, sumon)
 
     fig.subplots_adjust(wspace = 0, hspace = 0)
     
@@ -210,8 +246,10 @@ def MakePlot( inpkl , outname = 'energy_vols.pdf' ):
     plt.ylim([5e-2,7e6])
     plt.yscale('log')
 
-    ax_ss_fv.set_ylabel("SS Events [cts]", fontsize=axis_label_fontsize)
-    ax_ms_fv.set_ylabel("MS Events [cts]", fontsize=axis_label_fontsize)
+    bw = (hrange[-1]-hrange[0])/hnb/1000.
+
+    ax_ss_fv.set_ylabel("SS Events\n[cts/(%.2f MeV)]"%(bw), fontsize=axis_label_fontsize)
+    ax_ms_fv.set_ylabel("MS Events\n[cts/(%.2f MeV)]"%(bw), fontsize=axis_label_fontsize)
     ax_ms_fv.set_xlabel("Energy [MeV]", fontsize=axis_label_fontsize)
     ax_ms_3t.set_xlabel("Energy [MeV]", fontsize=axis_label_fontsize)
     ax_ms_2t.set_xlabel("Energy [MeV]", fontsize=axis_label_fontsize)
@@ -221,7 +259,10 @@ def MakePlot( inpkl , outname = 'energy_vols.pdf' ):
     #labels = [item.get_text() for item in ax_ms_fv.get_xticklabels()]
     #for i,label in enumerate(labels):
     #    print i, labels[i], label
-    ax_ms_fv.set_xticklabels(['',1.0,'',2.0,'',3.0,''])
+    if closeup:
+        ax_ms_fv.set_xticklabels(['',2.2,2.4,2.6,2.8,''])
+    else:
+        ax_ms_fv.set_xticklabels(['',1.0,'',2.0,'',3.0,''])
     #plt.gca().set_xticks([1500,2500])
 
     ax_ss_fv.set_title("Fid. Vol.", fontsize=axis_label_fontsize)
@@ -229,15 +270,117 @@ def MakePlot( inpkl , outname = 'energy_vols.pdf' ):
     ax_ss_2t.set_title("Inner 2 t", fontsize=axis_label_fontsize)
     ax_ss_1t.set_title("Inner 1 t", fontsize=axis_label_fontsize)
 
-    leg = plt.legend(loc="upper left",bbox_to_anchor = (1,0.5),prop={'size':legend_fontsize})
-
+    #leg = plt.legend(loc="upper left",bbox_to_anchor = (1,0.5),prop={'size':legend_fontsize})
+    #leg = plt.legend(loc="upper center", bbox_to_anchor = (0.5,1.05), ncol=3, mode='expand', borderaxespad=0.,prop={'size':legend_fontsize})
+    leg = plt.legend(loc="upper center", bbox_to_anchor = (-1.05,2.45), ncol=(3,4)[sumon], prop={'size':legend_fontsize})   
+    
     #plt.minorticks_on #off 
     #plt.grid(False, which='both')
 
     fig.set_size_inches(8,4.5)
-    plt.savefig( outname, bbox_extra_artists=(leg,), bbox_inches='tight' )
+    #plt.savefig( outname, bbox_extra_artists=(leg,), bbox_inches='tight' )
+    plt.savefig( outname + '.pdf', bbox_extra_artists=(leg,), bbox_inches='tight' )
+    plt.savefig( outname + '.png', bbox_extra_artists=(leg,), bbox_inches='tight' )
 
     plt.show()
 
     #hh, be = np.histogram( cs, bins=nb-15, weights=ws, range=[1000,3500] )
     #plt.step(be[:-1], hh, where='post', color='k', linewidth=1.5)
+
+
+def MakeIndividualPlot( inpkl , outname, vol='1t', mult='ss', transp = 0, closeup = False, sumon = False ):
+
+    titles = {'fv':"Fiducial Volume",'3t':"Inner 3 tonnes",'2t':"Inner 2 tonnes",'1t':"Inner 1 tonne"}
+
+    axis_label_fontsize = 14
+    legend_fontsize = 14
+    labels_fontsize = 14
+
+    histos = pickle.load(open(inpkl,'rb'))
+    hrange = [800,3500] 
+    if closeup:
+        hrange = [2000,3000]
+    hnb = (hrange[-1]-hrange[0])/20
+
+    vols = [vol]
+    components = ['bb2n','bb0n','other']
+    colors = ['lightblue','red','darkgreen'] # ['lightgreen','red','darkgreen']
+    edgecolors = ['black','black','black'] # ['darkblue','darkred','darkgreen']
+    if sumon:
+        edgecolors = colors
+    if transp == 0:
+        alphas = [0.75,0.4,0.3]
+    elif transp == 1:
+        alphas = [0.75,0.5,0.5]
+    hatchs = ['','','']
+    legends = [r'$2\nu\beta\beta$',r'$0\nu\beta\beta$','Other Bgds.']
+    mults = [mult]
+
+    pdfs = {}
+    for component, color, alpha, hatch, legend, edgecolor in zip(components,colors, alphas, hatchs, legends, edgecolors):
+        pdfs[component] = {}
+        pdfs[component]['color'] = color
+        pdfs[component]['alpha'] = alpha
+        pdfs[component]['hatch'] = hatch
+        pdfs[component]['legend'] = legend
+        pdfs[component]['edgecolor'] = edgecolor
+        for mult in mults:
+            pdfs[component][mult] = {}
+            for vol in vols:
+                pdfs[component][mult][vol] = {}
+                pdfs[component][mult][vol]['nb'], pdfs[component][mult][vol]['cs'], pdfs[component][mult][vol]['ws'] = ConvertHistogram(ProjectVolume(component,mult,vol,histos))       
+
+    fig, ax = plt.subplots()
+
+    PlotVolume(vol, mult, ax, pdfs, hnb, hrange, sumon)
+    
+    plt.xlim(hrange)
+    plt.ylim([5e-2,7e6])
+    plt.yscale('log')
+
+    bw = (hrange[-1]-hrange[0])/hnb/1000.
+
+    ax.set_ylabel("%s Events\n[cts/(%.2f MeV)]"%(mult.upper(),bw), fontsize=axis_label_fontsize)
+    ax.set_xlabel("Energy [MeV]", fontsize=axis_label_fontsize)
+
+    ax.set_title(titles[vol], fontsize=axis_label_fontsize)
+
+    if closeup:
+        ax.set_xticklabels(['',2.2,2.4,2.6,2.8,''])
+    else:
+        ax.set_xticklabels(['',1.0,1.5,2.0,2.5,3.0,''])
+    #plt.gca().set_xticks([1500,2500])
+
+    leg = plt.legend(loc="upper right", prop={'size':legend_fontsize})   
+    
+    #plt.minorticks_on #off 
+    #plt.grid(False, which='both')
+
+    fig.set_size_inches(5,4.5)
+    #plt.savefig( outname, bbox_extra_artists=(leg,), bbox_inches='tight' )
+    plt.savefig( outname + '.pdf', bbox_inches='tight' )
+    plt.savefig( outname + '.png', bbox_inches='tight' )
+
+    #plt.show()
+
+    #hh, be = np.histogram( cs, bins=nb-15, weights=ws, range=[1000,3500] )
+    #plt.step(be[:-1], hh, where='post', color='k', linewidth=1.5)
+    
+def MakeIndividualPlots( inpkl , outname, transp = 0, closeup = False, sumon = False ):
+    
+    vols = ['fv','3t','2t','1t']
+    mults = ['ss','ms']
+
+    for vol in vols:
+        for mult in mults:
+            name = '%s_%s_%s' % (outname,vol,mult)
+            MakeIndividualPlot(inpkl, name, vol, mult, transp, closeup, sumon)
+
+if __name__ == "__main__":
+
+    # ReadTable( "/data/data033/exo/software/nEXO_Sensitivity/quick/v5/tables/Summary_v73_2016-09-09_0nu_resol0.010.root", "table_v73_2016-09-09_0nu_resol0.010_histos_hl5.5e27_10yr.pkl", livetime = 10.0, bb0n_halflife = 5.5e27 )
+    # MakePlot( "table_histos_hl3.5e27.pkl", "energy_vols_hl3.5e27_v5_sum", transp = 1, closeup = False, sumon = True )
+    MakePlot( "table_v73_2016-09-09_0nu_resol0.010_histos_hl5.5e27_10yr.pkl", "energy_vols_table_v73_2016-09-09_0nu_resol0.010_histos_hl5.5e27_10yr_v1_closeup", transp = 1, closeup = True, sumon = True )
+   
+    # MakeIndividualPlots( "table_histos_hl3.5e27.pkl", "energy_indvols_hl3.5e27_v0", transp = 1, closeup = False, sumon = False )
+    # MakeIndividualPlots( "table_v73_2016-09-09_0nu_resol0.010_histos_hl5.5e27_10yr.pkl", "energy_indvols_table_v73_2016-09-09_0nu_resol0.010_histos_hl5.5e27_10yr_v0", transp = 1, closeup = False, sumon = True )

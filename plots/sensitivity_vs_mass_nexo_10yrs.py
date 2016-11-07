@@ -8,7 +8,7 @@ matplotlib.rcParams['font.family'] = 'Times New Roman'
 #matplotlib.rcParams['text.usetex'] = True
 
 plot_vs_total_mass = False  ## True to plot vs m_tot, False to plot vs m_min
-
+five_or_ten_yr = True ## True for 5 yr, False for 10 yr
 
 allowed_regions = pickle.load(open("allowed_regions.pkl","rb"))
 
@@ -52,7 +52,15 @@ plt.savefig("sens_allowed_only"+suffix+".pdf")
 if( plot_vs_total_mass ):
     ax1.fill_between([0.23, 1],[1e-3,1e-3],[1,1], color='k', alpha= 0.15, edgecolor='none')
     ax2.fill_between([0.23, 1],[1e-3,1e-3],[1,1], color='k', alpha= 0.15, edgecolor='none')
-    ax2.text(0.4,1.2e-3, "Planck,\narXiv:1502.01589",rotation="vertical",ha='left',va='bottom')
+#    ax2.text(0.4,1.2e-3, "Planck,\narXiv:1502.01589",rotation="vertical",ha='left',va='bottom')
+    ax2.text(0.4,1.2e-3, "Planck 2015 Results,\nA&A 594, A13 (2016)",rotation="vertical",ha='left',va='bottom')
+
+    ax1.annotate('N.H.', xy=(0.25,0.055), color='red')
+    ax2.annotate('I.H.', xy=(0.25,0.055), color='blue')
+else:
+    ax1.annotate('N.H.', xy=(0.001,0.0025), color='red')
+    ax2.annotate('I.H.', xy=(0.001,0.025), color='blue')
+        
     
 exo200_curr = 1.1e25 ## half-life limit from nature paper (yr)
 exo200_proj = 5.7e25 ## half-life sensitivity from Phase1+2 projection (yr)
@@ -84,17 +92,18 @@ ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_proj, lmax_proj]), r"EXO-200 Phase-II
 
 ## nexo
 
-#col=np.array([0.,150.,150.])/256.
-#ax1.fill_between(xlim,[lmax_notag, lmax_notag],[lmin_notag, lmin_notag],edgecolor=col,facecolor=col,alpha=0.5)
-#ax2.fill_between(xlim,[lmax_notag, lmax_notag],[lmin_notag, lmin_notag],edgecolor=col,facecolor=col,alpha=0.5)
-#ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_notag, lmax_notag]), r"nEXO 5 Years", ha="left", va="center", fontsize=12)
+if five_or_ten_yr:
+    col=np.array([0.,150.,150.])/256.
+    ax1.fill_between(xlim,[lmax_notag, lmax_notag],[lmin_notag, lmin_notag],edgecolor=col,facecolor=col,alpha=0.5)
+    ax2.fill_between(xlim,[lmax_notag, lmax_notag],[lmin_notag, lmin_notag],edgecolor=col,facecolor=col,alpha=0.5)
+    ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_notag, lmax_notag]), r"nEXO 5 Years", ha="left", va="center", fontsize=12)
+else:
+    col=np.array([180.,50.,150.])/256.
+    ax1.fill_between(xlim,[lmax_10yrs, lmax_10yrs],[lmin_10yrs, lmin_10yrs],edgecolor=col,facecolor=col,alpha=0.5)
+    ax2.fill_between(xlim,[lmax_10yrs, lmax_10yrs],[lmin_10yrs, lmin_10yrs],edgecolor=col,facecolor=col,alpha=0.5)
+    ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_10yrs, lmax_10yrs]), r"nEXO 10 Years", ha="left", va="center", fontsize=12)
 
-col=np.array([180.,50.,150.])/256.
-ax1.fill_between(xlim,[lmax_10yrs, lmax_10yrs],[lmin_10yrs, lmin_10yrs],edgecolor=col,facecolor=col,alpha=0.5)
-ax2.fill_between(xlim,[lmax_10yrs, lmax_10yrs],[lmin_10yrs, lmin_10yrs],edgecolor=col,facecolor=col,alpha=0.5)
-ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_10yrs, lmax_10yrs]), r"nEXO 10 Years", ha="left", va="center", fontsize=12)
-
-plt.savefig("sens_nexo"+suffix+"_10yrs_v0.png")
-
+plt.savefig("sens_nexo"+suffix+"_%dyrs_v2.pdf"%((10,5)[five_or_ten_yr]))
+plt.savefig("sens_nexo"+suffix+"_%dyrs_v2.png"%((10,5)[five_or_ten_yr]))
 
 plt.show()
