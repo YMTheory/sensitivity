@@ -57,14 +57,14 @@ private:
   TString	fYaxisTitle;
   Double_t 	fDiscPlotRangeX[2];
   Double_t 	fDiscPlotRangeY[2];
-  static const Int_t	fNBinsX = 2800;
-  static const Int_t	fNBinsY = 650;
+  static constexpr Int_t	fNBinsX = 2800;
+  static constexpr Int_t	fNBinsY = 650;
   Double_t	fFidVolXY;
   Double_t	fFidVolZZ;
-  static const Double_t	fXeMass = 4779.96;
-  static const Double_t	fEnrichment = 0.9;
-  static const Double_t	fXeMolarMass = 0.136;
-  static const Double_t	fAvogadrosNumber = 6.022e23;
+  static constexpr Double_t	fXeMass = 4779.96;
+  static constexpr Double_t	fEnrichment = 0.9;
+  static constexpr Double_t	fXeMolarMass = 0.136;
+  static constexpr Double_t	fAvogadrosNumber = 6.022e23;
   
   Double_t getMatElem(enum MATRIX_ELEMENT matElem) 			{return fMatElem[matElem];}
   TString getMatElemName(enum MATRIX_ELEMENT matElem) 		{return fMatElemName[matElem];}

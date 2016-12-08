@@ -41,8 +41,40 @@ public:
 
   Double_t bkg_tot; // total of mean bkgd per year before rebinning of PDFs
   Double_t bkg_fwhm_fv; // mean bkg/yr in FWHM before rebinning of PDFs
-  Double_t bkg_fwhm_3t; // mean bkg/yr in FWHM-1t before rebinning of PDFs
-  Double_t bkg_fwhm_1t; // mean bkg/yr in FWHM-3t before rebinning of PDFs
+  Double_t bkg_fwhm_3t; // mean bkg/yr in FWHM-3t before rebinning of PDFs
+  Double_t bkg_fwhm_2t; // mean bkg/yr in FWHM-2t before rebinning of PDFs
+  Double_t bkg_fwhm_1t; // mean bkg/yr in FWHM-1t before rebinning of PDFs
+  Double_t bkg_fwhm_3p5t; // mean bkg/yr in FWHM-3p5t before rebinning of PDFs
+  Double_t bkg_fwhm_2p5t; // mean bkg/yr in FWHM-2p5t before rebinning of PDFs
+  Double_t bkg_fwhm_1p5t; // mean bkg/yr in FWHM-1p5t before rebinning of PDFs
+  Double_t bkg_fwhm_0p5t; // mean bkg/yr in FWHM-0p5t before rebinning of PDFs
+
+  Double_t bkg_1sigma_fv; // mean bkg/yr in FWHM before rebinning of PDFs
+  Double_t bkg_1sigma_3t; // mean bkg/yr in FWHM-3t before rebinning of PDFs
+  Double_t bkg_1sigma_2t; // mean bkg/yr in FWHM-2t before rebinning of PDFs
+  Double_t bkg_1sigma_1t; // mean bkg/yr in FWHM-1t before rebinning of PDFs
+  Double_t bkg_1sigma_3p5t; // mean bkg/yr in FWHM-3p5t before rebinning of PDFs
+  Double_t bkg_1sigma_2p5t; // mean bkg/yr in FWHM-2p5t before rebinning of PDFs
+  Double_t bkg_1sigma_1p5t; // mean bkg/yr in FWHM-1p5t before rebinning of PDFs
+  Double_t bkg_1sigma_0p5t; // mean bkg/yr in FWHM-0p5t before rebinning of PDFs
+
+  Double_t bkg_2sigma_fv; // mean bkg/yr in FWHM before rebinning of PDFs
+  Double_t bkg_2sigma_3t; // mean bkg/yr in FWHM-3t before rebinning of PDFs
+  Double_t bkg_2sigma_2t; // mean bkg/yr in FWHM-2t before rebinning of PDFs
+  Double_t bkg_2sigma_1t; // mean bkg/yr in FWHM-1t before rebinning of PDFs
+  Double_t bkg_2sigma_3p5t; // mean bkg/yr in FWHM-3p5t before rebinning of PDFs
+  Double_t bkg_2sigma_2p5t; // mean bkg/yr in FWHM-2p5t before rebinning of PDFs
+  Double_t bkg_2sigma_1p5t; // mean bkg/yr in FWHM-1p5t before rebinning of PDFs
+  Double_t bkg_2sigma_0p5t; // mean bkg/yr in FWHM-0p5t before rebinning of PDFs
+
+  Double_t bkg_3sigma_fv; // mean bkg/yr in FWHM before rebinning of PDFs
+  Double_t bkg_3sigma_3t; // mean bkg/yr in FWHM-3t before rebinning of PDFs
+  Double_t bkg_3sigma_2t; // mean bkg/yr in FWHM-2t before rebinning of PDFs
+  Double_t bkg_3sigma_1t; // mean bkg/yr in FWHM-1t before rebinning of PDFs
+  Double_t bkg_3sigma_3p5t; // mean bkg/yr in FWHM-3p5t before rebinning of PDFs
+  Double_t bkg_3sigma_2p5t; // mean bkg/yr in FWHM-2p5t before rebinning of PDFs
+  Double_t bkg_3sigma_1p5t; // mean bkg/yr in FWHM-1p5t before rebinning of PDFs
+  Double_t bkg_3sigma_0p5t; // mean bkg/yr in FWHM-0p5t before rebinning of PDFs
 
 protected:
   void DeleteAllPointers();    

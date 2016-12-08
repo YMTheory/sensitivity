@@ -21,7 +21,7 @@ def GetBkgdLimit(filename,branch,prob):
     chain = ROOT.TChain('tree')
     chain.Add(filename)
     chain.SetEstimate(chain.GetEntries()+1)
-    branch = branch + '>>hist(1000,0,1)'
+    branch = branch + '>>hist(10000,0,10)'
     chain.Draw(branch,'','goff')
     print 'using', chain.GetSelectedRows()
     hist = ROOT.gDirectory.Get('hist')
@@ -61,15 +61,15 @@ for name in nameList:
     x = GetBkgdLimit(name,'bkg_fwhm_3t',0.5)#GetBkgdCounts(name)
     xul = GetBkgdLimit(name,'bkg_fwhm_3t',0.9)
     y = ROOT.nEXOUtils.GetSensHalfLife(name,5.0,3740,'signal',effList[name])
-    y1t = ROOT.nEXOUtils.EvalCountSensHalfLife(name,'bkg_fwhm_1t*5',5.0,1000)*effList[name]*0.762
-    y3t = ROOT.nEXOUtils.EvalCountSensHalfLife(name,'bkg_fwhm_3t*5',5.0,3000)*effList[name]*0.762
-    yfv = ROOT.nEXOUtils.EvalCountSensHalfLife(name,'bkg_fwhm_fv*5',5.0,3740)*effList[name]*0.762
-    print x, y, y1t, y3t, yfv
+    #y1t = ROOT.nEXOUtils.EvalCountSensHalfLife(name,'bkg_fwhm_1t*5',5.0,1000)*effList[name]*0.762
+    #y3t = ROOT.nEXOUtils.EvalCountSensHalfLife(name,'bkg_fwhm_3t*5',5.0,3000)*effList[name]*0.762
+    #yfv = ROOT.nEXOUtils.EvalCountSensHalfLife(name,'bkg_fwhm_fv*5',5.0,3740)*effList[name]*0.762
+    print x, y#, y1t, y3t, yfv
     graph.SetPoint(n,x,y/1e27)
     graphul.SetPoint(n,xul,y/1e27)
-    graph1t.SetPoint(n,x,y1t/1e27)
-    graph3t.SetPoint(n,x,y3t/1e27)
-    graphfv.SetPoint(n,x,yfv/1e27)
+    #graph1t.SetPoint(n,x,y1t/1e27)
+    #graph3t.SetPoint(n,x,y3t/1e27)
+    #graphfv.SetPoint(n,x,yfv/1e27)
 
 canvas = ROOT.TCanvas()
 leg = ROOT.TLegend(0.1,0.7,0.48,0.9)
@@ -83,25 +83,31 @@ leg = ROOT.TLegend(0.1,0.7,0.48,0.9)
 graph.SetMarkerStyle(20)
 graph.SetMarkerColor(1)
 graph.GetYaxis().SetTitle('Sensitivity @ 90% CL (#times 10^{27} yrs)')
-graph.GetXaxis().SetTitle('Mean Background in FWHM-3t (cts/yr)')
+graph.GetXaxis().SetTitle('Background in FWHM-3t (cts/yr)')
 graph.Draw('APL')
+
+pf = ROOT.TF1('power','[0]*pow(x,[1])',0,100)
+pf.SetParameters(1,-0.5)
+for i in range(10): graph.Fit(pf,'QW')
+graph.Fit(pf,'W')
+
 #leg.AddEntry(graph,'Median','PL')
 leg.AddEntry(graph,'2D Fit Analysis','PL')
-graph1t.SetMarkerStyle(20)
-graph1t.SetMarkerColor(4)
-graph1t.SetLineColor(4)
-graph1t.Draw('PL')
-leg.AddEntry(graph1t,'Counting Expt. FWHM-1t','PL')
-graph3t.SetMarkerStyle(20)
-graph3t.SetMarkerColor(3)
-graph3t.SetLineColor(3)
-graph3t.Draw('PL')
-leg.AddEntry(graph3t,'Counting Expt. FWHM-3t','PL')
-graphfv.SetMarkerStyle(20)
-graphfv.SetMarkerColor(2)
-graphfv.SetLineColor(2)
-graphfv.Draw('PL')
-leg.AddEntry(graphfv,'Counting Expt. FWHM-FV','PL')
+# graph1t.SetMarkerStyle(20)
+# graph1t.SetMarkerColor(4)
+# graph1t.SetLineColor(4)
+# graph1t.Draw('PL')
+# leg.AddEntry(graph1t,'Counting Expt. FWHM-1t','PL')
+# graph3t.SetMarkerStyle(20)
+# graph3t.SetMarkerColor(3)
+# graph3t.SetLineColor(3)
+# graph3t.Draw('PL')
+# leg.AddEntry(graph3t,'Counting Expt. FWHM-3t','PL')
+# graphfv.SetMarkerStyle(20)
+# graphfv.SetMarkerColor(2)
+# graphfv.SetLineColor(2)
+# graphfv.Draw('PL')
+#leg.AddEntry(graphfv,'Counting Expt. FWHM-FV','PL')
 
 leg.Draw()
 # leg = ROOT.TLegend(0.1,0.7,0.48,0.9)

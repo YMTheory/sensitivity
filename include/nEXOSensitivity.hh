@@ -20,6 +20,8 @@
 #include "TRint.h"
 #include "TStopwatch.h"
 #include "TTree.h"
+#include "Math/QuantFuncMathCore.h"
+#include "Math/ProbFuncMathCore.h"
 
 #include "RooWorkspace.h"
 #include "RooRealVar.h"
@@ -53,7 +55,10 @@ typedef struct ExcelTableValues {
 
   std::vector<TString> fSuffixes;
   std::vector<Double_t> fCountsCV, fCountsError, fCountsUL;
-  std::vector<Double_t> fRatioFWHMfv, fRatioFWHM3t, fRatioFWHM1t;
+  std::vector<Double_t> fRatioFWHMfv, fRatioFWHM3t, fRatioFWHM2t, fRatioFWHM1t, fRatioFWHM3p5t, fRatioFWHM2p5t, fRatioFWHM1p5t, fRatioFWHM0p5t;
+  std::vector<Double_t> fRatio1sfv, fRatio1s3t, fRatio1s2t, fRatio1s1t, fRatio1s3p5t, fRatio1s2p5t, fRatio1s1p5t, fRatio1s0p5t;
+  std::vector<Double_t> fRatio2sfv, fRatio2s3t, fRatio2s2t, fRatio2s1t, fRatio2s3p5t, fRatio2s2p5t, fRatio2s1p5t, fRatio2s0p5t;
+  std::vector<Double_t> fRatio3sfv, fRatio3s3t, fRatio3s2t, fRatio3s1t, fRatio3s3p5t, fRatio3s2p5t, fRatio3s1p5t, fRatio3s0p5t;
   std::vector<Double_t> fHitEffN, fHitEffK;
   Double_t fSpecActivCV, fSpecActivError, fActivCV, fActivError;
   TString fActivID;
@@ -82,9 +87,10 @@ typedef struct ExcelTableValues {
     fCountsError.push_back(0.);
     fCountsUL.push_back(0.);
 
-    fRatioFWHMfv.push_back(0.);
-    fRatioFWHM3t.push_back(0.);
-    fRatioFWHM1t.push_back(0.);
+    fRatioFWHMfv.push_back(0.); fRatioFWHM3t.push_back(0.); fRatioFWHM2t.push_back(0.); fRatioFWHM1t.push_back(0.); fRatioFWHM3p5t.push_back(0.); fRatioFWHM2p5t.push_back(0.); fRatioFWHM1p5t.push_back(0.); fRatioFWHM0p5t.push_back(0.);
+    fRatio1sfv.push_back(0.); fRatio1s3t.push_back(0.); fRatio1s2t.push_back(0.); fRatio1s1t.push_back(0.); fRatio1s3p5t.push_back(0.); fRatio1s2p5t.push_back(0.); fRatio1s1p5t.push_back(0.); fRatio1s0p5t.push_back(0.);
+    fRatio2sfv.push_back(0.); fRatio2s3t.push_back(0.); fRatio2s2t.push_back(0.); fRatio2s1t.push_back(0.); fRatio2s3p5t.push_back(0.); fRatio2s2p5t.push_back(0.); fRatio2s1p5t.push_back(0.); fRatio2s0p5t.push_back(0.);
+    fRatio3sfv.push_back(0.); fRatio3s3t.push_back(0.); fRatio3s2t.push_back(0.); fRatio3s1t.push_back(0.); fRatio3s3p5t.push_back(0.); fRatio3s2p5t.push_back(0.); fRatio3s1p5t.push_back(0.); fRatio3s0p5t.push_back(0.);
 
     fHitEffN.push_back(0.);
     fHitEffK.push_back(0.);
@@ -108,15 +114,32 @@ typedef struct ExcelTableValues {
     fCountsUL[si] = ul;
   }
   
-  void SetHitEfficiency(Double_t n, Double_t k, Double_t fwhmfv, Double_t fwhm3t, Double_t fwhm1t, TString suffix){
+  void SetHitEfficiency(Double_t n, Double_t k, TString suffix){
     int si = FindSuffixIdxAdd(suffix);
     
     fHitEffN[si] = n;
     fHitEffK[si] = k;
+  }
 
-    fRatioFWHMfv[si] = fwhmfv;
-    fRatioFWHM3t[si] = fwhm3t;
-    fRatioFWHM1t[si] = fwhm1t;
+  void SetHitEfficiencyROI(int roi, Double_t fwhmfv, Double_t fwhm3t, Double_t fwhm2t, Double_t fwhm1t, Double_t fwhm3p5t, Double_t fwhm2p5t, Double_t fwhm1p5t, Double_t fwhm0p5t, TString suffix){
+    int si = FindSuffixIdxAdd(suffix);
+
+    if(roi == 0)
+    {
+      fRatioFWHMfv[si] = fwhmfv; fRatioFWHM3t[si] = fwhm3t; fRatioFWHM2t[si] = fwhm2t; fRatioFWHM1t[si] = fwhm1t; fRatioFWHM3p5t[si] = fwhm3p5t; fRatioFWHM2p5t[si] = fwhm2p5t; fRatioFWHM1p5t[si] = fwhm1p5t; fRatioFWHM0p5t[si] = fwhm0p5t;
+    }
+    else if(roi == 1)
+    {
+      fRatio1sfv[si] = fwhmfv; fRatio1s3t[si] = fwhm3t; fRatio1s2t[si] = fwhm2t; fRatio1s1t[si] = fwhm1t; fRatio1s3p5t[si] = fwhm3p5t; fRatio1s2p5t[si] = fwhm2p5t; fRatio1s1p5t[si] = fwhm1p5t; fRatio1s0p5t[si] = fwhm0p5t;
+    }
+    else if(roi == 2)
+    {
+      fRatio2sfv[si] = fwhmfv; fRatio2s3t[si] = fwhm3t; fRatio2s2t[si] = fwhm2t; fRatio2s1t[si] = fwhm1t; fRatio2s3p5t[si] = fwhm3p5t; fRatio2s2p5t[si] = fwhm2p5t; fRatio2s1p5t[si] = fwhm1p5t; fRatio2s0p5t[si] = fwhm0p5t;
+    }
+    else if(roi == 3)
+    {
+      fRatio3sfv[si] = fwhmfv; fRatio3s3t[si] = fwhm3t; fRatio3s2t[si] = fwhm2t; fRatio3s1t[si] = fwhm1t; fRatio3s3p5t[si] = fwhm3p5t; fRatio3s2p5t[si] = fwhm2p5t; fRatio3s1p5t[si] = fwhm1p5t; fRatio3s0p5t[si] = fwhm0p5t;
+    }
   }
 
   void SetActivity(Double_t specActiv, Double_t specActivError, Double_t activ, Double_t activError, TString activID){
@@ -148,9 +171,10 @@ typedef struct ExcelTableValues {
     fCountsError.clear();
     fCountsUL.clear();
 
-    fRatioFWHMfv.clear();
-    fRatioFWHM3t.clear();
-    fRatioFWHM1t.clear();
+    fRatioFWHMfv.clear(); fRatioFWHM3t.clear(); fRatioFWHM2t.clear(); fRatioFWHM1t.clear(); fRatioFWHM3p5t.clear(); fRatioFWHM2p5t.clear(); fRatioFWHM1p5t.clear(); fRatioFWHM0p5t.clear();
+    fRatio1sfv.clear(); fRatio1s3t.clear(); fRatio1s2t.clear(); fRatio1s1t.clear(); fRatio1s3p5t.clear(); fRatio1s2p5t.clear(); fRatio1s1p5t.clear(); fRatio1s0p5t.clear();
+    fRatio2sfv.clear(); fRatio2s3t.clear(); fRatio2s2t.clear(); fRatio2s1t.clear(); fRatio2s3p5t.clear(); fRatio2s2p5t.clear(); fRatio2s1p5t.clear(); fRatio2s0p5t.clear();
+    fRatio3sfv.clear(); fRatio3s3t.clear(); fRatio3s2t.clear(); fRatio3s1t.clear(); fRatio3s3p5t.clear(); fRatio3s2p5t.clear(); fRatio3s1p5t.clear(); fRatio3s0p5t.clear();
 
     fHitEffN.clear();
     fHitEffK.clear();
@@ -170,9 +194,10 @@ typedef struct ExcelTableValues {
       {
         fHitEffN.push_back(other.fHitEffN.at(i));
         fHitEffK.push_back(other.fHitEffK.at(i));
-        fRatioFWHMfv.push_back(other.fRatioFWHMfv.at(i));
-        fRatioFWHM3t.push_back(other.fRatioFWHM3t.at(i));
-        fRatioFWHM1t.push_back(other.fRatioFWHM1t.at(i));
+        fRatioFWHMfv.push_back(other.fRatioFWHMfv.at(i)); fRatioFWHM3t.push_back(other.fRatioFWHM3t.at(i)); fRatioFWHM2t.push_back(other.fRatioFWHM2t.at(i)); fRatioFWHM1t.push_back(other.fRatioFWHM1t.at(i)); fRatioFWHM3p5t.push_back(other.fRatioFWHM3p5t.at(i)); fRatioFWHM2p5t.push_back(other.fRatioFWHM2p5t.at(i)); fRatioFWHM1p5t.push_back(other.fRatioFWHM1p5t.at(i)); fRatioFWHM0p5t.push_back(other.fRatioFWHM0p5t.at(i));
+        fRatio1sfv.push_back(other.fRatio1sfv.at(i)); fRatio1s3t.push_back(other.fRatio1s3t.at(i)); fRatio1s2t.push_back(other.fRatio1s2t.at(i)); fRatio1s1t.push_back(other.fRatio1s1t.at(i)); fRatio1s3p5t.push_back(other.fRatio1s3p5t.at(i)); fRatio1s2p5t.push_back(other.fRatio1s2p5t.at(i)); fRatio1s1p5t.push_back(other.fRatio1s1p5t.at(i)); fRatio1s0p5t.push_back(other.fRatio1s0p5t.at(i));
+        fRatio2sfv.push_back(other.fRatio2sfv.at(i)); fRatio2s3t.push_back(other.fRatio2s3t.at(i)); fRatio2s2t.push_back(other.fRatio2s2t.at(i)); fRatio2s1t.push_back(other.fRatio2s1t.at(i)); fRatio2s3p5t.push_back(other.fRatio2s3p5t.at(i)); fRatio2s2p5t.push_back(other.fRatio2s2p5t.at(i)); fRatio2s1p5t.push_back(other.fRatio2s1p5t.at(i)); fRatio2s0p5t.push_back(other.fRatio2s0p5t.at(i));
+        fRatio3sfv.push_back(other.fRatio3sfv.at(i)); fRatio3s3t.push_back(other.fRatio3s3t.at(i)); fRatio3s2t.push_back(other.fRatio3s2t.at(i)); fRatio3s1t.push_back(other.fRatio3s1t.at(i)); fRatio3s3p5t.push_back(other.fRatio3s3p5t.at(i)); fRatio3s2p5t.push_back(other.fRatio3s2p5t.at(i)); fRatio3s1p5t.push_back(other.fRatio3s1p5t.at(i)); fRatio3s0p5t.push_back(other.fRatio3s0p5t.at(i));
       }
     }
 
@@ -237,7 +262,7 @@ typedef struct ExcelTableValues {
       if(i < fCountsCV.size())
         std::cout << Form("** %s Counts: CV = %g , Error = %g , UL = %g ", fSuffixes[i].Data(), fCountsCV[i], fCountsError[i], fCountsUL[i]) << std::endl;
       if(i < fHitEffN.size())
-        std::cout << Form("** %s Hit efficiency: N = %g , k = %g , FWHM FV ratio: %g , FWHM 3t ratio: %g , FWHM 1t ratio: %g", fSuffixes[i].Data(), fHitEffN[i], fHitEffK[i], fRatioFWHMfv[i], fRatioFWHM3t[i], fRatioFWHM1t[i]) << std::endl;
+        std::cout << Form("** %s Hit efficiency: N = %g , k = %g , FWHM FV ratio: %g , FWHM 3t ratio: %g , 2-sigma 2t ratio: %g , FWHM 1t ratio: %g", fSuffixes[i].Data(), fHitEffN[i], fHitEffK[i], fRatioFWHMfv[i], fRatioFWHM3t[i], fRatio2s2t[i], fRatioFWHM1t[i]) << std::endl;
       //std::cout << Form("** %s Internal Counts = %g", fSuffixes[i].Data(), GetMeanCounts(fSuffixes[i],true)) << std::endl;
     }
     std::cout << Form("** Activity: Specific CV = %g , Specific Error = %g , Full CV = %g , Full Error = %g , ID = %s", fSpecActivCV, fSpecActivError, fActivCV, fActivError, fActivID.Data()) << std::endl;
@@ -258,9 +283,11 @@ public:
   virtual ~nEXOSensitivity();
 
   void SetSeed(int seed);
-
+  void SetBinning(int nBinsX, double xMin, double xMax, int nBinsY, double yMin, double yMax);
+    
   void SetBaTag(bool useBaTag){fBaTag = useBaTag; if(useBaTag) fWithStandoff = false;};
   void TurnGroupOff(TString groupName){fTurnedOffGroups.insert(groupName);}
+  void ScaleMeanBackgrounds(Double_t scale, Bool_t bb2n){fScaleBkgds = scale; fScale2nu = bb2n;}
   
   void AddUserMeanCounts(TString group, Double_t value){
     fUserMeanCounts.insert(std::make_pair(group.Data(),value));
@@ -268,23 +295,25 @@ public:
   
   void MakeFittingHistogramFile();
   void BuildWorkspace(Double_t yrs = 5.0, Double_t signalCounts = 0.0);
+  void AddMagicNumber(double signal, double magicN);
   void GenAndFitData(Int_t nRuns = 1, Double_t yrs = 5., Double_t signalCounts = 0., Int_t rdmRate = 0);
 
   void LoadComponentHistograms();
   void MakeGroupHistograms();
 
   Double_t EvalCounts(Double_t hitEfficiency, Double_t activity, Double_t time, Double_t halflife);
+  Double_t GenTruncGaus(Double_t mean, Double_t sigma, Double_t unif, Int_t low = 0.);
 
   TString fResultFileName;
 
   ExpectCount fExpectCountMethod;
-  Bool_t fRunBkgdOnlyFit;
+  Bool_t fRunTruthValFit;
   Int_t fVerboseLevel;
   Double_t fSSFracImprovement;
   Double_t fRn222RateCorrection;
       
 protected:
-
+    
   TString fTreeFileName;
   TTree* fExcelTree;
   
@@ -292,6 +321,16 @@ protected:
   TString fWspFileName;
   bool fWriteWsp;
    
+  
+  std::vector<std::unique_ptr<RooDataHist> > hdata_ss;
+  std::vector<std::unique_ptr<RooDataHist> > hdata_ms;
+  std::vector<std::unique_ptr<RooDataHist> > hdata1D_ss;
+  std::vector<std::unique_ptr<RooDataHist> > hdata1D_ms;
+  std::vector<std::unique_ptr<RooRealVar> > num_tomakefit; //number of events for component (floating)
+  std::vector<std::unique_ptr<RooRealVar> > frac_tomakefit; //ss fraction for component (floating)
+  std::vector<std::unique_ptr<RooFormulaVar> > coef_tomakefit; //coefficient in sum pdf for component
+  
+  
   std::map<TString, TH1*> fComponentHistos;
   std::map<TString, TH1*> fGroupHistos;
   std::map<TString, double> fNormHistoBins;
@@ -300,9 +339,10 @@ protected:
 
   Bool_t fBaTag;
   std::set<TString> fTurnedOffGroups;
+  Double_t fScaleBkgds;
+  Bool_t fScale2nu;
   
   Bool_t fRandomizeMeanCounts;
-  Bool_t fRunMinos;
   Bool_t fWithStandoff;
 
   void LoadExcelTree(const char* filename,const char* treename = "ExcelTableValues");
@@ -325,7 +365,7 @@ protected:
   RooGaussian* GetEfficiencyConstraint(Double_t effError, Bool_t randomize);
   RooMultiVarGaussian* GetFracConstraint(Double_t fracError, Bool_t randomize);
   RooAbsData* GenerateData(RooAbsPdf* genPdf, RooArgSet obs, Bool_t isBinned);
-
+  std::map<double,double> fMagic_numbers;
   // Member variables
   Int_t fSeed;
   TRandom3 fRandom;
@@ -337,20 +377,56 @@ protected:
   std::map<TString, Double_t > fGroupMeanCounts;  
   std::map<TString, std::vector<Double_t> > fGroupFractions;
   std::map<TString, std::pair<Double_t,Double_t> > fGroupSeparation;
-  std::map<TString, Double_t > fGroupMeanRatioFV;  
-  std::map<TString, Double_t > fGroupMeanRatio3t;  
-  std::map<TString, Double_t > fGroupMeanRatio1t;  
   
+  std::map<TString, Double_t > fGroupMeanRatioFVfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio3tfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio2tfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio1tfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio3p5tfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio2p5tfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio1p5tfwhm;  
+  std::map<TString, Double_t > fGroupMeanRatio0p5tfwhm;  
+
+  std::map<TString, Double_t > fGroupMeanRatioFV1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio3t1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio2t1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio1t1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio3p5t1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio2p5t1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio1p5t1sig;  
+  std::map<TString, Double_t > fGroupMeanRatio0p5t1sig;  
+
+  std::map<TString, Double_t > fGroupMeanRatioFV2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio3t2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio2t2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio1t2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio3p5t2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio2p5t2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio1p5t2sig;  
+  std::map<TString, Double_t > fGroupMeanRatio0p5t2sig;  
+
+  std::map<TString, Double_t > fGroupMeanRatioFV3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio3t3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio2t3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio1t3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio3p5t3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio2p5t3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio1p5t3sig;  
+  std::map<TString, Double_t > fGroupMeanRatio0p5t3sig;  
+
   int fNbinsX;
   double fXmin;
   double fXmax;
   int fNbinsY;
   double fYmin;
   double fYmax;
-  Double_t *fXbins;
-  Double_t *fYbins;
+  std::map<int,int> fbinAdjustMap;
 
-  Double_t fBkgdTotal, fBkgdFwhmFV, fBkgdFwhm3t, fBkgdFwhm1t;
+
+  Double_t fBkgdTotal, fBkgdFwhmFV, fBkgdFwhm3t, fBkgdFwhm2t, fBkgdFwhm1t, fBkgdFwhm3p5t, fBkgdFwhm2p5t, fBkgdFwhm1p5t, fBkgdFwhm0p5t;
+  Double_t fBkgd1sigmaFV, fBkgd1sigma3t, fBkgd1sigma2t, fBkgd1sigma1t, fBkgd1sigma3p5t, fBkgd1sigma2p5t, fBkgd1sigma1p5t, fBkgd1sigma0p5t;
+  Double_t fBkgd2sigmaFV, fBkgd2sigma3t, fBkgd2sigma2t, fBkgd2sigma1t, fBkgd2sigma3p5t, fBkgd2sigma2p5t, fBkgd2sigma1p5t, fBkgd2sigma0p5t;
+  Double_t fBkgd3sigmaFV, fBkgd3sigma3t, fBkgd3sigma2t, fBkgd3sigma1t, fBkgd3sigma3p5t, fBkgd3sigma2p5t, fBkgd3sigma1p5t, fBkgd3sigma0p5t;
 
   Bool_t fWithEff;
   Int_t fInterpOrder;

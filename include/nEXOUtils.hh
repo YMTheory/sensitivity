@@ -37,9 +37,9 @@ namespace nEXOUtils
   Double_t GetDiscoveryCutValue(TH1D* histo, Double_t gausSignif);
   Double_t GetDiscoveryCutValue(TH1D* histo, Double_t gausSignif);
   
-  Double_t GetDiscHalfLife(Double_t prob, Double_t sigma, Long64_t length, Double_t* counts, Double_t yrs, const char* filename, double mass, double max = 450., double min = -50., int bins = 10000, const char* treename = "tree", const char* cut = "fitres_sig._status==0 && fitres_bkg._status==0 && fitres_sig._covQual==3 && fitres_bkg._covQual==3");
-  Double_t GetDiscoveryCounts(Double_t prob, Double_t sigma, Long64_t length, Double_t* counts, Double_t yrs, const char* filename, double max = 450., double min = -50., int bins = 10000, const char* treename = "tree", const char* cut = "fitres_sig._status==0 && fitres_bkg._status==0 && fitres_sig._covQual==3 && fitres_bkg._covQual==3");
-  bool BuildNLLRatioHistogram(TH1D& histo, const char* filename, const char* treename = "tree", const char* cut = "fitres_sig._status==0 && fitres_bkg._status==0 && fitres_sig._covQual==3 && fitres_bkg._covQual==3");
+  Double_t GetDiscHalfLife(Double_t prob, Double_t sigma, Long64_t length, Double_t* counts, Double_t yrs, const char* filename, double mass, double max = 450., double min = -50., int bins = 10000, const char* treename = "tree", const char* cut = "stat_sig==0 && stat_bkg==0 && covQual_sig==3 && covQual_bkg==3");
+  Double_t GetDiscoveryCounts(Double_t prob, Double_t sigma, Long64_t length, Double_t* counts, Double_t yrs, const char* filename, double max = 450., double min = -50., int bins = 10000, const char* treename = "tree", const char* cut = "stat_sig==0 && stat_bkg==0 && covQual_sig==3 && covQual_bkg==3"); //"fitres_sig._status==0 && fitres_bkg._status==0 && fitres_sig._covQual==3 && fitres_bkg._covQual==3"
+  bool BuildNLLRatioHistogram(TH1D& histo, const char* filename, const char* treename = "tree", const char* cut = "stat_sig==0 && stat_bkg==0 && covQual_sig==3 && covQual_bkg==3");
 
   // Counting experiment
   // Sensitivity
@@ -50,10 +50,10 @@ namespace nEXOUtils
   Double_t EvalCountDiscHalfLife(TString inFileName, TString varName, Double_t yrs, Double_t mass);
 
   Double_t* ReadSensFromFiles(size_t n, double* yrs, const char* files, double mass);
-  Double_t* ReadDiscFromFiles(size_t ny, double* yrs, size_t nc, double* cts, const char* files, double mass, Double_t prob, Double_t sigma, double max = 450., double min = -50., int bins = 10000, const char* treename = "tree", const char* cut = "fitres_sig._status==0 && fitres_bkg._status==0 && fitres_sig._covQual==3 && fitres_bkg._covQual==3");
+  Double_t* ReadDiscFromFiles(size_t ny, double* yrs, size_t nc, double* cts, const char* files, double mass, Double_t prob, Double_t sigma, double max = 450., double min = -50., int bins = 10000, const char* treename = "tree", const char* cut = "stat_sig==0 && stat_bkg==0 && covQual_sig==3 && covQual_bkg==3");
   Double_t* EvalCountSensFromFiles(size_t n, double* yrs, const char* files, TString varName, double mass, double eff = 1.);
   Double_t* EvalCountDiscFromFiles(size_t n, double* yrs, const char* files, TString varName, double mass, double eff = 1.);
-
+  
 };
 
 namespace nEXOPlotUtils

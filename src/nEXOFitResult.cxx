@@ -47,6 +47,38 @@ void nEXOFitResult::Reset()
   
   bkg_tot = 0; // total bkgd before rebinning of PDFs
   bkg_fwhm_fv = 0; // FWHM bkg before rebinning of PDFs
-  bkg_fwhm_3t = 0; // FWHM-1t bkg before rebinning of PDFs
-  bkg_fwhm_1t = 0; // FWHM-3t bkg before rebinning of PDFs
+  bkg_fwhm_3t = 0; // FWHM-3t bkg before rebinning of PDFs
+  bkg_fwhm_2t = 0; // FWHM-2t bkg before rebinning of PDFs
+  bkg_fwhm_1t = 0; // FWHM-1t bkg before rebinning of PDFs
+  bkg_fwhm_3p5t = 0; // FWHM-3p5t bkg before rebinning of PDFs
+  bkg_fwhm_2p5t = 0; // FWHM-2p5t bkg before rebinning of PDFs
+  bkg_fwhm_1p5t = 0; // FWHM-1p5t bkg before rebinning of PDFs
+  bkg_fwhm_0p5t = 0; // FWHM-0p5t bkg before rebinning of PDFs
+
+  bkg_1sigma_fv = 0; // FWHM bkg before rebinning of PDFs
+  bkg_1sigma_3t = 0; // FWHM-3t bkg before rebinning of PDFs
+  bkg_1sigma_2t = 0; // FWHM-2t bkg before rebinning of PDFs
+  bkg_1sigma_1t = 0; // FWHM-1t bkg before rebinning of PDFs
+  bkg_1sigma_3p5t = 0; // FWHM-3p5t bkg before rebinning of PDFs
+  bkg_1sigma_2p5t = 0; // FWHM-2p5t bkg before rebinning of PDFs
+  bkg_1sigma_1p5t = 0; // FWHM-1p5t bkg before rebinning of PDFs
+  bkg_1sigma_0p5t = 0; // FWHM-0p5t bkg before rebinning of PDFs
+
+  bkg_2sigma_fv = 0; // FWHM bkg before rebinning of PDFs
+  bkg_2sigma_3t = 0; // FWHM-3t bkg before rebinning of PDFs
+  bkg_2sigma_2t = 0; // FWHM-2t bkg before rebinning of PDFs
+  bkg_2sigma_1t = 0; // FWHM-1t bkg before rebinning of PDFs
+  bkg_2sigma_3p5t = 0; // FWHM-3p5t bkg before rebinning of PDFs
+  bkg_2sigma_2p5t = 0; // FWHM-2p5t bkg before rebinning of PDFs
+  bkg_2sigma_1p5t = 0; // FWHM-1p5t bkg before rebinning of PDFs
+  bkg_2sigma_0p5t = 0; // FWHM-0p5t bkg before rebinning of PDFs
+
+  bkg_3sigma_fv = 0; // FWHM bkg before rebinning of PDFs
+  bkg_3sigma_3t = 0; // FWHM-3t bkg before rebinning of PDFs
+  bkg_3sigma_2t = 0; // FWHM-2t bkg before rebinning of PDFs
+  bkg_3sigma_1t = 0; // FWHM-1t bkg before rebinning of PDFs
+  bkg_3sigma_3p5t = 0; // FWHM-3p5t bkg before rebinning of PDFs
+  bkg_3sigma_2p5t = 0; // FWHM-2p5t bkg before rebinning of PDFs
+  bkg_3sigma_1p5t = 0; // FWHM-1p5t bkg before rebinning of PDFs
+  bkg_3sigma_0p5t = 0; // FWHM-0p5t bkg before rebinning of PDFs
 }
