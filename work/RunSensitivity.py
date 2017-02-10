@@ -1,4 +1,6 @@
-
+#sample usage: python RunSensitivity.py -n 1000 -r 1 -y 10.0 -c 0.01 -s 1 -b -d ../results -o allbkgs -t ../tables/Summary_v73_2016-09-09_0nu_allbkgs_llnl.root -m 3 --ssfrac-improvement 1.0 --rn222-rate-correction 1.00
+#or, for a fine spaced scan: 
+#for count in `seq 9 .1 11.9`; do python RunSensitivity.py -n 1000 -r 1 -y 10.0 -c ${count} -s 1 -b -d ../results -o allbkgs -t ../tables/Summary_v73_2016-09-09_0nu_allbkgs_llnl.root -m 3 --ssfrac-improvement 1.0 --rn222-rate-correction 1.00; done
 import ROOT
 import os,sys
 from optparse import OptionParser
