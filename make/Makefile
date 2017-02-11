@@ -2,7 +2,7 @@
 SILENT      ?= @
 
 CXXFLAGS = -fPIC -g -O3 -W -Wall -Wextra -Wshadow 
-SOMAKER = g++
+SOMAKER = $(CXX)
 SOFLAGS = -shared 
 SOSUFFIX = so 
 
