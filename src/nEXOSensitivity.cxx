@@ -2,6 +2,7 @@
 
 #include "nEXOSensitivity.hh"
 #include "TObjectTable.h"
+#include "TSpline.h"
 //#include "RooFit.h"
 //
 
@@ -67,8 +68,8 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     
     fNcpu = 1; //number of cpus to parallelize over
     fNFitPdfs = 0; //number of fitting pdfs
-    fErrorLevel = 4.29778/2.; //minuit error level, to get the 90% UL
-    //    fErrorLevel = 1.35; //minuit error level, to get the 90% UL
+//    fErrorLevel = 4.29778/2.; //minuit error level, to get the 90% UL
+    fErrorLevel = 1.35; //minuit error level, to get the 90% UL
     fPrintLevel = -1; //minuit print level
     
     fExcelTree = 0;
@@ -165,7 +166,7 @@ void nEXOSensitivity::ReadExcelTree() {
         
         //std::cout << "Working on " << table->fPdf << std::endl;
         if (fVerboseLevel > 0)
-        table->Print();
+            table->Print();
         
         fComponentNames.push_back(table->fPdf.Data());
         
@@ -181,7 +182,7 @@ void nEXOSensitivity::ReadExcelTree() {
         }
         
         if (fGroups.count(table->fGroup.Data()) <= 0)
-        fGroups.insert(std::make_pair(table->fGroup.Data(), std::vector<TString>()));
+            fGroups.insert(std::make_pair(table->fGroup.Data(), std::vector<TString>()));
         fGroups[table->fGroup.Data()].push_back(table->fPdf.Data());
         
         // Fill group fractions and group mean counts
@@ -191,26 +192,26 @@ void nEXOSensitivity::ReadExcelTree() {
             TString groupFractionName(Form("%s_%s", table->fGroup.Data(), table->fSuffixes[s].Data()));
             
             if (fGroupFractions.count(groupFractionName.Data()) <= 0)
-            fGroupFractions.insert(std::make_pair(groupFractionName.Data(), std::vector<Double_t>()));
+                fGroupFractions.insert(std::make_pair(groupFractionName.Data(), std::vector<Double_t>()));
             
             if (fGroupSeparation.count(groupFractionName.Data()) <= 0)
-            fGroupSeparation.insert(std::make_pair(groupFractionName.Data(), std::make_pair(0., 0.)));
+                fGroupSeparation.insert(std::make_pair(groupFractionName.Data(), std::make_pair(0., 0.)));
             
             
             Double_t counts = 0.;
             switch (fExpectCountMethod) {
-                    case kUL:
-                    case kPosUL:
+                case kUL:
+                case kPosUL:
                     counts = table->fCountsUL[s];
                     break;
                     
-                    case kPosCV:
+                case kPosCV:
                     counts = (table->fCountsCV[s] > 0) ? table->fCountsCV[s] : 0;
                     break;
                     
-                    case kRdmCV:
+                case kRdmCV:
                     if (groupFractionName == "LXeBb2n_SS" or groupFractionName == "LXeBb2n_MS" or groupFractionName == "LXeBb0n_SS" or groupFractionName == "LXeBb0n_MS")
-                    counts = table->fCountsCV[s];
+                        counts = table->fCountsCV[s];
                     else {
                         Double_t specActivity = table->fSpecActivCV;
                         TString activID = Form("%s_%s", table->fActivID.Data(), table->fIsotope.Data());
@@ -230,7 +231,7 @@ void nEXOSensitivity::ReadExcelTree() {
                                     nDraws--;
                                 }
                                 if (specActivity < 0 && nDraws == 0)
-                                specActivity = 1e-16;
+                                    specActivity = 1e-16;
                             }
                             specActivities[activID.Data()] = specActivity;
                         }
@@ -239,7 +240,7 @@ void nEXOSensitivity::ReadExcelTree() {
                         Double_t activity = factor * specActivity;
                         
                         if (fVerboseLevel > 0)
-                        std::cout << Form("Using activity ID: %s , spec = %g +- %g , full = %g +- %g , eval = %g (from %g and %g)", table->fActivID.Data(), table->fSpecActivCV, table->fSpecActivError, table->fActivCV, table->fActivError, activity, factor, specActivity) << std::endl;
+                            std::cout << Form("Using activity ID: %s , spec = %g +- %g , full = %g +- %g , eval = %g (from %g and %g)", table->fActivID.Data(), table->fSpecActivCV, table->fSpecActivError, table->fActivCV, table->fActivError, activity, factor, specActivity) << std::endl;
                         counts = EvalCounts(table->fHitEffK[s] / table->fHitEffN[s], activity, 1., table->fHalflife);
                     }
                     break;
@@ -251,7 +252,7 @@ void nEXOSensitivity::ReadExcelTree() {
             suffix.ToLower();
             TString h_id_name = Form("%s_%s", table->fPdf.Data(), suffix.Data());
             if (fVerboseLevel > 0)
-            std::cout << "Reading bin fraction with name " << h_id_name << std::endl;
+                std::cout << "Reading bin fraction with name " << h_id_name << std::endl;
             counts *= fNormHistoBins.at(h_id_name);
             fGroupFractions[groupFractionName.Data()].push_back(counts);
             
@@ -307,14 +308,14 @@ void nEXOSensitivity::ReadExcelTree() {
             Double_t ratioFV3s(table->fRatio3sfv[s]), ratio3t3s(table->fRatio3s3t[s]), ratio2t3s(table->fRatio3s2t[s]), ratio1t3s(table->fRatio3s1t[s]), ratio3p5t3s(table->fRatio3s3p5t[s]), ratio2p5t3s(table->fRatio3s2p5t[s]), ratio1p5t3s(table->fRatio3s1p5t[s]), ratio0p5t3s(table->fRatio3s0p5t[s]);
             
             switch (fExpectCountMethod) {
-                    case kUL:
+                case kUL:
                     mean = table->fCountsCV[s];
                     break;
-                    case kPosUL:
+                case kPosUL:
                     mean = (table->fCountsCV[s] > 0) ? table->fCountsCV[s] : 0.;
                     break;
-                    case kPosCV:
-                    case kRdmCV:
+                case kPosCV:
+                case kRdmCV:
                     mean = counts;
                     break;
                 default:
@@ -365,13 +366,13 @@ void nEXOSensitivity::ReadExcelTree() {
         Double_t error = sqrt(groupError[groupName.Data()]);
         
         switch (fExpectCountMethod) {
-                case kUL:
-                case kPosUL:
+            case kUL:
+            case kPosUL:
                 fGroupMeanCounts[groupName.Data()] = poscv + 1.64 * error;
                 break;
                 
-                case kPosCV:
-                case kRdmCV:
+            case kPosCV:
+            case kRdmCV:
                 fGroupMeanCounts[groupName.Data()] = poscv;
                 break;
                 
@@ -418,7 +419,7 @@ void nEXOSensitivity::ReadExcelTree() {
         fGroupMeanRatio0p5t3sig[groupName.Data()] = sumCounts > 0 ? groupRatio0p5t3sig[groupName.Data()] / sumCounts : 1.;
         
         if (fVerboseLevel > 0)
-        std::cout << Form("Group name : %s , mean counts = %g , ratio FWHM-3t = %g , ratio FWHM-2t = %g , ratio FWHM-1t = %g ", groupName.Data(), fGroupMeanCounts[groupName.Data()], fGroupMeanRatio3tfwhm[groupName.Data()], fGroupMeanRatio2t2sig[groupName.Data()], fGroupMeanRatio1t1sig[groupName.Data()]) << std::endl;
+            std::cout << Form("Group name : %s , mean counts = %g , ratio FWHM-3t = %g , ratio FWHM-2t = %g , ratio FWHM-1t = %g ", groupName.Data(), fGroupMeanCounts[groupName.Data()], fGroupMeanRatio3tfwhm[groupName.Data()], fGroupMeanRatio2t2sig[groupName.Data()], fGroupMeanRatio1t1sig[groupName.Data()]) << std::endl;
     }
     delete table;
 }
@@ -433,7 +434,7 @@ void nEXOSensitivity::SetUserMeanCounts(TString groupName, Double_t value) {
     Double_t frac = fGroupMeanCounts[groupNameSS.Data()] / total;
     
     if (fVerboseLevel > 0)
-    std::cout << Form("Manually setting group : %s to  %g - Originals : SS = %g | MS = %g | Total = %g | Fraction = %g", groupName.Data(), value, fGroupMeanCounts[groupNameSS.Data()], fGroupMeanCounts[groupNameMS.Data()], total, frac) << std::endl;
+        std::cout << Form("Manually setting group : %s to  %g - Originals : SS = %g | MS = %g | Total = %g | Fraction = %g", groupName.Data(), value, fGroupMeanCounts[groupNameSS.Data()], fGroupMeanCounts[groupNameMS.Data()], total, frac) << std::endl;
     
     Double_t ratio = -1;
     if (fGroupMeanRatio3tfwhm[groupNameSS.Data()] > 0) // first try to scale by SS ratio in of FWHM-3t
@@ -455,7 +456,7 @@ void nEXOSensitivity::SetUserMeanCounts(TString groupName, Double_t value) {
     total = fGroupMeanCounts[groupNameSS.Data()] + fGroupMeanCounts[groupNameMS.Data()];
     frac = fGroupMeanCounts[groupNameSS.Data()] / total;
     if (fVerboseLevel > 0)
-    std::cout << Form("Manually setting group : %s to %g (ratio %g) - Finals : SS = %g | MS = %g | Total = %g | Fraction = %g", groupName.Data(), value, ratio, fGroupMeanCounts[groupNameSS.Data()], fGroupMeanCounts[groupNameMS.Data()], total, frac) << std::endl;
+        std::cout << Form("Manually setting group : %s to %g (ratio %g) - Finals : SS = %g | MS = %g | Total = %g | Fraction = %g", groupName.Data(), value, ratio, fGroupMeanCounts[groupNameSS.Data()], fGroupMeanCounts[groupNameMS.Data()], total, frac) << std::endl;
     
 }
 
@@ -465,7 +466,7 @@ void nEXOSensitivity::SetAllGroupMeanCounts(Double_t value, TString except) {
     
     for (std::map<TString, std::vector<TString> >::iterator group = fGroups.begin(); group != fGroups.end(); group++) {
         if (group->first == except)
-        continue;
+            continue;
         SetUserMeanCounts(group->first, value);
     }
 }
@@ -486,7 +487,7 @@ void nEXOSensitivity::LoadComponentHistograms() {
         
         //std::cout << "Working on " << table->fPdf << std::endl;
         if (fVerboseLevel)
-        table->Print();
+            table->Print();
         
         fIn = new TFile(table->fFileName.Data()); // new TFile(Form("%s/nEXO_Histos_%s_R.root", fHistoPathIn.Data(), pdfNames[i].Data()));
         
@@ -531,7 +532,7 @@ void nEXOSensitivity::LoadComponentHistograms() {
         fComponentHistos.at(h_ms_name)->SetDirectory(0);
         
         if (fVerboseLevel > 0)
-        std::cout << "Adding " << h_ss_name << " bin fraction = " << hh_ss->Integral() / h_ss->Integral() << std::endl;
+            std::cout << "Adding " << h_ss_name << " bin fraction = " << hh_ss->Integral() / h_ss->Integral() << std::endl;
         
         fNormHistoBins.insert(std::make_pair(h_ss_name, hh_ss->Integral() / h_ss->Integral()));
         fNormHistoBins.insert(std::make_pair(h_ms_name, hh_ms->Integral() / h_ms->Integral()));
@@ -589,7 +590,7 @@ void nEXOSensitivity::MakeGroupHistograms() {
     
     //    gObjectTable->Print();
     for (std::map<TString, TH1*>::iterator groupHisto = fGroupHistos.begin(); groupHisto != fGroupHistos.end(); groupHisto++)
-    groupHisto->second->Delete();
+        groupHisto->second->Delete();
     fGroupHistos.clear();
     
     double tot_ss = 0.;
@@ -733,7 +734,7 @@ void nEXOSensitivity::MakeGroupHistograms() {
         fGroupHistos.insert(std::make_pair(h_ms->GetName(), h_ms));
     }
     if (fVerboseLevel > 0)
-    std::cout << Form("Total integral : SS = %g , MS = %g , ROI = %g , 3t = %g , a3t = %g, a2t = %g, aFV = %g", tot_ss, tot_ms, roi, roi_3t, fBkgdFwhm3t, fBkgdFwhm2t, fBkgdFwhmFV) << std::endl;
+        std::cout << Form("Total integral : SS = %g , MS = %g , ROI = %g , 3t = %g , a3t = %g, a2t = %g, aFV = %g", tot_ss, tot_ms, roi, roi_3t, fBkgdFwhm3t, fBkgdFwhm2t, fBkgdFwhmFV) << std::endl;
 }
 
 void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
@@ -770,20 +771,20 @@ void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
         TString groupName = group->first;
         
         if (fBaTag and groupName != "LXeBb2n" and groupName != "LXeBb0n")
-        continue;
+            continue;
         
         if (fTurnedOffGroups.count(groupName) > 0)
-        continue;
+            continue;
         
         pdfNames.push_back(groupName.Data());
         fitPdfNames.push_back(groupName.Data());
         
         meanPerYear_ss.push_back(fGroupMeanCounts.at(Form("%s_%s", groupName.Data(), "SS")));
         if (fVerboseLevel > 0)
-        std::cout << "Mean counts group " << Form("%s_%s", groupName.Data(), "SS") << " = " << fGroupMeanCounts.at(Form("%s_%s", groupName.Data(), "SS")) << std::endl;
+            std::cout << "Mean counts group " << Form("%s_%s", groupName.Data(), "SS") << " = " << fGroupMeanCounts.at(Form("%s_%s", groupName.Data(), "SS")) << std::endl;
         meanPerYear_ms.push_back(fGroupMeanCounts.at(Form("%s_%s", groupName.Data(), "MS")));
         if (fVerboseLevel > 0)
-        std::cout << "Mean counts group " << Form("%s_%s", groupName.Data(), "MS") << " = " << fGroupMeanCounts.at(Form("%s_%s", groupName.Data(), "MS")) << std::endl;
+            std::cout << "Mean counts group " << Form("%s_%s", groupName.Data(), "MS") << " = " << fGroupMeanCounts.at(Form("%s_%s", groupName.Data(), "MS")) << std::endl;
     }
     if (fVerboseLevel > 0) {
         std::cout << "Total counts groups in SS = " << std::accumulate(meanPerYear_ss.begin(), meanPerYear_ss.end(), 0.) << std::endl;
@@ -849,11 +850,16 @@ void nEXOSensitivity::AddMagicNumber(double signal, double magicN){//wrapper for
 void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCounts, Int_t rdmRate) {
     std::cout << "Generate and fit data...\n";
     
+//    Double_t signalCountsStored = signalCounts;
+//    if (!fRunTruthValFit) {
+//        signalCounts = 0.0;
+//    }
+    
     // check on mean counts randomization
     if (rdmRate <= 0)
-    rdmRate = nRuns;
+        rdmRate = nRuns;
     if (rdmRate < nRuns)
-    fRandomizeMeanCounts = true;
+        fRandomizeMeanCounts = true;
     
     LoadExcelTree(fTreeFileName.Data());
     LoadComponentHistograms();
@@ -877,7 +883,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             if (not fUserMeanCounts.empty()) {
                 SetAllGroupMeanCounts(1e-16);
                 for (std::map<TString, Double_t>::iterator userGroupCount = fUserMeanCounts.begin(); userGroupCount != fUserMeanCounts.end(); userGroupCount++)
-                SetUserMeanCounts(userGroupCount->first, userGroupCount->second);
+                    SetUserMeanCounts(userGroupCount->first, userGroupCount->second);
             }
             MakeGroupHistograms();
             BuildWorkspace(yrs, signalCounts);
@@ -996,7 +1002,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         fitResult->roi_bkg_3t = pdf_roi_bkg_3t * expected_ss;
         fitResult->roi_bkg_1t = pdf_roi_bkg_1t * expected_ss;
         if (fVerboseLevel > 0)
-        std::cout << Form("Expected events in gen pdf SS = %g and ROI = %g (%.0f - %.0f), 3t = %g and 1t = %g", expected_ss, fitResult->roi_bkg, xAxis->GetBinLowEdge(xAxis->FindBin(2428)), xAxis->GetBinLowEdge(xAxis->FindBin(2488)) + xAxis->GetBinWidth(xAxis->FindBin(2488)), fitResult->roi_bkg_3t, fitResult->roi_bkg_1t) << std::endl;
+            std::cout << Form("Expected events in gen pdf SS = %g and ROI = %g (%.0f - %.0f), 3t = %g and 1t = %g", expected_ss, fitResult->roi_bkg, xAxis->GetBinLowEdge(xAxis->FindBin(2428)), xAxis->GetBinLowEdge(xAxis->FindBin(2488)) + xAxis->GetBinWidth(xAxis->FindBin(2488)), fitResult->roi_bkg_3t, fitResult->roi_bkg_1t) << std::endl;
         genHist_ss->Delete();
         
         
@@ -1035,7 +1041,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         //{
         RooGaussian* rn222Const = GetRn222Constraint(rateError, true);
         if (rn222Const)
-        constraints.add(*rn222Const);
+            constraints.add(*rn222Const);
         //}
         
         RooGaussian* effConst = 0;
@@ -1084,6 +1090,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         m.optimizeConst(true);
         m.setErrorLevel(fErrorLevel);
         m.migrad();
+        // m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
         //Get the best fit results for the bkgd + signal fit
         fitResult->num_signal = fWsp->var(Form("num_%s", fSignalName.Data()))->getVal();
         //        fitResult->num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
@@ -1096,6 +1103,12 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         fitResult->nll_sig = fitResult->fitres_sig->minNll();
         fitResult->stat_sig = fitResult->fitres_sig->status();
         fitResult->covQual_sig = fitResult->fitres_sig->covQual();
+        
+        // FIXME: this variable should be saved in the fit result TTree
+        Double_t minuit_num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
+        // hijack this variable to store the minos error
+        // fitResult->num_signal_eLo = minuit_num_signal_eHi;
+        
         if (fRunTruthValFit) {
             //Set the floating pars to random starting values or just the mean values
             co60Flag = false;
@@ -1120,12 +1133,13 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 }
             }
             //Set the signal variables constant
+            // NOTE only the signal counts should be fixed, not the frac
             fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(signalCounts);
             fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(true);
             
-            double meanFrac = fWsp->var(Form("mean_frac_%s", fSignalName.Data()))->getVal();
-            fWsp->var(Form("frac_%s", fSignalName.Data()))->setVal(meanFrac);
-            fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(true);
+            //double meanFrac = fWsp->var(Form("mean_frac_%s", fSignalName.Data()))->getVal();
+            //fWsp->var(Form("frac_%s", fSignalName.Data()))->setVal(meanFrac);
+            //fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(true);
             
             if (withEff) {
                 double meanEff = fWsp->var(Form("mean_eff_%s", fSignalName.Data()))->getVal();
@@ -1156,166 +1170,155 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
         }
         else{
-            //            std::cout<<"a"<<std::endl;
-            for (std::map<double,double>::reverse_iterator rit=fMagic_numbers.rbegin(); rit!=fMagic_numbers.rend(); ++rit){
-                if(rit->first<fitResult->num_signal ){
-                    rit--;
-                    fitResult->num_signal_eHi = rit->first - fitResult->num_signal;
-                    break;
-                }
-                if(std::distance(rit,fMagic_numbers.rend())==1){
-                    fitResult->num_signal_eHi = rit->first - fitResult->num_signal;
-                    break;
-                }
-                
-                
-                //Set the floating pars to random starting values or just the mean values
-                co60Flag = false;
-                for (int i = 0; i < fNFitPdfs; i++) {
-                    TString name = fFitPdfNames.at(i);
-                    if (name == fSignalName) continue;
-                    double meanNum = fWsp->var(Form("mean_num_%s", name.Data()))->getVal();
-                    meanNum = fRandom.Gaus(meanNum, meanNum * 0.001);
-                    fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
-                    //Pay attention to the internal Co60 ss fraction
-                    if (co60Flag) {//name.Contains("Co60") && !co60Flag) {
-                        double meanFrac = fWsp->var("mean_frac_Internal_Co60")->getVal();
-                        meanFrac = fRandom.Gaus(meanFrac, meanFrac * fracError);
-                        fWsp->var("mean_frac_Internal_Co60")->setVal(meanFrac);
-                        co60Flag = true;
-                        //} else if (name.Contains("Co60")) {
-                        //continue;
-                    } else {
-                        double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                        meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
-                        fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
-                    }
-                }
-                
-                //Set the signal variables constant
-                fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(rit->first);
-                fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(true);
-                
-                double meanFrac = fWsp->var(Form("mean_frac_%s", fSignalName.Data()))->getVal();
-                fWsp->var(Form("frac_%s", fSignalName.Data()))->setVal(meanFrac);
-                fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(true);
-                
-                if (withEff) {
-                    double meanEff = fWsp->var(Form("mean_eff_%s", fSignalName.Data()))->getVal();
-                    fWsp->var(Form("eff_%s", fSignalName.Data()))->setVal(meanEff);
-                    fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(true);
-                }
-                
-                //Do the bkgd only fit
-                
-                m.setPrintLevel(fPrintLevel);
-                m.optimizeConst(true);
-                m.migrad();
-                RooFitResult* fitres_hyp = m.save();
-                if (fVerboseLevel > 0) {
-                    std::cout << "Fit "<<rit->first<<" hypothesis results: \n";
-                    fitres_hyp->Print();
-                }
-                
-                //Get the best fit results for the truth-value fit
-                
-                double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
-                
-                //Remove constant status of floating pars
-                fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
-                fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
-                if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
-                
-                if(nll_ratio<rit->second ){//experiment is consistent with this hypothesis
-                    rit--;
-                    fitResult->num_signal_eHi = rit->first-fitResult->num_signal;
-                    break;
-                }
-                
-            }
-            //            if(fitResult->num_signal_eHi+fitResult->num_signal <0.15) {
-            //                std::cout<<fitResult->num_signal<<"  "<<fitResult->num_signal_eHi<<std::endl;
-            //                throw;
-            //            }
             
-            for (auto it=fMagic_numbers.begin(); it!=fMagic_numbers.end(); ++it) {
-                if (it->first > fitResult->num_signal) {
-                    if(it==fMagic_numbers.begin()){fitResult->num_signal_eLo =  fitResult->num_signal;}
-                    else{
-                        it--;
-                        fitResult->num_signal_eLo = -(it->first - fitResult->num_signal);
+            ///////
+            /// This is where we find the upper limit by finding the intersection
+            /// between the magic number (critical lambda) spline
+            /// and the profile likelihood curve. 
+            //////
+            
+            // By default, set results to -1 in case the algorithm does not converge or bad fit
+            fitResult->nll_ratio = -1;
+            
+            // If the background + signal fit was bad, don't waste time
+            if (fitResult->stat_sig ==0 && fitResult->covQual_sig==3) {
+                
+                // Create the spline from the magic number (2*nll_ratio) table
+                // FIXME: this does not need to be created every time
+                // FIXME: check that fMagic_numbers is not empty
+                
+                std::vector<Double_t> xn;
+                std::vector<Double_t> yn;
+                Int_t n_magics = fMagic_numbers.size();
+                for(std::map<double,double>::iterator it = fMagic_numbers.begin(); it != fMagic_numbers.end(); ++it) {
+                    xn.push_back(it->first);
+                    yn.push_back(it->second);
+                }
+                TSpline3 magicSp3("magicSp3", &xn[0], &yn[0], n_magics, "b1e1", 0, 0);
+                
+                
+                // Settings
+                // FIXME: some of these should be exposed to the user not hardcoded
+                Double_t signal_precision = 1e-3;
+                Double_t nll_ratio_precision = 1e-4;
+                Double_t max_iterations = 20;
+                
+                
+                // Implement the secant algorithm to find the intersection between the profile likelihood curve
+                // and the spline from the magic numbers
+                // This is done assuming that nll_ratio(s) grows with s for s > than the value at the best fit
+                
+                // As starting points, use the result of the bkgd+signal fit
+                // and a point some number of signals to the right of it
+                Double_t a = fitResult->num_signal;
+                Double_t b = fitResult->num_signal + 15.;
+                Double_t f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
+                
+                auto n_iter = 1;
+                while (n_iter < max_iterations) {
+                    
+                    // Now prepare for the fit at fixed signal = b
+                    
+                    //Set the floating pars to random starting values or just the mean values
+                    co60Flag = false;
+                    for (int i = 0; i < fNFitPdfs; i++) {
+                        TString name = fFitPdfNames.at(i);
+                        if (name == fSignalName) continue;
+                        double meanNum = fWsp->var(Form("mean_num_%s", name.Data()))->getVal();
+                        meanNum = fRandom.Gaus(meanNum, meanNum * 0.001);
+                        fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
+                        //Pay attention to the internal Co60 ss fraction
+                        if (co60Flag) {//name.Contains("Co60") && !co60Flag) {
+                            double meanFrac = fWsp->var("mean_frac_Internal_Co60")->getVal();
+                            meanFrac = fRandom.Gaus(meanFrac, meanFrac * fracError);
+                            fWsp->var("mean_frac_Internal_Co60")->setVal(meanFrac);
+                            co60Flag = true;
+                            //} else if (name.Contains("Co60")) {
+                            //continue;
+                        } else {
+                            double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
+                            meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
+                            fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                        }
                     }
-                    break;
-                }
-                if (std::distance(it, fMagic_numbers.end()) == 1) {
-                    fitResult->num_signal_eLo = -(it->first - fitResult->num_signal);
-                    break;
-                }
-                //Set the floating pars to random starting values or just the mean values
-                co60Flag = false;
-                for (int i = 0; i < fNFitPdfs; i++) {
-                    TString name = fFitPdfNames.at(i);
-                    if (name == fSignalName) continue;
-                    double meanNum = fWsp->var(Form("mean_num_%s", name.Data()))->getVal();
-                    meanNum = fRandom.Gaus(meanNum, meanNum * 0.001);
-                    fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
-                    //Pay attention to the internal Co60 ss fraction
-                    if (co60Flag) {//name.Contains("Co60") && !co60Flag) {
-                        double meanFrac = fWsp->var("mean_frac_Internal_Co60")->getVal();
-                        meanFrac = fRandom.Gaus(meanFrac, meanFrac * fracError);
-                        fWsp->var("mean_frac_Internal_Co60")->setVal(meanFrac);
-                        co60Flag = true;
-                        //} else if (name.Contains("Co60")) {
-                        //continue;
-                    } else {
-                        double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                        meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
-                        fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                    
+                    //Set the signal variables constant
+                    // NOTE only the signal counts should be fixed, not the frac
+                    //                fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(rit->first);
+                    fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(b);
+                    fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(true);
+                    
+                    //                double meanFrac = fWsp->var(Form("mean_frac_%s", fSignalName.Data()))->getVal();
+                    //                fWsp->var(Form("frac_%s", fSignalName.Data()))->setVal(meanFrac);
+                    //                fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(true);
+                    
+                    if (withEff) {
+                        double meanEff = fWsp->var(Form("mean_eff_%s", fSignalName.Data()))->getVal();
+                        fWsp->var(Form("eff_%s", fSignalName.Data()))->setVal(meanEff);
+                        fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(true);
                     }
+                    
+                    //Run minuit
+                    
+                    m.setPrintLevel(fPrintLevel);
+                    m.optimizeConst(true);
+                    m.migrad();
+                    RooFitResult* fitres_hyp = m.save();
+                    if (fVerboseLevel > 0) {
+                        //                    std::cout << "Fit "<<rit->first<<" hypothesis results: \n";
+                        //                    std::cout << "Fit "<<c<<" hypothesis results: \n";
+                        //                    fitres_hyp->Print();
+                        std::cout << "Computed nll_ratio for signal= " << b << " hypothesis" << std::endl;
+                    }
+                    
+                    //Get the best fit results for the truth-value fit
+                    double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
+                    
+                    fitResult->stat_bkg = fitres_hyp->status();
+                    fitResult->covQual_bkg = fitres_hyp->covQual();
+                    
+                    //Remove constant status of floating pars
+                    fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
+                    fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
+                    if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
+                    
+                    // compute f_b
+                    Double_t f_b = nll_ratio - magicSp3.Eval(b);
+                    
+                    // find the secant intersection with zero
+                    auto c = b - f_b * (b-a)/(f_b - f_a);
+                    
+                    // if for some reason I end up on the left of the minimum, or the fit had problems, go back on the other side.
+                    if (c < fitResult->num_signal || fitres_hyp->status()!=0 || fitres_hyp->covQual()!=3) {
+                        std::cout << "Something is not right. Retry" << std::endl;
+                        a = fitResult->num_signal;
+                        b = a + fRandom.Uniform(3,15);
+                        f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
+                    }
+                    else {
+                        a = b;
+                        f_a = f_b;
+                        b = c;
+                    }
+                    
+                    // if condition for convergence is met, then exit
+                    if (fabs(b-a) < signal_precision)
+                    {
+                        fitResult->nll_ratio = nll_ratio;
+                        fitResult->num_signal_eHi = c;
+
+                        std::cout << "**** Found num_signal_eHi " << c << " after " << n_iter << " iterations" <<std::endl;
+                        std::cout << "**** MINUIT upper limit :" << minuit_num_signal_eHi << std::endl;
+                        break;
+                    }
+                    
+                    n_iter++;
                 }
-                
-                //Set the signal variables constant
-                fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(it->first);
-                fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(true);
-                
-                double meanFrac = fWsp->var(Form("mean_frac_%s", fSignalName.Data()))->getVal();
-                fWsp->var(Form("frac_%s", fSignalName.Data()))->setVal(meanFrac);
-                fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(true);
-                
-                if (withEff) {
-                    double meanEff = fWsp->var(Form("mean_eff_%s", fSignalName.Data()))->getVal();
-                    fWsp->var(Form("eff_%s", fSignalName.Data()))->setVal(meanEff);
-                    fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(true);
-                }
-                
-                //Do the bkgd only fit
-                
-                m.setPrintLevel(fPrintLevel);
-                m.optimizeConst(true);
-                m.migrad();
-                RooFitResult* fitres_hyp = m.save();
-                if (fVerboseLevel > 0) {
-                    std::cout << "Fit "<<it->first<<" hypothesis results: \n";
-                    fitres_hyp->Print();
-                }
-                
-                //Get the best fit results for the truth-value fit
-                
-                double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
-                
-                //Remove constant status of floating pars
-                fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
-                fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
-                if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
-                
-                if(nll_ratio<it->second){//experiment is consistent with this hypothesis
-                    it--;
-                    fitResult->num_signal_eLo = -it->first+fitResult->num_signal;
-                    break;
-                }
-                
             }
-            std::cout<<"ll: "<<fitResult->num_signal-fitResult->num_signal_eLo<<std::endl;
+            
+            // TODO: find the lower bound of the confidence interval in the same manner as before
+            
+            
             
         }
         
@@ -1362,7 +1365,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
 
 TH2D* nEXOSensitivity::MakeCombinedHisto(TString histName, Int_t nComp, TString* compNames, Double_t* fractions, TString , Bool_t isSS) {
     if (fVerboseLevel > 0)
-    std::cout << "Working on " << histName << std::endl;
+        std::cout << "Working on " << histName << std::endl;
     TString sites = (isSS ? "SS" : "MS");
     TH2D* retHist = new TH2D(histName, "", fNbinsX, fXmin, fXmax, fNbinsY, fYmin, fYmax); //fYbins);//fYmin, fYmax);
     
@@ -1387,7 +1390,7 @@ TH2D* nEXOSensitivity::MakeCombinedHisto(TString histName, Int_t nComp, TString*
         compHist->Scale(fractions[i] / histIntegral);
         
         if (fVerboseLevel > 0)
-        std::cout << Form("Group fractions histName : %s , comp : %s , fraction : %g , integral : %g", histName.Data(), compNames[i].Data(), fractions[i], histIntegral) << std::endl;
+            std::cout << Form("Group fractions histName : %s , comp : %s , fraction : %g , integral : %g", histName.Data(), compNames[i].Data(), fractions[i], histIntegral) << std::endl;
         
         retHist->Add(compHist);
         
@@ -1513,7 +1516,7 @@ void nEXOSensitivity::BuildGenHistos(TString* pdfNames, const int nPdfs, Double_
             mean_ms = signalCounts * (1. - frac);
         } else {
             if (fScale2nu or (not name.Contains("LXeBb2n")))
-            mean *= fScaleBkgds;
+                mean *= fScaleBkgds;
         }
         mean_num = new RooRealVar(Form("mean_num_%s", name.Data()), "", mean);
         mean_frac = new RooRealVar(Form("mean_frac_%s", name.Data()), "", frac);
@@ -1618,7 +1621,7 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
         TString name = pdfNames[i];
         
         if (fVerboseLevel > 0)
-        std::cout << "Adding group " << name << " to pdfs... " << std::endl;
+            std::cout << "Adding group " << name << " to pdfs... " << std::endl;
         
         //We'll handle the signal pdf separately
         if (pdfNames[i] == fSignalName) continue;
@@ -1646,7 +1649,7 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
     Double_t meanNum = ((RooRealVar*) fWsp->var(Form("mean_num_%s", fSignalName.Data())))->getVal();
     Double_t meanFrac = ((RooRealVar*) fWsp->var(Form("mean_frac_%s", fSignalName.Data())))->getVal();
     
-    num_tomakefit.emplace_back(new RooRealVar(Form("num_%s", fSignalName.Data()), "", meanNum, 0., 1000.));
+    num_tomakefit.emplace_back(new RooRealVar(Form("num_%s", fSignalName.Data()), "", meanNum, 0., 500.));
     frac_tomakefit.emplace_back(new RooRealVar(Form("frac_%s", fSignalName.Data()), "", meanFrac, 0., 1.)); //meanFrac*(1.-3.*fFracError), meanFrac*(1.+3.*fFracError));
     RooRealVar* efficiency = 0;
     if (fWithEff) {
@@ -1679,7 +1682,7 @@ RooGaussian* nEXOSensitivity::GetRn222Constraint(Double_t rateError, Bool_t rand
     
     RooRealVar* num = (RooRealVar*) fWsp->var("num_LXeRn222");
     if (not num)
-    return 0;
+        return 0;
     
     Double_t meanNum = ((RooRealVar*) fWsp->var("mean_num_LXeRn222"))->getVal();
     Double_t meanErr = meanNum*rateError;
