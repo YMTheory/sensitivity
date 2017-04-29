@@ -11,11 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-__author__ = "Samuele Sangiorgio"
-__email__ = "sangiorgio1@llnl.gov"
-__date__ = "Apr 28, 2017"
-
-
 def SqrtSumSq(x):
     x = np.array(x.tolist())
     return np.sqrt(np.sum(np.multiply(x, x)))
@@ -37,7 +32,6 @@ def make_plot(groupby, filename, xlimit=5.0e-6, ):
     err = []
     xuplims = []
     xlimit_arrow = 10 ** floor(log10(xlimit)) * 10
-    print(xlimit_arrow)
     for index, row in df2.iterrows():
         if row['Limit 90% C.L.'] < 1e-6:
             continue
