@@ -11,10 +11,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-__author__ = "Samuele Sangiorgio"
-__email__ = "sangiorgio1@llnl.gov"
-__date__ = "Apr 28, 2017"
-
 
 def SqrtSumSq(x):
     x = np.array(x.tolist())
@@ -76,7 +72,8 @@ def make_plot(groupby, filename, xlimit=5.0e-5, ):
     return
 
 
-df = pd.read_excel('../tables/Summary_v73_2016-09-26_bb2n_0nu.xlsx', sheetname='SS_ExpectedCounts', header=0,
+table = 'Summary_v73_2016-09-26_bb2n_0nu'
+df = pd.read_excel('../tables/' + table + '.xlsx', sheetname='SS_ExpectedCounts', header=0,
                    skiprows=4, skip_footer=7, parse_cols="A:C,AI:AK", )
 
 # this is for printing without breaking into multiple lines
@@ -90,9 +87,9 @@ df['CV?'] = pd.Series(df['C.V.'] > 0, index=df.index)
 print(df)
 
 # Plot by Material, Isotope, and Component separately
-make_plot(['Material'], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterial.png"))
-make_plot(['Isotope'], os.path.expanduser("~/Scratch/BackgroundBudgetByIsotope.png"), 5.0e-4)
-make_plot(['Component'], os.path.expanduser("~/Scratch/BackgroundBudgetByComponent.png"), 5.0e-5)
+make_plot(['Material'], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterial_" + table + ".png"))
+make_plot(['Isotope'], os.path.expanduser("~/Scratch/BackgroundBudgetByIsotope_" + table + ".png"), 5.0e-4)
+make_plot(['Component'], os.path.expanduser("~/Scratch/BackgroundBudgetByComponent_" + table + ".png"))
 
 # This is by Material & Isotope
-make_plot(["Material", "Isotope"], os.path.expanduser("~/Scratch/BackgroundBudget.png"), 5.0e-5)
+make_plot(["Material", "Isotope"], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterialIsotope_" + table + '.png'))
