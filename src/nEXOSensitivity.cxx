@@ -9,7 +9,7 @@
 ClassImp(nEXOSensitivity)
 
 nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTree(0), fWsp(0) {
-    fVerboseLevel = 10;
+    fVerboseLevel = 0;
     std::cout << "Creating nEXOSensitivity object...\n";
     
     SetSeed(seed);
@@ -1264,16 +1264,16 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     m.optimizeConst(true);
                     m.migrad();
                     RooFitResult* fitres_hyp = m.save();
+                    
+                    
+                    //Get the best fit results for the truth-value fit
+                    double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
                     if (fVerboseLevel > 0) {
                         //                    std::cout << "Fit "<<rit->first<<" hypothesis results: \n";
                         //                    std::cout << "Fit "<<c<<" hypothesis results: \n";
                         //                    fitres_hyp->Print();
-                        std::cout << "Computed nll_ratio for signal= " << b << " hypothesis" << std::endl;
+                        std::cout << "Computed nll_ratio for signal= " << b << " hypothesis = "<<nll_ratio << std::endl;
                     }
-                    
-                    //Get the best fit results for the truth-value fit
-                    double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
-                    
                     fitResult->stat_bkg = fitres_hyp->status();
                     fitResult->covQual_bkg = fitres_hyp->covQual();
                     
