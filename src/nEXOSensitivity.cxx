@@ -70,7 +70,7 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     fNFitPdfs = 0; //number of fitting pdfs
 //    fErrorLevel = 4.29778/2.; //minuit error level, to get the 90% UL
     fErrorLevel = 1.35; //minuit error level, to get the 90% UL
-    fPrintLevel = -1; //minuit print level
+    fPrintLevel = 1; //minuit print level
     
     fExcelTree = 0;
     
@@ -1107,7 +1107,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         // FIXME: this variable should be saved in the fit result TTree
         Double_t minuit_num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         // hijack this variable to store the minos error
-        // fitResult->num_signal_eLo = minuit_num_signal_eHi;
+         fitResult->num_signal_eLo = minuit_num_signal_eHi;
         
         if (fRunTruthValFit) {
             //Set the floating pars to random starting values or just the mean values
@@ -1264,16 +1264,16 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     m.optimizeConst(true);
                     m.migrad();
                     RooFitResult* fitres_hyp = m.save();
+                    
+                    
+                    //Get the best fit results for the truth-value fit
+                    double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
                     if (fVerboseLevel > 0) {
                         //                    std::cout << "Fit "<<rit->first<<" hypothesis results: \n";
                         //                    std::cout << "Fit "<<c<<" hypothesis results: \n";
                         //                    fitres_hyp->Print();
-                        std::cout << "Computed nll_ratio for signal= " << b << " hypothesis" << std::endl;
+                        std::cout << "Computed nll_ratio for signal= " << b << " hypothesis = "<<nll_ratio << std::endl;
                     }
-                    
-                    //Get the best fit results for the truth-value fit
-                    double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
-                    
                     fitResult->stat_bkg = fitres_hyp->status();
                     fitResult->covQual_bkg = fitres_hyp->covQual();
                     
