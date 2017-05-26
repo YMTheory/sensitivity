@@ -11,12 +11,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+
 def SqrtSumSq(x):
     x = np.array(x.tolist())
     return np.sqrt(np.sum(np.multiply(x, x)))
 
 
-def make_plot(groupby, filename, xlimit=5.0e-6, ):
+def make_plot(groupby, filename, xlimit=5.0e-5, ):
     # grouping with custom aggregration
     df2 = df.groupby(groupby + ["CV?"]).agg(
         {'C.V.': np.sum, 'Error': SqrtSumSq, 'Limit 90% C.L.': np.sum, 'CV?': all})
@@ -26,35 +27,39 @@ def make_plot(groupby, filename, xlimit=5.0e-6, ):
     df2.sort_values('value', ascending=True, inplace=True)
     print(df2)
 
+    fig, ax0 = plt.subplots()
+
     # loop over all the rows to fill the lists used for plotting
     label = []
-    value = []
-    err = []
-    xuplims = []
     xlimit_arrow = 10 ** floor(log10(xlimit)) * 10
     for index, row in df2.iterrows():
-        if row['Limit 90% C.L.'] < 1e-6:
+        if row['Limit 90% C.L.'] < 1e-5:
             continue
 
         label.append(' '.join(index[:len(groupby)]))
+        label[-1] = label[-1].replace('bb2n', r'$\beta\beta 2\nu$')
 
-        # the counts are in 10 years and 3 tonne so divide by 30 to get the cts/tonne/year
+        # the counts are in 1 year and 3 tonne so divide by 3 to get the cts/tonne/year
         if row['CV?']:
-            xuplims.append(0)
-            value.append(row['C.V.'] / 30.)
-            err.append(row['Error'] / 30.)
+            xuplims = 0
+            value = row['C.V.'] / 3.
+            err = row['Error'] / 3.
+            color = 'teal'
+            marker = '.'
         else:
-            xuplims.append(1)
-            value.append(row['Limit 90% C.L.'] / 30.)
-            err.append(value[-1] - xlimit_arrow)
+            xuplims = 1
+            value = row['Limit 90% C.L.'] / 3.
+            err = value - xlimit_arrow
+            color = 'darkorange'
+            marker = ''
 
-    # now do the plotting
+        # plot one item
+        ax0.errorbar(value, len(label) * 2 - 2, xerr=err, xuplims=xuplims,
+                     lw=1, capsize=2, capthick=1, color=color, marker=marker)
+
+    # overall plot formatting (labels, etc...)
     nn = len(label)
     y = np.arange(0, 2 * nn, 2)
-    yerr = np.ones(nn) * 0.8
-
-    fig, ax0 = plt.subplots()
-    ax0.errorbar(value, y, xerr=err, yerr=yerr, xuplims=xuplims, fmt=',')
     ax0.set_yticks(y)
     ax0.set_yticklabels(label)
     ax0.set_xscale('log')
@@ -67,23 +72,24 @@ def make_plot(groupby, filename, xlimit=5.0e-6, ):
     return
 
 
-df = pd.read_excel('../tables/Summary_v73_2016-09-09_0nu.xlsx', sheetname='SS_ExpectedCounts', header=0,
+table = 'Summary_v73_2016-09-26_bb2n_0nu'
+df = pd.read_excel('../tables/' + table + '.xlsx', sheetname='SS_ExpectedCounts', header=0,
                    skiprows=4, skip_footer=7, parse_cols="A:C,AI:AK", )
 
 # this is for printing without breaking into multiple lines
 pd.set_option('display.expand_frame_repr', False)
 
-# remove bb0n and bb2n rows
-df = df[~df['Isotope'].isin(['bb2n', 'bb0n'])]
+# remove bb0n rows
+df = df[~df['Isotope'].isin(['bb0n', ])]
 
 # Add a column that tracks whether the CV>0 or not
 df['CV?'] = pd.Series(df['C.V.'] > 0, index=df.index)
 print(df)
 
 # Plot by Material, Isotope, and Component separately
-make_plot(['Material'], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterial.png"))
-make_plot(['Isotope'], os.path.expanduser("~/Scratch/BackgroundBudgetByIsotope.png"), 5.0e-4)
-make_plot(['Component'], os.path.expanduser("~/Scratch/BackgroundBudgetByComponent.png"), 5.0e-6)
+make_plot(['Material'], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterial_" + table + ".png"))
+make_plot(['Isotope'], os.path.expanduser("~/Scratch/BackgroundBudgetByIsotope_" + table + ".png"), 5.0e-4)
+make_plot(['Component'], os.path.expanduser("~/Scratch/BackgroundBudgetByComponent_" + table + ".png"))
 
 # This is by Material & Isotope
-make_plot(["Material", "Isotope"], os.path.expanduser("~/Scratch/BackgroundBudget.png"), 5.0e-6)
+make_plot(["Material", "Isotope"], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterialIsotope_" + table + '.png'))
