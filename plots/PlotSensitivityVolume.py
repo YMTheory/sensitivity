@@ -14,7 +14,7 @@ matplotlib.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
 matplotlib.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
 #matplotlib.rcParams['axes.unicode_minus'] = True
 
-nEXOlib = '/data/data033/exo/software/nEXO_Sensitivity/quick/v5/lib/libnEXOSensitivity.so'
+nEXOlib = '../lib/libnEXOSensitivity.so'
 ROOT.gSystem.Load(nEXOlib)
 
 def GetVolvsSD():
@@ -34,8 +34,6 @@ def GetVolvsSD():
     #raw_input('continue')
     print pol
     return copy.copy(pol)
-
-volf = GetVolvsSD()
 
 def ShowPickleResults( inpkl ):
 
@@ -75,6 +73,8 @@ def FindCILimits( s, nbins=None, crange=[], CL=0.68 ):
     return mpos
 
 def ReadSensFiles( infiles, outpkl, sdList = [10], livetime = 10.0, efficiency = 0.82, sens_unit = 1e27 ):
+
+    volf = GetVolvsSD()
 
     volList = {}
     for sd in sdList:
@@ -183,15 +183,16 @@ def MakePlot( inpkl, outname, countpkl = None ):
 
     xList = [fvList[sd] for sd in sorted(fvList) if not sd in badSd]
     yList = [sens[sd][1] for sd in sorted(sens) if not sd in badSd]
-    
+
     if countpkl:
         #roiList = ['fwhm','1sigma','2sigma'] #,'3sigma']
         #volList = {'fv':3.74,'3t':3,'2t':2,'1t':1,'3p5t':3.5,'2p5t':2.5,'1p5t':1.5,'0p5t':0.5}
         #roiList = {'fwhm':'FWHM (2428 - 2488 keV)','1sigma':'1$\sigma$ (2433 - 2483 keV)','2sigma':'2$\sigma$ (2408 - 2507 keV)','3sigma':'3$\sigma$ (2384 - 2532 keV)'}
-        roiList = {'fwhm':'FWHM','1sigma':'$\pm$ 1$\sigma$','2sigma':'$\pm$ 2$\sigma$'}#,'3sigma':'\pm 3$\sigma$'}
+        # roiList = {'fwhm':'FWHM','1sigma':'$\pm$ 1$\sigma$','2sigma':'$\pm$ 2$\sigma$'}#,'3sigma':'\pm 3$\sigma$'}
+        roiList = {'fwhm':'FWHM',}
         volList = {0.5:'0p5t',1:'1t',1.5:'1p5t',2:'2t',2.5:'2p5t',3:'3t',3.86:'fv'}#,3.5:'3p5t'
-        markerList = {'fwhm':'gD-','1sigma':'ro-','2sigma':'bs-','3sigma':'m^-'}
-        orderList = ['1sigma','fwhm','2sigma'] #'3sigma'
+        markerList = {'fwhm':'bD-','1sigma':'ro-','2sigma':'g^-','3sigma':'m*-'}
+        orderList = ['fwhm', ] #'3sigma'
 
         count_results = pickle.load(open(countpkl,'rb'))
         count_xList = [vol[0] for vol in sorted(volList.items())]
@@ -202,10 +203,12 @@ def MakePlot( inpkl, outname, countpkl = None ):
     xList[0] = 3.86
 
     fig, ax = plt.subplots()
-    plt.plot( xList, yList, 'k*-', label='Full 2D Analysis')
-    if countpkl:
-        for roi in orderList:
-            plt.plot( count_xList, count_yList[roi], markerList[roi], label='Count. Exp. Feld.'+u'\u2212'+'Cous. ('+roiList[roi]+')')
+    plt.plot( xList, yList, 'ks-', label='Full nEXO 2D Analysis')
+    # if countpkl:
+    #     for roi in orderList:
+    #         plt.plot( count_xList, count_yList[roi], markerList[roi], label='Count. Exp. Feld.'+u'\u2212'+'Cous. ('+roiList[roi]+')')
+
+    plt.plot( count_xList, count_yList['fwhm'], markerList['fwhm'], label='Counting Experiment (FWHM)')
 
     #plt.title("nEXO Sensitivity (90% C.L.) in 10 Years")
     plt.xlabel("Fiducial Volume Mass [tonne]", fontsize=axis_label_fontsize)
@@ -221,9 +224,9 @@ def MakePlot( inpkl, outname, countpkl = None ):
     ax.grid(True, which='both')
     fig.set_size_inches(7.5,5.5)
 
-    plt.savefig( outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( outname+'.png', bbox_inches='tight' )
-    plt.show()
+    plt.savefig("pdf/" + outname+'.pdf', bbox_inches='tight' )
+    plt.savefig("png/" + outname+'.png', bbox_inches='tight' )
+    # plt.show()
 
 
 if __name__ == "__main__":
