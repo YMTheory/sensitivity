@@ -3,6 +3,7 @@
 #include "nEXOSensitivity.hh"
 #include "TObjectTable.h"
 #include "TSpline.h"
+#include "TLegend.h"
 //#include "RooFit.h"
 //
 
@@ -1108,6 +1109,117 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         Double_t minuit_num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         // hijack this variable to store the minos error
          fitResult->num_signal_eLo = minuit_num_signal_eHi;
+
+        
+        ////////////////////
+        //// PLOTTING
+        ///////////////////
+        for (int k=0; k<4 && fVerboseLevel>0; k++) {
+            RooPlot* frame;
+            RooDataHist *data;
+            RooAddPdf* fitPdf;
+            TString plot_filename;
+            switch (k) {
+                case 0:
+                    frame = energy->frame();
+                    frame->SetTitle("SS Energy");
+                    frame->SetXTitle("Energy [keV]");
+                    frame->SetYTitle("Counts / 10keV");
+                    data = data_ss;
+                    fitPdf = fitPdf_ss;
+                    plot_filename = Form("Fit-SS_Energy-%.0fyr-Signal_%.1f",yrs,signalCounts);
+                    break;
+                case 1:
+                    frame = energy->frame();
+                    frame->SetTitle("MS Energy");
+                    frame->SetXTitle("Energy [keV]");
+                    frame->SetYTitle("Counts / 10keV");
+                    data = data_ms;
+                    fitPdf = fitPdf_ms;
+                    plot_filename = Form("Fit-MS_Energy-%.0fyr-Signal_%.1f",yrs,signalCounts);
+                    break;
+                case 2:
+                    frame = standoff->frame();
+                    frame->SetTitle("SS Standoff");
+                    frame->SetXTitle("Standoff [mm]");
+                    frame->SetYTitle("Counts / 30mm");
+                    data = data_ss;
+                    fitPdf = fitPdf_ss;
+                    plot_filename = Form("Fit-SS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
+                    break;
+                case 3:
+                    frame = standoff->frame();
+                    frame->SetTitle("MS Standoff");
+                    frame->SetXTitle("Standoff [mm]");
+                    frame->SetYTitle("Counts / 30mm");
+                    data = data_ms;
+                    fitPdf = fitPdf_ms;
+                    plot_filename = Form("Fit-MS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
+                    break;
+            }
+            
+            // SS Energy plot
+            TLegend *leg = new TLegend(0.7, 0.35, 0.9, 0.9);
+            
+            data->plotOn(frame);
+            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(2));
+            fitPdf->plotOn(frame,RooFit::Components("pdf_LXeBb2n_*"), RooFit::DrawOption("FL"), RooFit::MoveToBack());
+            
+            TGraph* data_graph = (TGraph*) frame->getObject(1);
+            leg->AddEntry(data_graph, "Toy Data", "lep");
+            
+            TGraph* bestfit_gr = (TGraph*) frame->getObject(2);
+            leg->AddEntry(bestfit_gr, "Best Fit", "l");
+            
+            TGraph* bb2n_gr = (TGraph*) frame->getObject(0);
+            bb2n_gr->SetLineColor(kGray);
+            bb2n_gr->SetLineWidth(1);
+            bb2n_gr->SetFillColorAlpha(kGray, 0.35);
+            leg->AddEntry(bb2n_gr, "#beta#beta2#nu", "f");
+            
+            fitPdf->plotOn(frame,RooFit::Components("pdf_LXeBb0n_*"), RooFit::DrawOption("FL"));
+            TGraph* bb0n_gr = (TGraph*) frame->getObject( frame->numItems() - 1  );
+            bb0n_gr->SetLineColor(kRed);
+            bb0n_gr->SetLineWidth(1);
+            bb0n_gr->SetFillColorAlpha(kRed, 0.35);
+            leg->AddEntry(bb0n_gr, "#beta#beta0#nu", "f");
+            
+            int colors[] = {kOrange, kGreen+2, kMagenta, kViolet-3, kAzure+1, kOrange+1, kSpring,
+                kMagenta-10, kOrange+4, };
+            RooArgList pdfList = fitPdf->pdfList();
+            fNFitPdfs = (int) pdfList.getSize();
+            int color_idx = 0;
+            for (int i = 0; i < fNFitPdfs; i++) {
+                TString name = pdfList.at(i)->GetName();
+                if (name.BeginsWith("pdf_LXeBb")) continue;
+                fitPdf->plotOn(frame, RooFit::Components(name));
+                TGraph* gg = (TGraph*) frame->getObject( frame->numItems() - 1  );
+                gg->SetLineColor(colors[color_idx++]);
+                gg->SetLineStyle(1);
+                gg->SetLineWidth(1);
+                leg->AddEntry( gg, fFitPdfNames[i], "l");
+                //        fitPdf_ss->plotOn(frame, RooFit::Components("pdf_FullTpcK40_ss"), RooFit::LineStyle(kDashed));
+            }
+            
+            TCanvas* cc = new TCanvas(Form("cc_%d_%d",iRun, k),Form("cc_%d_%d",iRun, k));
+            cc->SetLogy();
+            frame->SetMaximum(1.e7);
+            frame->SetMinimum(0.01);
+            frame->Draw();
+            if (k==0) {
+                leg->Draw();
+            }
+            
+            cc->SaveAs(plot_filename + ".png");
+            cc->SaveAs(plot_filename + ".root");
+            
+            delete cc;
+            delete leg;
+            
+        }
+        ////////////////////
+        //// END PLOTTING
+        ///////////////////
         
         if (fRunTruthValFit) {
             //Set the floating pars to random starting values or just the mean values
@@ -1354,13 +1466,6 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         
         //Fill the tree
         tree->Fill();
-        
-        //RooPlot* frame = energy->frame();
-        //data_ss->plotOn(frame);
-        //fitPdf_ss->plotOn(frame);
-        //TCanvas* cc = new TCanvas("cc","cc");
-        //frame->Draw();
-        //cc->SaveAs("cc.C");
         
         //Cleanup
         delete nll;

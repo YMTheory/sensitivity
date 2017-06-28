@@ -27,3 +27,9 @@
 *.exe
 *.out
 *.app
+
+tables/
+quick/
+histos/
+plots/pdf/
+plots/png/
