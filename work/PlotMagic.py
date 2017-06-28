@@ -8,19 +8,20 @@ import itertools
 
 # FIXME: rewrite as a class of tools to fit and plot lamdba critical
 
-magic_number_dir = "../results/all_bkgs-1DoF/"
-scan_dir = "../results-0signal/done/"
+# magic_number_dir = "/g/g19/brodsky3/nexo/scratch/sens_recalc/results/taxis_r_ba/t10/done"
+magic_number_dir = "/g/g19/brodsky3/nexo/scratch/sens_recalc/results/resolaxis_r/resol0.005/done/"
+# scan_dir = "/g/g19/brodsky3/nexo/scratch/sens_recalc/results/taxis_r_ba/t5/done/"
 
 # magic_number_dir = "../results-BaTag/done/"
 # scan_dir = "../results-BaTag-0signal/done/"
 
 plot_scan = False
-plot_scan2 = True
+plot_scan2 = False
 
 # position of the knots that form the spline used to approximate the lambda critical curve from the data
 # these might need to be tweaked depending on the actual shape of the curve
-spline_xn = array.array('d', [0.1, 1., 5., 7., 10., 15, 20, 30, 50.])  # all_bkgs
-# spline_xn = array.array('d', [0.1, 0.5, 1., 2., 3.5, 4.5, 10, 20, 50.])   # Ba_tag
+#spline_xn = array.array('d', [0.1, 0.5,1.,1.5,2.5,3,3.5,4,4.5,5,5.5,6, 6.5,7,7.5, 8., 10.,12,50,1000])  # all_bkgs
+spline_xn = array.array('d', [0.1,1,2.,2.5,3.5, 4.,4.5, 10,20])   # Ba_tag
 nknots = len(spline_xn)
 
 magic_numbers = []
@@ -39,7 +40,7 @@ def spline_func(x, par):
 
 
 def plot_magic():
-    h2 = ROOT.TH2F("h2", "h2;Signal Hypothesis;Critical Lambda", 100, 0., spline_xn[-1], 100, 0, 5)
+    h2 = ROOT.TH2F("h2", "h2;Signal Hypothesis;Critical Lambda", 100, 0., 20, 100, 0, 2)
     if plot_scan:
         scan_files = {f[:-9] for f in listdir(scan_dir) if isfile(join(scan_dir, f))}
 
@@ -60,8 +61,8 @@ def plot_magic():
         chain.Add(join(magic_number_dir, f) + "*")
         print "Processing ", join(magic_number_dir, f)
         ratiohist = ROOT.TH1F("ratiohist", f, 400, 0, 20)
-        chain.Draw("nll_ratio>>ratiohist",
-                   "nll_ratio>=0 && stat_sig==0 && stat_bkg==0 && covQual_sig==3 && covQual_bkg==3", "goff")
+        chain.Draw("max(nll_ratio,0)>>ratiohist",
+                   "nll_ratio>=-.01", "goff")
         xq = array.array('d', [.9])
         yq = array.array('d', [0])
         ratiohist.GetQuantiles(1, yq, xq)
@@ -77,6 +78,11 @@ def plot_magic():
         # sys.stdin.read(1)
 
         del ratiohist
+    # magic_numbers.append((50, 2.706 / 2., 1e5))
+    magic_numbers.append((100, 2.706 / 2., 1e5))
+    magic_numbers.append((200, 2.706 / 2., 1e6))
+    magic_numbers.append((500, 2.706 / 2., 1e9))
+    # magic_numbers.append((1000, 2.706 / 2., 1e9))
 
     ndtemp = np.array(magic_numbers)
     np_magic = ndtemp[ndtemp[:, 0].argsort()]
@@ -102,8 +108,8 @@ def plot_magic():
 
     f_spline4 = ROOT.TF1("f_spline", spline_func, 0., spline_xn[-1], nknots)
     f_spline4.SetLineColor(ROOT.kBlue)
-    map(f_spline4.SetParameter, range(0, nknots), itertools.repeat(2, nknots))
-
+    map(f_spline4.SetParameter, range(0, nknots), itertools.repeat(2.706/2., nknots))
+    f_spline4.FixParameter(nknots-1,2.706/2.)
     gr.Fit(f_spline4, "R")
 
     spline_yn = f_spline4.GetParameters()
@@ -114,7 +120,7 @@ def plot_magic():
         scan_files = {f[:-9] for f in listdir(scan_dir) if isfile(join(scan_dir, f)) and f[-9:-5] == '0001'}
 
         # nll_ratio = ROOT.TLeaf()
-        for i in range(0, 50):
+        for i in range(0, 1):
             nll_ratios = []
             print "Entry ", i
             for f in scan_files:
@@ -126,6 +132,7 @@ def plot_magic():
                 chain.GetEntry(i)
                 if covQual_sig.GetValue() != 3:
                     nll_ratios = []
+                    print "Fail ", i
                     break
                 nll_ratios.append((numcounts, nll_ratio.GetValue() / 2.))
 
@@ -136,6 +143,7 @@ def plot_magic():
                                  array.array('d', np_nll_ratios[:, 1]))
             # gr_tmp.Fit("pol4", "q")
             mg.Add(gr_tmp)
+            print "Succeed ", i
             # gr_tmp.Draw("SAME L")
 
     mg.Add(gr)

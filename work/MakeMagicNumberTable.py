@@ -15,7 +15,7 @@ import numpy as np
 # position of the knots that form the spline used to approximate the lambda critical curve from the data
 # these might need to be tweaked depending on the actual shape of the curve
 # use PlotMagic.py to find optimal values
-spline_xn = array.array('d', [0.1, 1., 5., 7., 10., 15, 20, 30, 50.])
+spline_xn = array.array('d', [0.1,1,2.,2.5,3.5, 4.,4.5, 10,20])#[0.1, 0.5,1.,1.5,2.5,3,3.5,4,4.5,5,5.5,6, 6.5,7,7.5, 8., 10.,12,50,1000]
 nknots = len(spline_xn)
 
 magic_numbers = []
@@ -109,7 +109,7 @@ def main():
         yq = array.array('d', [0])
         ratiohist.GetQuantiles(1, yq, xq)
         percent90 = yq[0]
-        # print numcounts, "\t", percent90, "\t",
+        # print(str(numcounts)+"\t"+str(percent90)+"\t")
         magic_numbers.append((numcounts, percent90, ratiohist.GetEntries()))
 
         # refresh the canvases
@@ -120,7 +120,9 @@ def main():
         # sys.stdin.read(1)
 
         del ratiohist
-
+    magic_numbers.append((100, 2.706, 1e5))
+    magic_numbers.append((200, 2.706, 1e6))
+    magic_numbers.append((500, 2.706, 1e9))
     # Magic Numbers need to be sorted by numcounts
     ndtemp = np.array(magic_numbers)
     np_magic = ndtemp[ndtemp[:, 0].argsort()]
@@ -138,6 +140,7 @@ def main():
     f_spline4 = ROOT.TF1("f_spline", spline_func, 0., spline_xn[-1], nknots)
     f_spline4.SetLineColor(ROOT.kBlue)
     map(f_spline4.SetParameter, range(0, nknots), itertools.repeat(2, nknots))
+    f_spline4.FixParameter(nknots-1,2.706)
     # do the actual fit
     gr.Fit(f_spline4, "R0")
 

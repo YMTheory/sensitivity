@@ -70,7 +70,7 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     fNFitPdfs = 0; //number of fitting pdfs
 //    fErrorLevel = 4.29778/2.; //minuit error level, to get the 90% UL
     fErrorLevel = 1.35; //minuit error level, to get the 90% UL
-    fPrintLevel = 1; //minuit print level
+    fPrintLevel = -1; //minuit print level
     
     fExcelTree = 0;
     
@@ -1090,7 +1090,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         m.optimizeConst(true);
         m.setErrorLevel(fErrorLevel);
         m.migrad();
-        // m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
+        m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
         //Get the best fit results for the bkgd + signal fit
         fitResult->num_signal = fWsp->var(Form("num_%s", fSignalName.Data()))->getVal();
         //        fitResult->num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
@@ -1181,7 +1181,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             fitResult->nll_ratio = -1;
             
             // If the background + signal fit was bad, don't waste time
-            if (fitResult->stat_sig ==0 && fitResult->covQual_sig==3) {
+            //if (fitResult->stat_sig ==0 && fitResult->covQual_sig==3) {
+            if (true) {
                 
                 // Create the spline from the magic number (2*nll_ratio) table
                 // FIXME: this does not need to be created every time
@@ -1211,9 +1212,10 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 // As starting points, use the result of the bkgd+signal fit
                 // and a point some number of signals to the right of it
                 Double_t a = fitResult->num_signal;
-                Double_t b = fitResult->num_signal + 15.;
+                Double_t b = fitResult->num_signal + 16.;
+                Double_t c = fitResult->num_signal + 32.;
                 Double_t f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
-                
+                Double_t f_c = 9e99;
                 auto n_iter = 1;
                 while (n_iter < max_iterations) {
                     
@@ -1281,35 +1283,61 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
                     fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
                     if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
-                    
-                    // compute f_b
                     Double_t f_b = nll_ratio - magicSp3.Eval(b);
-                    
-                    // find the secant intersection with zero
-                    auto c = b - f_b * (b-a)/(f_b - f_a);
-                    
-                    // if for some reason I end up on the left of the minimum, or the fit had problems, go back on the other side.
-                    if (c < fitResult->num_signal || fitres_hyp->status()!=0 || fitres_hyp->covQual()!=3) {
-                        std::cout << "Something is not right. Retry" << std::endl;
-                        a = fitResult->num_signal;
-                        b = a + fRandom.Uniform(3,15);
-                        f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
-                    }
-                    else {
-                        a = b;
-                        f_a = f_b;
-                        b = c;
-                    }
-                    
-                    // if condition for convergence is met, then exit
-                    if (fabs(b-a) < signal_precision)
-                    {
-                        fitResult->nll_ratio = nll_ratio;
-                        fitResult->num_signal_eHi = c;
+                    // compute f_b
+                    // if(!fBaTag){
+                    if(false){
 
-                        std::cout << "**** Found num_signal_eHi " << c << " after " << n_iter << " iterations" <<std::endl;
-                        std::cout << "**** MINUIT upper limit :" << minuit_num_signal_eHi << std::endl;
-                        break;
+                        // find the secant intersection with zero
+                        c = b - f_b * (b-a)/(f_b - f_a);
+                        
+                        // if for some reason I end up on the left of the minimum, or the fit had problems, go back on the other side.
+                        if (c < fitResult->num_signal || fitres_hyp->status()!=0 || fitres_hyp->covQual()!=3) {
+                            std::cout << "Something is not right. Retry" << std::endl;
+                            a = fitResult->num_signal;
+                            b = a + fRandom.Uniform(3,15);
+                            f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
+                        }
+                        else {
+                            a = b;
+                            f_a = f_b;
+                            b = c;
+                        }
+                        
+                        // if condition for convergence is met, then exit
+                        if (fabs(b-a) < signal_precision)
+                        {
+                            fitResult->nll_ratio = nll_ratio;
+                            fitResult->num_signal_eHi = c;
+
+                            std::cout << "**** Found num_signal_eHi " << c << " after " << n_iter << " iterations" <<std::endl;
+                            std::cout << "**** MINUIT upper limit :" << minuit_num_signal_eHi << std::endl;
+                            break;
+                        }
+                    }
+                    else{
+                        f_b-=0.02;
+                        if (fabs(b-a) < signal_precision && fabs(f_b)<0.01&&f_b>0)
+                        {
+                            fitResult->nll_ratio = nll_ratio;
+                            fitResult->num_signal_eHi = b;
+
+                            std::cout << "**** Found num_signal_eHi " << b << " after " << n_iter << " iterations" <<std::endl;
+                            std::cout << "**** MINUIT upper limit :" << minuit_num_signal_eHi << std::endl;
+                            break;
+                        }
+                        else if (f_b>0)
+                        {
+                            c=b;
+                            f_c=f_b;
+                            
+                        }
+                        else{
+                            a=b;
+                            f_a=f_b;
+
+                        }
+                        b=(a+c)/2.;
                     }
                     
                     n_iter++;

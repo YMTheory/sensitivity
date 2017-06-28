@@ -123,8 +123,8 @@ class ExcelTableReader:
             pdf = self.GetPdfName(component,isotope)
             print row, '/', end_row, ':', component, isotope, pdf
             activ[pdf] = {'spec':self.GetCellValue(ws,sheet['specColumn'],row),'specErr':self.GetCellValue(ws,sheet['specErrColumn'],row),'activ':self.GetCellValue(ws,sheet['activColumn'],row),'activErr':self.GetCellValue(ws,sheet['activErrColumn'],row),'id':self.GetCellValue(ws,sheet['idColumn'],row)}
-            
-            self.components[pdf].SetActivity(activ[pdf]['spec'],activ[pdf]['specErr'],activ[pdf]['activ'],activ[pdf]['activErr'],ROOT.TString(activ[pdf]['id']))
+
+            self.components[pdf].SetActivity(activ[pdf]['spec'],activ[pdf]['specErr'],activ[pdf]['activ'],activ[pdf]['activErr'],ROOT.TString(str(activ[pdf]['id'])))
     
         return         
 
@@ -176,7 +176,7 @@ class ExcelTableReader:
                 hiteff[pdf]['3t'] = self.GetCellValue(ws,sheet['3tColumn'],row)*1./hiteff[pdf]['k']
                 hiteff[pdf]['fv'] = self.GetCellValue(ws,sheet['fvColumn'],row)*1./hiteff[pdf]['k']
 
-            self.components[pdf].SetHitEfficiency(hiteff[pdf]['n'],hiteff[pdf]['k'],hiteff[pdf]['fv'],hiteff[pdf]['3t'],hiteff[pdf]['1t'],suffix)
+            self.components[pdf].SetHitEfficiency(float(hiteff[pdf]['n']),float(hiteff[pdf]['k']),suffix)
     
         return 
         
