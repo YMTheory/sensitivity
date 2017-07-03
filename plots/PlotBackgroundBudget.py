@@ -5,6 +5,7 @@
 Input is from DB Excel file. Plots are generated grouping by Isotope, Material, or Component."""
 
 import os.path
+import sys
 from math import floor, log10
 
 import matplotlib.pyplot as plt
@@ -17,7 +18,7 @@ def SqrtSumSq(x):
     return np.sqrt(np.sum(np.multiply(x, x)))
 
 
-def make_plot(groupby, filename, xlimit=5.0e-5, ):
+def make_plot(df, groupby, filename, xlimit=5.0e-5, ):
     # grouping with custom aggregration
     df2 = df.groupby(groupby + ["CV?"]).agg(
         {'C.V.': np.sum, 'Error': SqrtSumSq, 'Limit 90% C.L.': np.sum, 'CV?': all})
@@ -72,24 +73,42 @@ def make_plot(groupby, filename, xlimit=5.0e-5, ):
     return
 
 
-table = 'Summary_v73_2016-09-26_bb2n_0nu'
-df = pd.read_excel('../tables/' + table + '.xlsx', sheetname='SS_ExpectedCounts', header=0,
-                   skiprows=4, skip_footer=7, parse_cols="A:C,AI:AK", )
+def main(argv):
+    if len(argv) >= 2:
+        inTableName = argv[1]  # '../tables/Summary_v73_2016-09-26_bb2n_0nu.xlsx'
+    else:
+        sys.exit('Usage: %s xlsx_table_filename' % argv[0])
 
-# this is for printing without breaking into multiple lines
-pd.set_option('display.expand_frame_repr', False)
+    if not os.path.exists(inTableName):
+        sys.exit('ERROR: File %s was not found!' % inTableName)
 
-# remove bb0n rows
-df = df[~df['Isotope'].isin(['bb0n', ])]
+    outFolder = os.path.curdir
+    if len(argv) == 3:
+        outFolder = os.path.expanduser(argv[2])
 
-# Add a column that tracks whether the CV>0 or not
-df['CV?'] = pd.Series(df['C.V.'] > 0, index=df.index)
-print(df)
+    table = ''.join(os.path.basename(inTableName).split('.')[:-1])
 
-# Plot by Material, Isotope, and Component separately
-make_plot(['Material'], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterial_" + table + ".png"))
-make_plot(['Isotope'], os.path.expanduser("~/Scratch/BackgroundBudgetByIsotope_" + table + ".png"), 5.0e-4)
-make_plot(['Component'], os.path.expanduser("~/Scratch/BackgroundBudgetByComponent_" + table + ".png"))
+    df = pd.read_excel(inTableName, sheetname='SS_ExpectedCounts', header=0,
+                       skiprows=4, skip_footer=7, parse_cols="A:C,AI:AK", )
 
-# This is by Material & Isotope
-make_plot(["Material", "Isotope"], os.path.expanduser("~/Scratch/BackgroundBudgetByMaterialIsotope_" + table + '.png'))
+    # this is for printing without breaking into multiple lines
+    pd.set_option('display.expand_frame_repr', False)
+
+    # remove bb0n rows
+    df = df[~df['Isotope'].isin(['bb0n', ])]
+
+    # Add a column that tracks whether the CV>0 or not
+    df['CV?'] = pd.Series(df['C.V.'] > 0, index=df.index)
+    # print(df)
+
+    # Plot by Material, Isotope, and Component separately
+    make_plot(df, ['Material'], os.path.join(outFolder, "BackgroundBudgetByMaterial_" + table + ".png"))
+    make_plot(df, ['Isotope'], os.path.join(outFolder, "BackgroundBudgetByIsotope_" + table + ".png"), 5.0e-4)
+    make_plot(df, ['Component'], os.path.join(outFolder, "BackgroundBudgetByComponent_" + table + ".png"))
+
+    # This is by Material & Isotope
+    make_plot(df, ["Material", "Isotope"], os.path.join(outFolder, "BackgroundBudgetByMaterialIsotope_" + table + '.png'))
+
+
+if __name__ == "__main__":
+    main(sys.argv)
