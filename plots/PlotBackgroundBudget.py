@@ -40,16 +40,16 @@ def make_plot(df, groupby, filename, xlimit=5.0e-5, ):
         label.append(' '.join(index[:len(groupby)]))
         label[-1] = label[-1].replace('bb2n', r'$\beta\beta 2\nu$')
 
-        # the counts are in 1 year and 3 tonne so divide by 3 to get the cts/tonne/year
+        # the counts are in 1 year and 2 tonne so divide by 2 to get the cts/tonne/year
         if row['CV?']:
             xuplims = 0
-            value = row['C.V.'] / 3.
-            err = row['Error'] / 3.
+            value = row['C.V.'] / 2.
+            err = row['Error'] / 2.
             color = 'teal'
             marker = '.'
         else:
             xuplims = 1
-            value = row['Limit 90% C.L.'] / 3.
+            value = row['Limit 90% C.L.'] / 2.
             err = value - xlimit_arrow
             color = 'darkorange'
             marker = ''
