@@ -211,7 +211,7 @@ def MakePlot( inpkl, outname, countpkl = None ):
     plt.plot( count_xList, count_yList['fwhm'], markerList['fwhm'], label='Counting Experiment (FWHM)')
 
     #plt.title("nEXO Sensitivity (90% C.L.) in 10 Years")
-    plt.xlabel("Fiducial Volume Mass [tonne]", fontsize=axis_label_fontsize)
+    plt.xlabel(r"Fiducial Volume Mass [$10^3$ kg]", fontsize=axis_label_fontsize)
     plt.ylabel(r"$^{136}$Xe  $0\nu\beta\beta$  T$_{1/2}$ [$10^{%d}$ yr]"%(np.log10(sens_unit)), fontsize=axis_label_fontsize)
     plt.xlim([min_x, max_x])
     plt.ylim([min_y, max_y])

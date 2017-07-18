@@ -18,7 +18,7 @@ def SqrtSumSq(x):
     return np.sqrt(np.sum(np.multiply(x, x)))
 
 
-def make_plot(df, groupby, filename, xlimit=5.0e-5, ):
+def make_plot(df, groupby, filename, xlimits=[5.0e-7, 4.0e-4]):
     # grouping with custom aggregration
     df2 = df.groupby(groupby + ["CV?"]).agg(
         {'C.V.': np.sum, 'Error': SqrtSumSq, 'Limit 90% C.L.': np.sum, 'CV?': all})
@@ -32,24 +32,24 @@ def make_plot(df, groupby, filename, xlimit=5.0e-5, ):
 
     # loop over all the rows to fill the lists used for plotting
     label = []
-    xlimit_arrow = 10 ** floor(log10(xlimit)) * 10
+    xlimit_arrow = 10 ** floor(log10(xlimits[0])) * 10
     for index, row in df2.iterrows():
-        if row['Limit 90% C.L.'] < 1e-5:
+        if row['Limit 90% C.L.'] < xlimits[0]*2*2000:
             continue
 
         label.append(' '.join(index[:len(groupby)]))
         label[-1] = label[-1].replace('bb2n', r'$\beta\beta 2\nu$')
 
-        # the counts are in 1 year and 2 tonne so divide by 2 to get the cts/tonne/year
+        # the counts are in 1 year and 2 tonne so divide by 2000 to get the cts/kg/year
         if row['CV?']:
             xuplims = 0
-            value = row['C.V.'] / 2.
-            err = row['Error'] / 2.
+            value = row['C.V.'] / 2000.
+            err = row['Error'] / 2000.
             color = 'teal'
             marker = '.'
         else:
             xuplims = 1
-            value = row['Limit 90% C.L.'] / 2.
+            value = row['Limit 90% C.L.'] / 2000.
             err = value - xlimit_arrow
             color = 'darkorange'
             marker = ''
@@ -64,12 +64,13 @@ def make_plot(df, groupby, filename, xlimit=5.0e-5, ):
     ax0.set_yticks(y)
     ax0.set_yticklabels(label)
     ax0.set_xscale('log')
-    ax0.set_xlim(xlimit)
-    ax0.set_xlabel("cts/ROI/tonne/year")
+    ax0.set_xlim(xlimits)
+    ax0.set_xlabel(r"cts/(FWHM$\cdot$kg$\cdot$year)")
+    ax0.grid(which='both', axis='x', linestyle='dashed')
     plt.subplots_adjust(left=0.32, )
     # plt.show()
 
-    plt.savefig(filename, dpi=200)
+    plt.savefig(filename, dpi=200, transparent=True)
     return
 
 
@@ -77,7 +78,7 @@ def main(argv):
     if len(argv) >= 2:
         inTableName = argv[1]  # '../tables/Summary_v73_2016-09-26_bb2n_0nu.xlsx'
     else:
-        sys.exit('Usage: %s xlsx_table_filename' % argv[0])
+        sys.exit('Usage: %s xlsx_table_filename [output_folder]' % argv[0])
 
     if not os.path.exists(inTableName):
         sys.exit('ERROR: File %s was not found!' % inTableName)
@@ -89,7 +90,7 @@ def main(argv):
     table = ''.join(os.path.basename(inTableName).split('.')[:-1])
 
     df = pd.read_excel(inTableName, sheetname='SS_ExpectedCounts', header=0,
-                       skiprows=4, skip_footer=7, parse_cols="A:C,AI:AK", )
+                       skiprows=4, skip_footer=7, parse_cols="A:C,W:Y")
 
     # this is for printing without breaking into multiple lines
     pd.set_option('display.expand_frame_repr', False)
@@ -99,15 +100,15 @@ def main(argv):
 
     # Add a column that tracks whether the CV>0 or not
     df['CV?'] = pd.Series(df['C.V.'] > 0, index=df.index)
-    # print(df)
+    print(df)
 
     # Plot by Material, Isotope, and Component separately
-    make_plot(df, ['Material'], os.path.join(outFolder, "BackgroundBudgetByMaterial_" + table + ".png"))
-    make_plot(df, ['Isotope'], os.path.join(outFolder, "BackgroundBudgetByIsotope_" + table + ".png"), 5.0e-4)
-    make_plot(df, ['Component'], os.path.join(outFolder, "BackgroundBudgetByComponent_" + table + ".png"))
+    make_plot(df, ['Material'], os.path.join(outFolder, "BackgroundBudgetByMaterial_" + table + "_2tonne.png"))
+    make_plot(df, ['Isotope'], os.path.join(outFolder, "BackgroundBudgetByIsotope_" + table + "_2tonne.png"))
+    make_plot(df, ['Component'], os.path.join(outFolder, "BackgroundBudgetByComponent_" + table + "_2tonne.png"))
 
     # This is by Material & Isotope
-    make_plot(df, ["Material", "Isotope"], os.path.join(outFolder, "BackgroundBudgetByMaterialIsotope_" + table + '.png'))
+    make_plot(df, ["Material", "Isotope"], os.path.join(outFolder, "BackgroundBudgetByMaterialIsotope_" + table + '_2tonne.png'))
 
 
 if __name__ == "__main__":

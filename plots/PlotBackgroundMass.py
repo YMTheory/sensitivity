@@ -121,7 +121,7 @@ def MakePlot(inpkl, outname, logscale=False):
     plt.plot(xList, yList['fwhm'][0.5], markerList['fwhm'], label=roiList['fwhm'])
 
     # plt.title("nEXO Sensitivity (90% C.L.) in 10 Years")
-    plt.xlabel("Liquid Xe Mass [tonne]", fontsize=axis_label_fontsize)
+    plt.xlabel("Liquid Xe Mass [10^3 kg]", fontsize=axis_label_fontsize)
     plt.ylabel("Bgd. Index [cts/(ROI$\cdot$tonne$\cdot$yr)]", fontsize=axis_label_fontsize)
     plt.xlim([min_x, max_x])
     plt.ylim([min_y, max_y])
@@ -142,19 +142,19 @@ def MakePlot(inpkl, outname, logscale=False):
     plt.savefig("png/" + outname + '.png', bbox_inches='tight')
     # plt.show()
 
-def MakePlotConfidenceInterval(inpkl, outname, logscale=False):
+def MakePlotConfidenceInterval(inpkl, fv, logscale=False, fig=None, ax=None, color='b'):
     axis_label_fontsize = 15
     legend_fontsize = 14
     labels_fontsize = 14
 
     min_x, max_x = 0, 4
-    min_y, max_y = 0, 3
+    min_y, max_y = 0, 3e-3
     if logscale:
-        min_y, max_y = 0.02, 5  # 0, 3 #11 #8.5
+        min_y, max_y = 0.02e-3, 5e-3  # 0, 3 #11 #8.5
 
     roiList = {'fwhm': 'FWHM (2428 - 2488 keV)', '1sigma': '$\pm$1$\sigma$ (2433 - 2483 keV)',
                '2sigma': '$\pm$2$\sigma$ (2408 - 2507 keV)', '3sigma': '$\pm$3$\sigma$ (2384 - 2532 keV)'}
-    volList = {0.5: '0p5t', 1: '1t', 1.5: '1p5t', 2: '2t', 2.5: '2p5t', 3: '3t', 3.8: 'fv'}  # ,3.5:'3p5t'}#,3.8:'fv'}
+    volList = {0.5: '0p5t', 1: '1t', 1.5: '1p5t', 2: '2t', 2.5: '2p5t', 3: '3t', fv: 'fv'}  # ,3.5:'3p5t'}#,3.8:'fv'}
     clList = sorted([0.5, 0.025, 0.975])
     orderList = ['1sigma', 'fwhm', '2sigma']  # ,'3sigma']
 
@@ -168,16 +168,19 @@ def MakePlotConfidenceInterval(inpkl, outname, logscale=False):
     for roi in roiList:
         yList[roi] = {}
         for cl in clList:
-            yList[roi][cl] = [results[roi][vol[1]][cl] / vol[0] for vol in sorted(volList.items())]
+            yList[roi][cl] = [results[roi][vol[1]][cl] / (vol[0] * 1000) for vol in sorted(volList.items())]
 
-    fig, ax = plt.subplots()
+    if fig is None and ax is None:
+        fig, ax = plt.subplots()
 
-    plt.fill_between(xList, yList['fwhm'][0.025], yList['fwhm'][0.975], facecolor='b', alpha=0.3)
-    plt.plot(xList, yList['fwhm'][0.5], markerList['fwhm'], label=roiList['fwhm'])
+    plt.fill_between(xList, yList['fwhm'][0.025], yList['fwhm'][0.975], facecolor=color, alpha=0.3)
+    plt.plot(xList, yList['fwhm'][0.5], markerList['fwhm'], label=roiList['fwhm'], color=color)
+
+    print( [(mass,bkg) for mass,bkg in zip(xList,yList['fwhm'][0.5])])
 
     # plt.title("nEXO Sensitivity (90% C.L.) in 10 Years")
-    plt.xlabel("Liquid Xe Mass [tonne]", fontsize=axis_label_fontsize)
-    plt.ylabel("Bgd. Index [cts/(FWHM$\cdot$tonne$\cdot$yr)]", fontsize=axis_label_fontsize)
+    plt.xlabel(r"Liquid Xe Mass [$ \times 10^3$ kg]", fontsize=axis_label_fontsize)
+    plt.ylabel("Bgd. Index [cts/(FWHM$\cdot$kg$\cdot$yr)]", fontsize=axis_label_fontsize)
     plt.xlim([min_x, max_x])
     plt.ylim([min_y, max_y])
 
@@ -193,12 +196,17 @@ def MakePlotConfidenceInterval(inpkl, outname, logscale=False):
     ax.grid(True, which='both', linestyle='dotted')
     fig.set_size_inches(7.5, 5.5)
 
-    plt.savefig("pdf/" + outname + '.pdf', bbox_inches='tight')
-    plt.savefig("png/" + outname + '.png', bbox_inches='tight')
-    # plt.show()
+    return fig, ax
 
 if __name__ == "__main__":
     # ReadFiles("../quick/v5/results/done/fits_db_v73_2016-09-09_0nu_scale1_not2nu_allbkgs_rdm_10.0_years_0.0_counts_*.root","bkgd_vs_mass.pkl")
-    ReadFiles("../quick/v5/results/done/fits_db_v73b_2016-09-28_0nu_plots_rdm_10.0_years_0.0_counts_*.root", "bkgd_vs_mass_2nu.pkl")
+    # ReadFiles("../quick/v5/results/done/fits_db_v73b_2016-09-28_0nu_plots_rdm_10.0_years_0.0_counts_*.root", "bkgd_vs_mass_2nu.pkl")
     # ShowPickleResults("bkgd_vs_mass_2nu.pkl")
-    MakePlotConfidenceInterval("bkgd_vs_mass_2nu.pkl", "plot_bkgd_vs_mass_v6_log", logscale=True)
+    fig, ax = MakePlotConfidenceInterval("/Users/sangiorgio1/Scratch/bkgd_vs_mass_0nu.pkl", fv=3.39, logscale=True)
+    fig, ax = MakePlotConfidenceInterval("bkgd_vs_mass_2nu.pkl", fv=3.8, logscale=True, fig=fig, ax=ax, color='r')
+    ax.legend(['2017 model','2015 model'])
+
+    outname = "plot_bkgd_vs_mass_v6_log"
+    plt.savefig("pdf/" + outname + '.pdf', bbox_inches='tight')
+    plt.savefig("png/" + outname + '.png', bbox_inches='tight')
+
