@@ -4,6 +4,8 @@
 #include "TObjectTable.h"
 #include "TSpline.h"
 #include "TLegend.h"
+#include "TText.h"
+#include "TLine.h"
 //#include "RooFit.h"
 //
 
@@ -22,7 +24,7 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     fTreeFileName = treeFileName;
     
     fWriteWsp = false;
-    fWspFileName = "";
+    fWspFileName = "RooFitWorkspace.root";
     
     SetBinning(270, 800, 3500, 21, 10, 640);
     //fNbinsX = 270; fNbinsY = 21; //10; //40; // 56; //65; //9; //10;
@@ -990,9 +992,9 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         
         TAxis* xAxis = genHist_ss->GetXaxis();
         TAxis* yAxis = genHist_ss->GetYaxis();
-        double pdf_roi_bkg = genHist_ss->Integral(xAxis->FindBin(2428), xAxis->FindBin(2487), 1, genHist_ss->GetNbinsY()); ///genHist_ss->Integral();
-        double pdf_roi_bkg_3t = genHist_ss->Integral(xAxis->FindBin(2428), xAxis->FindBin(2487), yAxis->FindBin(90), genHist_ss->GetNbinsY()); ///genHist_ss->Integral();
-        double pdf_roi_bkg_1t = genHist_ss->Integral(xAxis->FindBin(2428), xAxis->FindBin(2487), yAxis->FindBin(256), genHist_ss->GetNbinsY()); ///genHist_ss->Integral();
+        double pdf_roi_bkg = genHist_ss->Integral(xAxis->FindBin(2430), xAxis->FindBin(2479), 1, genHist_ss->GetNbinsY()); ///genHist_ss->Integral();
+        double pdf_roi_bkg_3t = genHist_ss->Integral(xAxis->FindBin(2430), xAxis->FindBin(2479), yAxis->FindBin(90), genHist_ss->GetNbinsY()); ///genHist_ss->Integral();
+        double pdf_roi_bkg_1t = genHist_ss->Integral(xAxis->FindBin(2430), xAxis->FindBin(2479), yAxis->FindBin(256), genHist_ss->GetNbinsY()); ///genHist_ss->Integral();
         
         //energy->setRange("fwhm",2428,2488);
         //standoff->setRange("fv",standoff->getMin(),standoff->getMax());
@@ -1003,7 +1005,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         fitResult->roi_bkg_3t = pdf_roi_bkg_3t * expected_ss;
         fitResult->roi_bkg_1t = pdf_roi_bkg_1t * expected_ss;
         if (fVerboseLevel > 0)
-            std::cout << Form("Expected events in gen pdf SS = %g and ROI = %g (%.0f - %.0f), 3t = %g and 1t = %g", expected_ss, fitResult->roi_bkg, xAxis->GetBinLowEdge(xAxis->FindBin(2428)), xAxis->GetBinLowEdge(xAxis->FindBin(2488)) + xAxis->GetBinWidth(xAxis->FindBin(2488)), fitResult->roi_bkg_3t, fitResult->roi_bkg_1t) << std::endl;
+            std::cout << Form("Expected events in gen pdf SS = %g and ROI = %g (%.0f - %.0f), 3t = %g and 1t = %g", expected_ss, fitResult->roi_bkg, xAxis->GetBinLowEdge(xAxis->FindBin(2430)), xAxis->GetBinUpEdge(xAxis->FindBin(2479)), fitResult->roi_bkg_3t, fitResult->roi_bkg_1t) << std::endl;
         genHist_ss->Delete();
         
         
@@ -1114,6 +1116,143 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         ////////////////////
         //// PLOTTING
         ///////////////////
+        if (fVerboseLevel>0) {
+            
+            TFile *fout = new TFile("plots.root", "RECREATE");
+            
+            TH1* hh_data_ss = data_ss->createHistogram("energy,standoff");
+            //            TCanvas* can = new TCanvas("can","can");
+            //            hh_data_ss->Draw("SURF3");
+            //            can->SaveAs("test.root");
+            hh_data_ss->Write();
+            
+            //        RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf("pdf_InternalU238_ss");
+            //        TH1* htest = pdf->createHistogram("prova", *energy, RooFit::YVar(*standoff));
+            //        htest->Write();
+            
+            TH2D* hh_pdf_ss;
+            TH1* h_py;
+            TString name1;
+            Float_t ROI_min = 2433;
+            Float_t ROI_max = 2483;
+            TCanvas *c2 = new TCanvas("ROI_overlay", "ROI_overlay");
+            TLegend *leg = new TLegend(0.7, 0.35, 0.9, 0.9);
+            int colors[] = {kOrange, kGreen+2, kMagenta, kViolet-3, kAzure+1, kOrange+1, kSpring,
+                kMagenta-10, kOrange+4, };
+            
+            // data
+            h_py = (TH1F*) data_ss->createHistogram("data", *standoff, RooFit::Cut("energy>2430 && energy<2490"));
+            h_py->Scale(1,"width");
+            h_py->Write();
+            c2->cd();
+            h_py->GetXaxis()->SetTitle("Energy [keV]");
+            h_py->GetYaxis()->SetTitle("Standoff [keV]");
+            h_py->SetMinimum(1.0e-8);
+            h_py->Draw("");
+            
+            // full pdfs
+            hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram("Sum_PDFs_SS", *energy, RooFit::YVar(*standoff));
+            hh_pdf_ss->Write();
+            h_py = hh_pdf_ss->ProjectionY("Sum_PDFs_SS_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
+            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            h_py->Write();
+            h_py->SetLineColor(kBlue);
+            h_py->SetLineWidth(2);
+            c2->cd();
+            h_py->Draw("same");
+            
+            // bb0n
+            name1 = "pdf_LXeBb0n_ss";
+            hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name1, *energy, RooFit::YVar(*standoff), RooFit::Components(name1) );
+            //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
+            //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
+            h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
+            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            h_py->Write();
+            h_py->SetLineColor(kRed);
+            h_py->SetLineWidth(1);
+            h_py->SetFillColorAlpha(kRed, 0.35);
+            c2->cd();
+            h_py->Draw("same");
+            
+            // bb2n
+            name1 = "pdf_LXeBb2n_ss";
+            hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name1, *energy, RooFit::YVar(*standoff), RooFit::Components(name1) );
+            //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
+            //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
+            h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
+            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            h_py->Write();
+            h_py->SetLineColor(kGray);
+            h_py->SetLineWidth(1);
+            h_py->SetFillColorAlpha(kGray, 0.35);
+            c2->cd();
+            h_py->Draw("same");
+            
+            
+            RooArgList pdfList = fitPdf_ss->pdfList();
+            fNFitPdfs = (int) pdfList.getSize();
+            int color_idx = 0;
+            for (int i = 0; i < fNFitPdfs; i++) {
+                TString name = pdfList.at(i)->GetName();
+                //            RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf(name);
+                //            TH1* hh_pdf_ss = pdf->createHistogram(name, *energy, RooFit::YVar(*standoff));
+                hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name, *energy, RooFit::YVar(*standoff), RooFit::Components(name) );
+                //            genPdf_ss->fillHistogram(hh_pdf_ss, *energy, 10, 0, true);
+                //            hh_pdf_ss->Draw("");
+                //            can->SaveAs("test.root");
+                hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
+                hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
+                hh_pdf_ss->Write();
+                
+                // Make a 3D plot canvas
+                TCanvas *c1 = new TCanvas(Form("XD_%d_",iRun) + name, Form("XD_%d_",iRun) + name);
+                gStyle->SetOptStat(0);
+                c1->SetLogz();
+                c1->SetTheta(15.55342);
+                c1->SetPhi(164.374);
+                hh_pdf_ss->Draw("SURF3");
+                hh_pdf_ss->SetMaximum(1);
+                hh_pdf_ss->SetMinimum(1e-6);
+                c1->Write();
+                
+                if (name.BeginsWith("pdf_LXeBb")) continue;
+                
+                // Get the Projection in the ROI
+                h_py = hh_pdf_ss->ProjectionY(name + "_ROI",
+                                              hh_pdf_ss->GetXaxis()->FindBin(ROI_min),
+                                              hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
+                h_py->Scale(h_py->Integral("width")*10./h_py->Integral(),"width");
+                h_py->Write();
+                h_py->SetLineColor(colors[color_idx++]);
+                c2->cd();
+                h_py->Draw("same");
+            }
+            
+            gPad->SetLogy();
+            
+            // Now add custom second x axis labels
+            
+            float sd_positions[] = {90, 159, 256};
+            TString sd_labels[] = {"3000", "2000", "1000"};
+            
+            TLine *l;
+            TText *t;
+            for (int j=0; j<3; j++) {
+                l = new TLine(sd_positions[j],0.7,sd_positions[j],1);
+                l->Draw();
+                t = new TText();
+                t->SetTextSize(0.04);
+                t->SetTextAlign(21);
+                t->DrawText(sd_positions[j], 1.2, sd_labels[j]);
+            }
+            t->SetTextFont(4);
+            
+            c2->Write();
+            fout->Close();
+        }
+
+
         for (int k=0; k<4 && fVerboseLevel>0; k++) {
             RooPlot* frame;
             RooDataHist *data;
@@ -1157,13 +1296,16 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     plot_filename = Form("Fit-MS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
                     break;
             }
-            
-            // SS Energy plot
-            TLegend *leg = new TLegend(0.7, 0.35, 0.9, 0.9);
+
+            leg = new TLegend(0.7, 0.35, 0.9, 0.9);
             
             data->plotOn(frame);
+//            auto *toyMC = fitPdf->generate(RooArgSet(*energy,*standoff),10000);
+//            auto *toyMCslice = toyMC->reduce("energy>2000 && energy<3000");
             fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(2));
-            fitPdf->plotOn(frame,RooFit::Components("pdf_LXeBb2n_*"), RooFit::DrawOption("FL"), RooFit::MoveToBack());
+//            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(2),
+//                            RooFit::ProjWData(*energy, *toyMCslice));
+            fitPdf->plotOn(frame, RooFit::Components("pdf_LXeBb2n_*"), RooFit::DrawOption("FL"), RooFit::MoveToBack());
             
             TGraph* data_graph = (TGraph*) frame->getObject(1);
             leg->AddEntry(data_graph, "Toy Data", "lep");
@@ -1184,11 +1326,9 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             bb0n_gr->SetFillColorAlpha(kRed, 0.35);
             leg->AddEntry(bb0n_gr, "#beta#beta0#nu", "f");
             
-            int colors[] = {kOrange, kGreen+2, kMagenta, kViolet-3, kAzure+1, kOrange+1, kSpring,
-                kMagenta-10, kOrange+4, };
-            RooArgList pdfList = fitPdf->pdfList();
+            color_idx = 0;
+            pdfList = fitPdf->pdfList();
             fNFitPdfs = (int) pdfList.getSize();
-            int color_idx = 0;
             for (int i = 0; i < fNFitPdfs; i++) {
                 TString name = pdfList.at(i)->GetName();
                 if (name.BeginsWith("pdf_LXeBb")) continue;
@@ -1313,7 +1453,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 // Settings
                 // FIXME: some of these should be exposed to the user not hardcoded
                 Double_t signal_precision = 1e-3;
-                Double_t nll_ratio_precision = 1e-4;
+//                Double_t nll_ratio_precision = 1e-4;
                 Double_t max_iterations = 20;
                 
                 
