@@ -1146,7 +1146,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             h_py->Write();
             c2->cd();
             h_py->GetXaxis()->SetTitle("Energy [keV]");
-            h_py->GetYaxis()->SetTitle("Standoff [keV]");
+            h_py->GetYaxis()->SetTitle("Standoff [mm]");
             h_py->SetMinimum(1.0e-8);
             h_py->Draw("");
             

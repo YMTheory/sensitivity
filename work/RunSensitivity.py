@@ -58,7 +58,7 @@ if __name__ == "__main__":
     if options.group:
         sens.AddUserMeanCounts(options.group,options.bkgd_counts)
 
-    sens.fVerboseLevel = 0
+    sens.fVerboseLevel = 10
     sens.fSSFracImprovement = options.ssfrac_improvement
     sens.fRn222RateCorrection = options.rn222_rate_correction
 
