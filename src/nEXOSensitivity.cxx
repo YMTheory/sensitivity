@@ -1116,6 +1116,11 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         ////////////////////
         //// PLOTTING
         ///////////////////
+        int color_idx = 0;
+       // int colors[] = {Far, FullTpcK40, InternalTh232, InternalU238, LXeRn222, LXeXe137, VesselTh232,
+       //     VesselU238, blank, };
+        int colors[] = {kViolet-6, kAzure+10, kSpring-2, kOrange-3, kMagenta, kGray+2, kGreen+3, kOrange+9};
+      
         if (fVerboseLevel>0) {
             
             TFile *fout = new TFile("plots.root", "RECREATE");
@@ -1136,19 +1141,21 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             Float_t ROI_min = 2433;
             Float_t ROI_max = 2483;
             TCanvas *c2 = new TCanvas("ROI_overlay", "ROI_overlay");
-            TLegend *leg = new TLegend(0.7, 0.35, 0.9, 0.9);
-            int colors[] = {kOrange, kGreen+2, kMagenta, kViolet-3, kAzure+1, kOrange+1, kSpring,
-                kMagenta-10, kOrange+4, };
+            TLegend *leg = new TLegend(0.45,0.35, 0.1, 0.1);
+            leg->SetNColumns(2);
             
             // data
             h_py = (TH1F*) data_ss->createHistogram("data", *standoff, RooFit::Cut("energy>2430 && energy<2490"));
             h_py->Scale(1,"width");
             h_py->Write();
             c2->cd();
-            h_py->GetXaxis()->SetTitle("Energy [keV]");
-            h_py->GetYaxis()->SetTitle("Standoff [mm]");
+            h_py->GetXaxis()->SetTitle("Standoff [mm]");
+            h_py->GetYaxis()->SetTitle("Counts / 30mm");
+            h_py->SetMarkerStyle(20);
             h_py->SetMinimum(1.0e-8);
             h_py->Draw("");
+            leg->AddEntry(h_py, "Toy Data", "lep");
+            leg->AddEntry("", "", "");
             
             // full pdfs
             hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram("Sum_PDFs_SS", *energy, RooFit::YVar(*standoff));
@@ -1157,7 +1164,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
             h_py->Write();
             h_py->SetLineColor(kBlue);
-            h_py->SetLineWidth(2);
+            h_py->SetLineWidth(3);
             c2->cd();
             h_py->Draw("same");
             
@@ -1169,11 +1176,12 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
             h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
             h_py->Write();
-            h_py->SetLineColor(kRed);
+            h_py->SetLineColor(kAzure-3);
             h_py->SetLineWidth(1);
-            h_py->SetFillColorAlpha(kRed, 0.35);
+            h_py->SetFillColorAlpha(kAzure-3, 0.45);
             c2->cd();
             h_py->Draw("same");
+            leg->AddEntry(h_py, "#beta#beta0#nu", "f");
             
             // bb2n
             name1 = "pdf_LXeBb2n_ss";
@@ -1185,25 +1193,52 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             h_py->Write();
             h_py->SetLineColor(kGray);
             h_py->SetLineWidth(1);
-            h_py->SetFillColorAlpha(kGray, 0.35);
+            h_py->SetFillColorAlpha(kGray, 1.0);
             c2->cd();
             h_py->Draw("same");
-            
+            leg->AddEntry(h_py, "#beta#beta2#nu", "f");
             
             RooArgList pdfList = fitPdf_ss->pdfList();
             fNFitPdfs = (int) pdfList.getSize();
-            int color_idx = 0;
+            //int color_idx = 0;
+            
             for (int i = 0; i < fNFitPdfs; i++) {
                 TString name = pdfList.at(i)->GetName();
                 //            RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf(name);
                 //            TH1* hh_pdf_ss = pdf->createHistogram(name, *energy, RooFit::YVar(*standoff));
-                hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name, *energy, RooFit::YVar(*standoff), RooFit::Components(name) );
+                hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name, *energy, RooFit::YVar(*standoff),RooFit::Components(name) );
                 //            genPdf_ss->fillHistogram(hh_pdf_ss, *energy, 10, 0, true);
                 //            hh_pdf_ss->Draw("");
                 //            can->SaveAs("test.root");
-                hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
-                hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
-                hh_pdf_ss->Write();
+                hh_pdf_ss->GetXaxis()->SetTitle("Standoff [mm]");
+                hh_pdf_ss->GetYaxis()->SetTitle("Counts / 30mm");
+                
+                hh_pdf_ss->SetLineWidth(2);
+                hh_pdf_ss->SetLineColor(colors[color_idx]);
+                
+                //remove the K40 line from ROI plot, only add legend entries from plots that haven't been added above
+                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0 && fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
+                    //make legend entries pretty
+                    if ((fFitPdfNames[i].CompareTo("Far"))==0){
+                        leg->AddEntry( hh_pdf_ss, "Far components", "l");
+                        leg->AddEntry("", "", "");
+                    }
+                    if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ss, "Vessels ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ss, "Vessels ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "^{137}Xe", "l");}
+                    if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "^{222}Rn", "l");}
+                
+                //leg->AddEntry( hh_pdf_ss, fFitPdfNames[i], "l");
+                }
+                // add legend to the ROI overlay plot only
+                if ((fFitPdfNames[i].CompareTo("LXeBb2n"))==0){leg->Draw();}
+               
+                //remove the K40 line from ROI plot
+                if (fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
+                    hh_pdf_ss->Write();
+                }
                 
                 // Make a 3D plot canvas
                 TCanvas *c1 = new TCanvas(Form("XD_%d_",iRun) + name, Form("XD_%d_",iRun) + name);
@@ -1214,8 +1249,18 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 hh_pdf_ss->Draw("SURF3");
                 hh_pdf_ss->SetMaximum(1);
                 hh_pdf_ss->SetMinimum(1e-6);
-                c1->Write();
+             
+                hh_pdf_ss->SetAxisRange(0., 2800.,"X");
+                hh_pdf_ss->GetXaxis()->SetTitleOffset(1.55);
+                hh_pdf_ss->GetYaxis()->SetTitleOffset(1.85);
+                hh_pdf_ss->GetZaxis()->SetTitleOffset(1.3);
                 
+                // If you want pretty blue 3D graphs, uncomment the next two lines
+                // Note: the legend for the ROI will get messed up
+//                hh_pdf_ss->SetLineColor(kBlue);
+//                hh_pdf_ss->SetLineWidth(1);
+                c1->Write();
+             
                 if (name.BeginsWith("pdf_LXeBb")) continue;
                 
                 // Get the Projection in the ROI
@@ -1225,30 +1270,42 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 h_py->Scale(h_py->Integral("width")*10./h_py->Integral(),"width");
                 h_py->Write();
                 h_py->SetLineColor(colors[color_idx++]);
+                h_py->SetLineWidth(2);
+                
                 c2->cd();
                 h_py->Draw("same");
+
+                gPad->SetLogy();
+                
+                //c2->BuildLegend(0.7, 0.35, 0.9, 0.9);
+                
+                c1->SaveAs(name + ".pdf");
             }
             
-            gPad->SetLogy();
-            
             // Now add custom second x axis labels
-            
-            float sd_positions[] = {90, 159, 256};
-            TString sd_labels[] = {"3000", "2000", "1000"};
+            c2->cd();
+            float sd_positions[] = {90, 159, 256, 500};
+            TString sd_labels[] = {"3000", "2000", "1000","LXe Volume [kg]"};
             
             TLine *l;
             TText *t;
-            for (int j=0; j<3; j++) {
-                l = new TLine(sd_positions[j],0.7,sd_positions[j],1);
+            for (int j=0; j<4; j++) {
+                
+                if(j<3){l = new TLine(sd_positions[j],1.0,sd_positions[j],1.25);}
                 l->Draw();
+                
                 t = new TText();
+                t->SetTextFont(4);
                 t->SetTextSize(0.04);
                 t->SetTextAlign(21);
-                t->DrawText(sd_positions[j], 1.2, sd_labels[j]);
+                t->DrawText(sd_positions[j], 1.0, sd_labels[j]);
             }
             t->SetTextFont(4);
             
             c2->Write();
+            
+            c2->SaveAs(name1 + ".pdf");
+
             fout->Close();
         }
 
@@ -1258,6 +1315,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             RooDataHist *data;
             RooAddPdf* fitPdf;
             TString plot_filename;
+            
             switch (k) {
                 case 0:
                     frame = energy->frame();
@@ -1296,13 +1354,15 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     plot_filename = Form("Fit-MS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
                     break;
             }
-
-            leg = new TLegend(0.7, 0.35, 0.9, 0.9);
+            
+//            TLegend *leg = new TLegend(0.7, 0.35, 0.9, 0.9);
+            TLegend *leg = new TLegend(0.55, 0.65, 0.9, 0.9);
+            leg->SetNColumns(2);
             
             data->plotOn(frame);
 //            auto *toyMC = fitPdf->generate(RooArgSet(*energy,*standoff),10000);
 //            auto *toyMCslice = toyMC->reduce("energy>2000 && energy<3000");
-            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(2));
+            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(3));
 //            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(2),
 //                            RooFit::ProjWData(*energy, *toyMCslice));
             fitPdf->plotOn(frame, RooFit::Components("pdf_LXeBb2n_*"), RooFit::DrawOption("FL"), RooFit::MoveToBack());
@@ -1315,19 +1375,19 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             
             TGraph* bb2n_gr = (TGraph*) frame->getObject(0);
             bb2n_gr->SetLineColor(kGray);
-            bb2n_gr->SetLineWidth(1);
-            bb2n_gr->SetFillColorAlpha(kGray, 0.35);
+            bb2n_gr->SetLineWidth(2);
+            bb2n_gr->SetFillColorAlpha(kGray, 1.0);
             leg->AddEntry(bb2n_gr, "#beta#beta2#nu", "f");
             
             fitPdf->plotOn(frame,RooFit::Components("pdf_LXeBb0n_*"), RooFit::DrawOption("FL"));
             TGraph* bb0n_gr = (TGraph*) frame->getObject( frame->numItems() - 1  );
-            bb0n_gr->SetLineColor(kRed);
-            bb0n_gr->SetLineWidth(1);
-            bb0n_gr->SetFillColorAlpha(kRed, 0.35);
+            bb0n_gr->SetLineColor(kAzure-3);
+            bb0n_gr->SetLineWidth(2);
+            bb0n_gr->SetFillColorAlpha(kAzure-3, 0.45);
             leg->AddEntry(bb0n_gr, "#beta#beta0#nu", "f");
             
             color_idx = 0;
-            pdfList = fitPdf->pdfList();
+            RooArgList pdfList = fitPdf->pdfList();
             fNFitPdfs = (int) pdfList.getSize();
             for (int i = 0; i < fNFitPdfs; i++) {
                 TString name = pdfList.at(i)->GetName();
@@ -1336,8 +1396,19 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 TGraph* gg = (TGraph*) frame->getObject( frame->numItems() - 1  );
                 gg->SetLineColor(colors[color_idx++]);
                 gg->SetLineStyle(1);
-                gg->SetLineWidth(1);
-                leg->AddEntry( gg, fFitPdfNames[i], "l");
+                gg->SetLineWidth(2);
+               
+                //make legend entries pretty
+                if ((fFitPdfNames[i].CompareTo("Far"))==0){leg->AddEntry( gg, "Far components", "l");}
+                if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( gg,"Internals ^{232}Th", "l");}
+                if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( gg,"Internals ^{238}U", "l");}
+                if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg->AddEntry( gg, "^{222}Rn", "l");}
+                if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( gg, "Vessels ^{232}Th", "l");}
+                if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( gg, "Vessels ^{238}U", "l");}
+                if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg->AddEntry( gg, "^{137}Xe", "l");}
+                if ((fFitPdfNames[i].CompareTo("FullTpcK40"))==0){leg->AddEntry( gg, "^{40}K", "l");}
+                //else {leg->AddEntry( gg, fFitPdfNames[i], "l");}
+                
                 //        fitPdf_ss->plotOn(frame, RooFit::Components("pdf_FullTpcK40_ss"), RooFit::LineStyle(kDashed));
             }
             
@@ -1350,7 +1421,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 leg->Draw();
             }
             
-            cc->SaveAs(plot_filename + ".png");
+            cc->SaveAs(plot_filename + ".pdf");
             cc->SaveAs(plot_filename + ".root");
             
             delete cc;
