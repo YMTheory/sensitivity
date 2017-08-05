@@ -1120,10 +1120,11 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
        // int colors[] = {Far, FullTpcK40, InternalTh232, InternalU238, LXeRn222, LXeXe137, VesselTh232,
        //     VesselU238, blank, };
         int colors[] = {kViolet-6, kAzure+10, kSpring-2, kOrange-3, kMagenta, kGray+2, kGreen+3, kOrange+9};
-      
+        
+        
         if (fVerboseLevel>0) {
-            
             TFile *fout = new TFile("plots.root", "RECREATE");
+            
             
             TH1* hh_data_ss = data_ss->createHistogram("energy,standoff");
             //            TCanvas* can = new TCanvas("can","can");
@@ -1140,7 +1141,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             TString name1;
             Float_t ROI_min = 2433;
             Float_t ROI_max = 2483;
-            TCanvas *c2 = new TCanvas("ROI_overlay", "ROI_overlay");
+            TCanvas *c2 = new TCanvas("ROI_overlay_ss", "ROI_overlay_ss");
             TLegend *leg = new TLegend(0.45,0.35, 0.1, 0.1);
             leg->SetNColumns(2);
             
@@ -1198,10 +1199,75 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             h_py->Draw("same");
             leg->AddEntry(h_py, "#beta#beta2#nu", "f");
             
+            //same plots just for ms
+            TH2D* hh_pdf_ms;
+            TH1* h_ms_py;
+            TString name2;
+            
+            TCanvas *c3 = new TCanvas("ROI_overlay_ms", "ROI_overlay_ms");
+            TLegend *leg2 = new TLegend(0.45,0.35, 0.1, 0.1);
+            leg2->SetNColumns(2);
+            
+            // data for ms
+            h_ms_py = (TH1F*) data_ms->createHistogram("data_ms", *standoff, RooFit::Cut("energy>2430 && energy<2490"));
+            h_ms_py->Scale(1,"width");
+            h_ms_py->Write();
+            c3->cd();
+            h_ms_py->GetXaxis()->SetTitle("Standoff [mm]");
+            h_ms_py->GetYaxis()->SetTitle("Counts / 30mm");
+            h_ms_py->SetMarkerStyle(20);
+            h_ms_py->SetMinimum(1.0e-8);
+            h_ms_py->Draw("");
+            leg2->AddEntry(h_ms_py, "Toy Data", "lep");
+            leg2->AddEntry("", "", "");
+            
+            // full pdfs for ms
+            hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram("Sum_PDFs_MS", *energy, RooFit::YVar(*standoff));
+            hh_pdf_ms->Write();
+            h_ms_py = hh_pdf_ms->ProjectionY("Sum_PDFs_MS_ROI", hh_pdf_ms->GetXaxis()->FindBin(ROI_min), hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
+            h_ms_py->Scale(h_ms_py->Integral("width")*hh_pdf_ms->GetXaxis()->GetBinWidth(1)/h_ms_py->Integral(),"width");
+            //h_ms_py->SetMarkerStyle(0);
+            //h_ms_py->SetLineStyle(1);
+            h_ms_py->Write();
+            h_ms_py->SetLineColor(kBlue);
+            h_ms_py->SetLineWidth(3);
+            c3->cd();
+            h_ms_py->Draw("hist same");
+            
+            // bb0n for ms
+            name2 = "pdf_LXeBb0n_ms";
+            hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram(name2, *energy, RooFit::YVar(*standoff), RooFit::Components(name2) );
+            //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
+            //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
+            h_ms_py = hh_pdf_ms->ProjectionY(name2 + "_ROI", hh_pdf_ms->GetXaxis()->FindBin(ROI_min), hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
+            h_ms_py->Scale(h_ms_py->Integral("width")*hh_pdf_ms->GetXaxis()->GetBinWidth(1)/h_ms_py->Integral(),"width");
+            h_ms_py->Write();
+            h_ms_py->SetLineColor(kAzure-3);
+            h_ms_py->SetLineWidth(1);
+            h_ms_py->SetFillColorAlpha(kAzure-3, 0.45);
+            c3->cd();
+            h_ms_py->Draw("hist same");
+            leg2->AddEntry(h_ms_py, "#beta#beta0#nu", "f");
+            
+            // bb2n for ms
+            name2 = "pdf_LXeBb2n_ms";
+            hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram(name2, *energy, RooFit::YVar(*standoff), RooFit::Components(name2) );
+            
+            h_ms_py = hh_pdf_ms->ProjectionY(name2 + "_ROI", hh_pdf_ms->GetXaxis()->FindBin(ROI_min), hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
+            h_ms_py->Scale(h_ms_py->Integral("width")*hh_pdf_ms->GetXaxis()->GetBinWidth(1)/h_ms_py->Integral(),"width");
+            h_ms_py->Write();
+            h_ms_py->SetLineColor(kGray);
+            h_ms_py->SetLineWidth(1);
+            h_ms_py->SetFillColorAlpha(kGray, 1.0);
+            c3->cd();
+            h_ms_py->Draw("hist same");
+            leg2->AddEntry(h_ms_py, "#beta#beta2#nu", "f");
+            
+            
             RooArgList pdfList = fitPdf_ss->pdfList();
             fNFitPdfs = (int) pdfList.getSize();
             //int color_idx = 0;
-            
+
             for (int i = 0; i < fNFitPdfs; i++) {
                 TString name = pdfList.at(i)->GetName();
                 //            RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf(name);
@@ -1221,7 +1287,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     //make legend entries pretty
                     if ((fFitPdfNames[i].CompareTo("Far"))==0){
                         leg->AddEntry( hh_pdf_ss, "Far components", "l");
-                        leg->AddEntry("", "", "");
+                        leg->AddEntry(" "," "," ");
                     }
                     if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{232}Th", "l");}
                     if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{238}U", "l");}
@@ -1260,7 +1326,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
 //                hh_pdf_ss->SetLineColor(kBlue);
 //                hh_pdf_ss->SetLineWidth(1);
                 c1->Write();
-             
+                    
                 if (name.BeginsWith("pdf_LXeBb")) continue;
                 
                 // Get the Projection in the ROI
@@ -1279,10 +1345,10 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 
                 //c2->BuildLegend(0.7, 0.35, 0.9, 0.9);
                 
-                c1->SaveAs(name + ".pdf");
-            }
+               // c1->SaveAs(name + ".pdf");
+            }//i
             
-            // Now add custom second x axis labels
+            // Now add custom second x axis labels to ROI overlay for SS
             c2->cd();
             float sd_positions[] = {90, 159, 256, 500};
             TString sd_labels[] = {"3000", "2000", "1000","LXe Volume [kg]"};
@@ -1299,17 +1365,125 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 t->SetTextSize(0.04);
                 t->SetTextAlign(21);
                 t->DrawText(sd_positions[j], 1.0, sd_labels[j]);
-            }
+            }//j
             t->SetTextFont(4);
             
             c2->Write();
             
             c2->SaveAs(name1 + ".pdf");
-
+            
+            //--- make the ROI overlay plot, Counts/30mm vs Standoff[mm] (fig 6 in sens paper) with MS data instead of SS data
+        
+            RooArgList pdfList2 = fitPdf_ms->pdfList();
+            fNFitPdfs = (int) pdfList2.getSize();
+            int color_idx_2 = 0;
+            
+            for (int i = 0; i < fNFitPdfs; i++) {
+                TString name3 = pdfList2.at(i)->GetName();
+                //            RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf(name);
+                //            TH1* hh_pdf_ss = pdf->createHistogram(name, *energy, RooFit::YVar(*standoff));
+                hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram(name3, *energy, RooFit::YVar(*standoff),RooFit::Components(name3) );
+                //            genPdf_ss->fillHistogram(hh_pdf_ss, *energy, 10, 0, true);
+                //            hh_pdf_ss->Draw("");
+                //            can->SaveAs("test.root");
+                hh_pdf_ms->GetXaxis()->SetTitle("Standoff [mm]");
+                hh_pdf_ms->GetYaxis()->SetTitle("Counts / 30mm");
+            
+                hh_pdf_ms->SetLineWidth(2);
+                hh_pdf_ms->SetLineColor(colors[color_idx_2]);
+            
+                //remove the K40 line from ROI plot, only add legend entries from plots that haven't been added above
+                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0 && fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
+                    //make legend entries pretty
+                    if ((fFitPdfNames[i].CompareTo("Far"))==0){
+                        leg2->AddEntry( hh_pdf_ms, "Far components", "l");
+                        leg2->AddEntry(" "," "," ");
+                    }
+                    if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg2->AddEntry( hh_pdf_ms,"Internals ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg2->AddEntry( hh_pdf_ms,"Internals ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg2->AddEntry( hh_pdf_ms, "Vessels ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg2->AddEntry( hh_pdf_ms, "Vessels ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg2->AddEntry( hh_pdf_ms, "^{137}Xe", "l");}
+                    if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg2->AddEntry( hh_pdf_ms, "^{222}Rn", "l");}
+                    //if ((fFitPdfNames[i].CompareTo("FullTpcK40"))==0){leg2->AddEntry( hh_pdf_ms, "^{40}K", "l");}
+                    //leg->AddEntry( hh_pdf_ms, fFitPdfNames[i], "l");
+                }
+                // add legend to the ROI overlay plot only
+                if ((fFitPdfNames[i].CompareTo("LXeBb2n"))==0){leg2->Draw();}
+            
+                //remove the K40 line from ROI plot
+                if (fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
+                    hh_pdf_ms->Write();
+                }
+             
+                /*
+                // Make a 3D plot canvas
+                TCanvas *c5 = new TCanvas(Form("XD_%d_",iRun) + name3, Form("XD_%d_",iRun) + name3);
+                gStyle->SetOptStat(0);
+                c5->SetLogz();
+                c5->SetTheta(15.55342);
+                c5->SetPhi(164.374);
+                hh_pdf_ms->Draw("SURF3");
+                hh_pdf_ms->SetMaximum(1);
+                hh_pdf_ms->SetMinimum(1e-6);
+                
+                hh_pdf_ms->SetAxisRange(0., 2800.,"X");
+                hh_pdf_ms->GetXaxis()->SetTitleOffset(1.55);
+                hh_pdf_ms->GetYaxis()->SetTitleOffset(1.85);
+                hh_pdf_ms->GetZaxis()->SetTitleOffset(1.3);
+                
+                // If you want pretty blue 3D graphs, uncomment the next two lines
+                // Note: the legend for the ROI will get messed up
+                //                hh_pdf_ss->SetLineColor(kBlue);
+                //                hh_pdf_ss->SetLineWidth(1);
+                c5->Write();
+                */
+                
+                if (name3.BeginsWith("pdf_LXeBb")) continue;
+                
+                // Get the Projection in the ROI
+                h_ms_py = hh_pdf_ms->ProjectionY(name3 + "_ROI",
+                                              hh_pdf_ms->GetXaxis()->FindBin(ROI_min),
+                                              hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
+                h_ms_py->Scale(h_ms_py->Integral("width")*10./h_ms_py->Integral(),"width");
+                h_ms_py->Write();
+                h_ms_py->SetLineColor(colors[color_idx_2++]);
+                h_ms_py->SetLineWidth(2);
+                
+                c3->cd();
+                h_ms_py->Draw("hist same");
+                
+                gPad->SetLogy();
+                
+              }//i
+              /*  // Now add custom second x axis labels to ROI overlay for MS
+                c3->cd();
+                float sd_positions_2[] = {90, 159, 256, 500};
+                TString sd_labels_2[] = {"3000", "2000", "1000","LXe Volume [kg]"};
+            
+                TLine *l2;
+                TText *t2;
+                for (int j=0; j<4; j++) {
+                
+                    if(j<3){l2 = new TLine(sd_positions_2[j],8.0,sd_positions_2[j],9.5);}
+                    l2->Draw();
+                
+                    t2 = new TText();
+                    t2->SetTextFont(4);
+                    t2->SetTextSize(0.04);
+                    t2->SetTextAlign(21);
+                    t2->DrawText(sd_positions_2[j], 1.0, sd_labels_2[j]);
+                }//j
+                t2->SetTextFont(4);
+            */
+            c3->cd();
+            c3->Write();
+            
+            c3->SaveAs(name2 + ".pdf");
             fout->Close();
-        }
-
-
+            
+        }//fVerboseLevel
+        
         for (int k=0; k<4 && fVerboseLevel>0; k++) {
             RooPlot* frame;
             RooDataHist *data;
