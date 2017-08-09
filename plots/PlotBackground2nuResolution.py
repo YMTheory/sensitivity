@@ -42,7 +42,7 @@ def MakePlots(outname,logscale=False):
     # plt.plot( xList, yList['2-sigma'], markerList['2-sigma'], label=r'$\pm$ $2\sigma$')
     # plt.plot( xList, yList['3-sigma'], markerList['3-sigma'], label=r'$\pm$ $3\sigma$')
     
-    plt.xlabel(r"Resolution $\sigma(E)/E$ at the Q-value [%]", fontsize=axis_label_fontsize)
+    plt.xlabel(r"Resolution $\sigma/Q_{\beta\beta}$ [%]", fontsize=axis_label_fontsize)
     # plt.ylabel(r"$^{136}$Xe  $2\nu\beta\beta$ Background [cts/(tonne$\cdot$yr)]", fontsize=axis_label_fontsize)
     plt.ylabel(r"$^{136}$Xe  $2\nu\beta\beta$ [cts/(FWHM$\cdot$kg$\cdot$yr)]", fontsize=axis_label_fontsize)
     plt.xlim([min_x, max_x])
@@ -65,7 +65,13 @@ def MakePlots(outname,logscale=False):
     ax.grid(True, which='both', linestyle='dotted')
     fig.set_size_inches(7.5,5.5)
 
-    ax.add_patch(patches.Polygon([[0.9, min_y], [0.9, max_y], [1.1, max_y], [1.1, min_y]], alpha=0.3, color='grey', lw=0, fill=True))
+    # ax.add_patch(patches.Polygon([[0.9, min_y], [0.9, max_y], [1.1, max_y], [1.1, min_y]], alpha=0.3, color='grey', lw=0, fill=True))
+
+    plt.axvline(x=1, color='r', linestyle='--', linewidth=2)
+    plt.axvline(x=1.23, color='g', linestyle='-.', linewidth=2)
+    plt.text(0.92, 2e-3, r'nEXO', {'ha': 'center', 'va': 'center'}, rotation=90, fontsize=16, )
+    plt.text(1.15, 2e-3, r'EXO-200', {'ha': 'center', 'va': 'center'}, rotation=90, fontsize=16,)
+
 
     plt.savefig("pdf/" + outname + '.pdf', bbox_inches='tight' )
     plt.savefig("png/" + outname + '.png', bbox_inches='tight' )

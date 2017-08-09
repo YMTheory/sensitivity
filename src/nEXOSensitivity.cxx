@@ -1291,8 +1291,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     }
                     if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{232}Th", "l");}
                     if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ss, "Vessels ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ss, "Vessels ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ss, "TPCVessel ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ss, "TPCVessel ^{238}U", "l");}
                     if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "^{137}Xe", "l");}
                     if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "^{222}Rn", "l");}
                 
@@ -1401,8 +1401,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     }
                     if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg2->AddEntry( hh_pdf_ms,"Internals ^{232}Th", "l");}
                     if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg2->AddEntry( hh_pdf_ms,"Internals ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg2->AddEntry( hh_pdf_ms, "Vessels ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg2->AddEntry( hh_pdf_ms, "Vessels ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg2->AddEntry( hh_pdf_ms, "TPCVessel ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg2->AddEntry( hh_pdf_ms, "TPCVessel ^{238}U", "l");}
                     if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg2->AddEntry( hh_pdf_ms, "^{137}Xe", "l");}
                     if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg2->AddEntry( hh_pdf_ms, "^{222}Rn", "l");}
                     //if ((fFitPdfNames[i].CompareTo("FullTpcK40"))==0){leg2->AddEntry( hh_pdf_ms, "^{40}K", "l");}
@@ -1577,8 +1577,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( gg,"Internals ^{232}Th", "l");}
                 if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( gg,"Internals ^{238}U", "l");}
                 if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg->AddEntry( gg, "^{222}Rn", "l");}
-                if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( gg, "Vessels ^{232}Th", "l");}
-                if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( gg, "Vessels ^{238}U", "l");}
+                if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( gg, "TPCVessel ^{232}Th", "l");}
+                if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( gg, "TPCVessel ^{238}U", "l");}
                 if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg->AddEntry( gg, "^{137}Xe", "l");}
                 if ((fFitPdfNames[i].CompareTo("FullTpcK40"))==0){leg->AddEntry( gg, "^{40}K", "l");}
                 //else {leg->AddEntry( gg, fFitPdfNames[i], "l");}

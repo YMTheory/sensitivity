@@ -13,7 +13,7 @@ matplotlib.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
 matplotlib.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
 
  
-nEXOlib = '/data/data033/exo/software/nEXO_Sensitivity/quick/v5/lib/libnEXOSensitivity.so'
+nEXOlib = '../lib/libnEXOSensitivity.so'
 ROOT.gSystem.Load(nEXOlib)
 
 def ShowPickleResults( inpkl ):
@@ -193,7 +193,7 @@ def MakePlot( inpkl, outname = 'out_sens_plot.pdf', discpkl = None, imprpkl = No
         impr_median_pow = impr_results['ul_minos_med_pow']
         
 
-    fv_scale = 1.035
+    fv_scale = 0.986
     time_scale = 0.0002
     xlist = np.arange(time_scale,livetimes[-1]+time_scale,time_scale)
     ylist, ylolist, yhilist, dlist, imprlist = [], [], [], [], []
@@ -380,14 +380,16 @@ def MakePlot3( senspkl, bapkl, imprpkl, outname = 'out_sens3_plot.pdf', labels =
     impr_sens_unit = impr_results['sens_unit']
     impr_median_pow = impr_results['ul_minos_med_pow']
         
-    fv_scale = 1.035
+    fv_scale_sens = 0.986
+    fv_scale_ba = 0.741
+    fv_scale_impr = 1.0
     time_scale = 0.0002
     xlist = np.arange(time_scale,livetimes[-1]+time_scale,time_scale)
     ysens, yba, yimpr = [], [], []
     for x in xlist:
-        ysens.append(median_pow[0]*(x**median_pow[1])*sens_unit*fv_scale)
-        yba.append(ba_median_pow[0]*(x**ba_median_pow[1])*ba_sens_unit*fv_scale)
-        yimpr.append(impr_median_pow[0]*(x**impr_median_pow[1])*impr_sens_unit*fv_scale)
+        ysens.append(median_pow[0]*(x**median_pow[1])*sens_unit*fv_scale_sens)
+        yba.append(ba_median_pow[0]*(x**ba_median_pow[1])*ba_sens_unit*fv_scale_ba)
+        yimpr.append(impr_median_pow[0]*(x**impr_median_pow[1])*impr_sens_unit*fv_scale_impr)
 
     y200 = [1.9e25/sens_unit]
     x200 = (np.log(y200[0]) - np.log(median_pow[0]))/median_pow[1]
@@ -397,9 +399,11 @@ def MakePlot3( senspkl, bapkl, imprpkl, outname = 'out_sens3_plot.pdf', labels =
 
     fig, ax = plt.subplots()
 
+    print ysens[-1], yimpr[-1], yba[-1]
+
     plt.plot( xlist, ysens, 'r-', linewidth=2, label="Baseline Concept")
-    plt.plot( xlist, yimpr, 'b--', linewidth=2, label="Considerable Improvements")
-    line, = plt.plot( xlist, yba, 'g--', linewidth=2, label="Ba-tagging Scenario")
+    # plt.plot( xlist, yimpr, 'b--', linewidth=2, label="w/ Improvements")
+    line, = plt.plot( xlist, yba, 'g--', linewidth=2, label=r"$2\nu\beta\beta$-only Background")
     dashes = [3,2]
     line.set_dashes(dashes)
 
@@ -430,4 +434,13 @@ def MakePlot3( senspkl, bapkl, imprpkl, outname = 'out_sens3_plot.pdf', labels =
     ax.grid(True, which='both')
     plt.savefig( outname )
 
-    plt.show()
+    # plt.show()
+
+
+def main():
+    MakePlot3("sens_time_dbv73.pkl","batag_sens_time.pkl","sens_improved_time.pkl", exo200=False)
+    MakePlot("sens_time_dbv73.pkl", discpkl="sens_time_dbv73_disc.pkl", exo200=False)
+
+if __name__ == "__main__":
+    main()
+

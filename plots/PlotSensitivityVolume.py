@@ -182,7 +182,7 @@ def MakePlot( inpkl, outname, countpkl = None ):
     badSd = [40,120]
 
     xList = [fvList[sd] for sd in sorted(fvList) if not sd in badSd]
-    yList = [sens[sd][1] for sd in sorted(sens) if not sd in badSd]
+    yList = [sens[sd][1]*0.954 for sd in sorted(sens) if not sd in badSd]
 
     if countpkl:
         #roiList = ['fwhm','1sigma','2sigma'] #,'3sigma']
@@ -190,7 +190,7 @@ def MakePlot( inpkl, outname, countpkl = None ):
         #roiList = {'fwhm':'FWHM (2428 - 2488 keV)','1sigma':'1$\sigma$ (2433 - 2483 keV)','2sigma':'2$\sigma$ (2408 - 2507 keV)','3sigma':'3$\sigma$ (2384 - 2532 keV)'}
         # roiList = {'fwhm':'FWHM','1sigma':'$\pm$ 1$\sigma$','2sigma':'$\pm$ 2$\sigma$'}#,'3sigma':'\pm 3$\sigma$'}
         roiList = {'fwhm':'FWHM',}
-        volList = {0.5:'0p5t',1:'1t',1.5:'1p5t',2:'2t',2.5:'2p5t',3:'3t',3.86:'fv'}#,3.5:'3p5t'
+        volList = {0.5:'0p5t',1:'1t',1.5:'1p5t',2:'2t',2.5:'2p5t',3:'3t',3.806:'fv'}#,3.5:'3p5t'
         markerList = {'fwhm':'bD-','1sigma':'ro-','2sigma':'g^-','3sigma':'m*-'}
         orderList = ['fwhm', ] #'3sigma'
 
@@ -200,7 +200,7 @@ def MakePlot( inpkl, outname, countpkl = None ):
         for roi in roiList:
             count_yList[roi] = [count_results[roi][vol[1]][0.5]/sens_unit for vol in sorted(volList.items())]   
     # fix fv
-    xList[0] = 3.86
+    xList[0] = 3.806
 
     fig, ax = plt.subplots()
     plt.plot( xList, yList, 'ks-', label='Full nEXO 2D Analysis')
