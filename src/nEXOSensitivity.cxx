@@ -1147,11 +1147,11 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             
             // data
             h_py = (TH1F*) data_ss->createHistogram("data", *standoff, RooFit::Cut("energy>2430 && energy<2490"));
-            h_py->Scale(1,"width");
+            //h_py->Scale(1,"width");
             h_py->Write();
             c2->cd();
             h_py->GetXaxis()->SetTitle("Standoff [mm]");
-            h_py->GetYaxis()->SetTitle("Counts / 30mm");
+            h_py->GetYaxis()->SetTitle("Counts");
             h_py->SetMarkerStyle(20);
             h_py->SetMinimum(1.0e-8);
             h_py->Draw("");
@@ -1162,7 +1162,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram("Sum_PDFs_SS", *energy, RooFit::YVar(*standoff));
             hh_pdf_ss->Write();
             h_py = hh_pdf_ss->ProjectionY("Sum_PDFs_SS_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            //h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral());// alt scaling
             h_py->Write();
             h_py->SetLineColor(kBlue);
             h_py->SetLineWidth(3);
@@ -1175,7 +1176,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
             //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
             h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            // h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral());//alt scaling
             h_py->Write();
             h_py->SetLineColor(kAzure-3);
             h_py->SetLineWidth(1);
@@ -1190,7 +1192,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
             //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
             h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            //h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
+            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral());//alt scaling
             h_py->Write();
             h_py->SetLineColor(kGray);
             h_py->SetLineWidth(1);
@@ -1277,7 +1280,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 //            hh_pdf_ss->Draw("");
                 //            can->SaveAs("test.root");
                 hh_pdf_ss->GetXaxis()->SetTitle("Standoff [mm]");
-                hh_pdf_ss->GetYaxis()->SetTitle("Counts / 30mm");
+                hh_pdf_ss->GetYaxis()->SetTitle("Counts");
                 
                 hh_pdf_ss->SetLineWidth(2);
                 hh_pdf_ss->SetLineColor(colors[color_idx]);
@@ -1333,7 +1336,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 h_py = hh_pdf_ss->ProjectionY(name + "_ROI",
                                               hh_pdf_ss->GetXaxis()->FindBin(ROI_min),
                                               hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-                h_py->Scale(h_py->Integral("width")*10./h_py->Integral(),"width");
+                //h_py->Scale(h_py->Integral("width")*10./h_py->Integral(),"width");
+                h_py->Scale(h_py->Integral("width")*10./h_py->Integral());//alt scaling
                 h_py->Write();
                 h_py->SetLineColor(colors[color_idx++]);
                 h_py->SetLineWidth(2);
@@ -1495,7 +1499,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     frame = energy->frame();
                     frame->SetTitle("SS Energy");
                     frame->SetXTitle("Energy [keV]");
-                    frame->SetYTitle("Counts / 10keV");
+                    frame->SetYTitle("Counts");
                     data = data_ss;
                     fitPdf = fitPdf_ss;
                     plot_filename = Form("Fit-SS_Energy-%.0fyr-Signal_%.1f",yrs,signalCounts);
@@ -1504,7 +1508,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     frame = energy->frame();
                     frame->SetTitle("MS Energy");
                     frame->SetXTitle("Energy [keV]");
-                    frame->SetYTitle("Counts / 10keV");
+                    frame->SetYTitle("Counts");
                     data = data_ms;
                     fitPdf = fitPdf_ms;
                     plot_filename = Form("Fit-MS_Energy-%.0fyr-Signal_%.1f",yrs,signalCounts);
@@ -1513,7 +1517,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     frame = standoff->frame();
                     frame->SetTitle("SS Standoff");
                     frame->SetXTitle("Standoff [mm]");
-                    frame->SetYTitle("Counts / 30mm");
+                    frame->SetYTitle("Counts");
                     data = data_ss;
                     fitPdf = fitPdf_ss;
                     plot_filename = Form("Fit-SS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
@@ -1522,7 +1526,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     frame = standoff->frame();
                     frame->SetTitle("MS Standoff");
                     frame->SetXTitle("Standoff [mm]");
-                    frame->SetYTitle("Counts / 30mm");
+                    frame->SetYTitle("Counts");
                     data = data_ms;
                     fitPdf = fitPdf_ms;
                     plot_filename = Form("Fit-MS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
