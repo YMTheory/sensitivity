@@ -1361,7 +1361,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             TText *t;
             for (int j=0; j<4; j++) {
                 
-                if(j<3){l = new TLine(sd_positions[j],1.0,sd_positions[j],1.25);}
+                if(j<3){l = new TLine(sd_positions[j],30.0,sd_positions[j],38.0);}
                 l->Draw();
                 
                 t = new TText();
