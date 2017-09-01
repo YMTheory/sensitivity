@@ -1117,9 +1117,15 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         //// PLOTTING
         ///////////////////
         int color_idx = 0;
+       // 2015 baseline component groups
        // int colors[] = {Far, FullTpcK40, InternalTh232, InternalU238, LXeRn222, LXeXe137, VesselTh232,
        //     VesselU238, blank, };
-        int colors[] = {kViolet-6, kAzure+10, kSpring-2, kOrange-3, kMagenta, kGray+2, kGreen+3, kOrange+9};
+        //int colors[] = {kViolet-6, kAzure+10, kSpring-2, kOrange-3, kMagenta, kGray+2, kGreen+3, kOrange+9};
+        
+        //2017 baseline component groups
+        // int colors[] = {ActiveLXeRn222, ActiveLXeXe137, Far, FullTpcK40, InactiveLXeRn222, InactiveLXeXe137, InternalTh232, InternalU238, VesselTh232, VesselU238 };
+        //
+        int colors[] = {kMagenta, kGray+2, kViolet-6, kAzure+10, kMagenta-9, kGray+3, kSpring-2, kOrange-3, kGreen+3, kOrange+9};
         
         
         if (fVerboseLevel>0) {
@@ -1153,7 +1159,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             h_py->GetXaxis()->SetTitle("Standoff [mm]");
             h_py->GetYaxis()->SetTitle("Counts");
             h_py->SetMarkerStyle(20);
-            h_py->SetMinimum(1.0e-8);
+            h_py->SetMinimum(1.0e-6);
             h_py->Draw("");
             leg->AddEntry(h_py, "Toy Data", "lep");
             leg->AddEntry("", "", "");
@@ -1286,20 +1292,23 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 hh_pdf_ss->SetLineColor(colors[color_idx]);
                 
                 //remove the K40 line from ROI plot, only add legend entries from plots that haven't been added above
-                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0 && fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
+                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0){
                     //make legend entries pretty
-                    if ((fFitPdfNames[i].CompareTo("Far"))==0){
+                   if ((fFitPdfNames[i].CompareTo("Far"))==0){
                         leg->AddEntry( hh_pdf_ss, "Far components", "l");
-                        leg->AddEntry(" "," "," ");
+                        //leg->AddEntry(" "," "," ");
                     }
+                    
+                    if ((fFitPdfNames[i].CompareTo("ActiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "Active LXe ^{222}Rn", "l");}
+                    if ((fFitPdfNames[i].CompareTo("ActiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "Active LXe ^{137}Xe", "l");}
                     if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{232}Th", "l");}
                     if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{238}U", "l");}
                     if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ss, "TPCVessel ^{232}Th", "l");}
                     if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ss, "TPCVessel ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "^{137}Xe", "l");}
-                    if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "^{222}Rn", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InactiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "Inactive ^{137}Xe", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InactiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "Inactive ^{222}Rn", "l");}
                 
-                //leg->AddEntry( hh_pdf_ss, fFitPdfNames[i], "l");
+                    //leg->AddEntry( hh_pdf_ss, fFitPdfNames[i], "l");
                 }
                 // add legend to the ROI overlay plot only
                 if ((fFitPdfNames[i].CompareTo("LXeBb2n"))==0){leg->Draw();}
@@ -1361,7 +1370,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             TText *t;
             for (int j=0; j<4; j++) {
                 
-                if(j<3){l = new TLine(sd_positions[j],30.0,sd_positions[j],38.0);}
+                if(j<3){l = new TLine(sd_positions[j],65.0,sd_positions[j],71.0);}
                 l->Draw();
                 
                 t = new TText();
@@ -1397,22 +1406,24 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 hh_pdf_ms->SetLineColor(colors[color_idx_2]);
             
                 //remove the K40 line from ROI plot, only add legend entries from plots that haven't been added above
-                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0 && fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
-                    //make legend entries pretty
+                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0){
+                    
                     if ((fFitPdfNames[i].CompareTo("Far"))==0){
-                        leg2->AddEntry( hh_pdf_ms, "Far components", "l");
-                        leg2->AddEntry(" "," "," ");
+                        leg->AddEntry( hh_pdf_ms, "Far components", "l");
+                        //leg->AddEntry(" "," "," ");
                     }
-                    if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg2->AddEntry( hh_pdf_ms,"Internals ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg2->AddEntry( hh_pdf_ms,"Internals ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg2->AddEntry( hh_pdf_ms, "TPCVessel ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg2->AddEntry( hh_pdf_ms, "TPCVessel ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg2->AddEntry( hh_pdf_ms, "^{137}Xe", "l");}
-                    if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg2->AddEntry( hh_pdf_ms, "^{222}Rn", "l");}
-                    //if ((fFitPdfNames[i].CompareTo("FullTpcK40"))==0){leg2->AddEntry( hh_pdf_ms, "^{40}K", "l");}
-                    //leg->AddEntry( hh_pdf_ms, fFitPdfNames[i], "l");
+                    
+                    if ((fFitPdfNames[i].CompareTo("ActiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ms, "Active LXe ^{222}Rn", "l");}
+                    if ((fFitPdfNames[i].CompareTo("ActiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ms, "Active LXe ^{137}Xe", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ms,"Internals ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ms,"Internals ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ms, "TPCVessel ^{232}Th", "l");}
+                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ms, "TPCVessel ^{238}U", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InactiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ms, "Inactive ^{137}Xe", "l");}
+                    if ((fFitPdfNames[i].CompareTo("InactiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ms, "Inactive ^{222}Rn", "l");}
+                   
                 }
-                // add legend to the ROI overlay plot only
+                 // add legend to the ROI overlay plot only
                 if ((fFitPdfNames[i].CompareTo("LXeBb2n"))==0){leg2->Draw();}
             
                 //remove the K40 line from ROI plot
@@ -1578,13 +1589,15 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                
                 //make legend entries pretty
                 if ((fFitPdfNames[i].CompareTo("Far"))==0){leg->AddEntry( gg, "Far components", "l");}
+                if ((fFitPdfNames[i].CompareTo("ActiveLXeRn222"))==0){leg->AddEntry(gg, "Active LXe ^{222}Rn", "l");}
+                if ((fFitPdfNames[i].CompareTo("ActiveLXeXe137"))==0){leg->AddEntry(gg, "Active LXe ^{137}Xe", "l");}
                 if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( gg,"Internals ^{232}Th", "l");}
                 if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( gg,"Internals ^{238}U", "l");}
-                if ((fFitPdfNames[i].CompareTo("LXeRn222"))==0){leg->AddEntry( gg, "^{222}Rn", "l");}
                 if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( gg, "TPCVessel ^{232}Th", "l");}
                 if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( gg, "TPCVessel ^{238}U", "l");}
-                if ((fFitPdfNames[i].CompareTo("LXeXe137"))==0){leg->AddEntry( gg, "^{137}Xe", "l");}
-                if ((fFitPdfNames[i].CompareTo("FullTpcK40"))==0){leg->AddEntry( gg, "^{40}K", "l");}
+                if ((fFitPdfNames[i].CompareTo("InactiveLXeXe137"))==0){leg->AddEntry( gg, "Inactive ^{137}Xe", "l");}
+                if ((fFitPdfNames[i].CompareTo("InactiveLXeRn222"))==0){leg->AddEntry( gg, "Inactive ^{222}Rn", "l");}
+
                 //else {leg->AddEntry( gg, fFitPdfNames[i], "l");}
                 
                 //        fitPdf_ss->plotOn(frame, RooFit::Components("pdf_FullTpcK40_ss"), RooFit::LineStyle(kDashed));
@@ -1592,7 +1605,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             
             TCanvas* cc = new TCanvas(Form("cc_%d_%d",iRun, k),Form("cc_%d_%d",iRun, k));
             cc->SetLogy();
-            frame->SetMaximum(1.e7);
+            frame->SetMaximum(3.e7);
             frame->SetMinimum(0.01);
             frame->Draw();
             if (k==0) {
