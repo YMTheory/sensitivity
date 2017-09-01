@@ -43,9 +43,9 @@ ax2.set_ylim([1e-3,1])
 ax2.set_xticks(xticklist + [1,])
 ax2.tick_params(axis='both',which='major',labelsize='14')
 
-ax1.set_xlabel( xlab, fontsize=16 )
-ax2.set_xlabel( xlab, fontsize=16 )
-ax1.set_ylabel( r"$<m_{\beta\beta}>$ [eV]", fontsize=16)
+ax1.set_xlabel( xlab, fontsize=20 )
+ax2.set_xlabel( xlab, fontsize=20 )
+ax1.set_ylabel( r"$<m_{\beta\beta}>$ [eV]", fontsize=22)
 ax1.tick_params(axis='both',which='major',labelsize='14')
 
 fig.set_size_inches(6,4.5)
@@ -57,11 +57,11 @@ if( plot_vs_total_mass ):
 #    ax2.text(0.4,1.2e-3, "Planck,\narXiv:1502.01589",rotation="vertical",ha='left',va='bottom')
     ax2.text(0.4,1.2e-3, "Planck 2015 Results,\nA&A 594, A13 (2016)",rotation="vertical",ha='left',va='bottom')
 
-    ax1.annotate('N.H.', xy=(0.25,0.055), color='red', size=14)
-    ax2.annotate('I.H.', xy=(0.25,0.055), color='blue', size=14)
+    ax1.annotate('N.H.', xy=(0.25,0.055), color='red', size=20)
+    ax2.annotate('I.H.', xy=(0.25,0.055), color='blue', size=20)
 else:
-    ax1.annotate('N.H.', xy=(0.001,0.0025), color='red', size=14)
-    ax2.annotate('I.H.', xy=(0.001,0.025), color='blue', size=14)
+    ax1.annotate('N.H.', xy=(0.001,0.0025), color='red', size=20)
+    ax2.annotate('I.H.', xy=(0.001,0.025), color='blue', size=20)
         
     
 exo200_curr = 1.1e25 ## half-life limit from nature paper (yr)
@@ -90,11 +90,11 @@ col=np.array([80.,190.,150.])/256.
 ax1.fill_between(xlim,[lmax_proj, lmax_proj],[lmin_proj, lmin_proj],edgecolor=col,facecolor=col,alpha=0.5)
 ax2.fill_between(xlim,[lmax_proj, lmax_proj],[lmin_proj, lmin_proj],edgecolor=col,facecolor=col,alpha=0.5)
 
-ax1.text( xlim[0]*1.15, 1.30*np.mean([lmin_curr, lmax_curr]), r"EXO-200", ha="left", va="center", fontsize=14)
-ax1.text( (xlim[0]*23.0,xlim[0]*5.20)[plot_vs_total_mass], 1.3*np.mean([lmin_curr, lmax_curr]), r"Nature 510, 229 (2014)", ha="left", va="center", fontsize=11, fontstyle='italic')
+ax1.text( xlim[0]*1.15, 1.30*np.mean([lmin_curr, lmax_curr]), r"EXO-200", ha="left", va="center", fontsize=20)
+ax1.text( (xlim[0]*53.0,xlim[0]*5.20)[plot_vs_total_mass], 1.3*np.mean([lmin_curr, lmax_curr]), r"Nature 510, 229 (2014)", ha="left", va="center", fontsize=11, fontstyle='italic')
 
-ax1.text( xlim[0]*1.15, 0.90*np.mean([lmin_proj, lmax_proj]), r"EXO-200 Phase-II", ha="left", va="center", fontsize=14)
-ax1.text( (xlim[0]*23.0,xlim[0]*5.20)[plot_vs_total_mass], 0.90*np.mean([lmin_proj, lmax_proj]), r"arXiv: 1707.08707 (2017)", ha="left", va="center", fontsize=11, fontstyle='italic')
+ax1.text( xlim[0]*1.15, 0.90*np.mean([lmin_proj, lmax_proj]), r"EXO-200 Phase-II", ha="left", va="center", fontsize=20)
+ax1.text( (xlim[0]*53.0,xlim[0]*5.20)[plot_vs_total_mass], 0.90*np.mean([lmin_proj, lmax_proj]), r"arXiv: 1707.08707 (2017)", ha="left", va="center", fontsize=11, fontstyle='italic')
 
 ## nexo
 
@@ -102,13 +102,13 @@ if five_or_ten_yr:
     col=np.array([0.,180.,150.])/256.
     ax1.fill_between(xlim,[lmax_notag, lmax_notag],[lmin_notag, lmin_notag],edgecolor=col,facecolor=col,alpha=0.5)
     ax2.fill_between(xlim,[lmax_notag, lmax_notag],[lmin_notag, lmin_notag],edgecolor=col,facecolor=col,alpha=0.5)
-    ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_notag, lmax_notag]), r"nEXO 5 Years", ha="left", va="center", fontsize=14)
+    ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_notag, lmax_notag]), r"nEXO 5 Years", ha="left", va="center", fontsize=20)
 else:
     ##col=np.array([180.,50.,150.])/256.
     col=np.array([180.,50.,150.])/256.
     ax1.fill_between(xlim,[lmax_10yrs, lmax_10yrs],[lmin_10yrs, lmin_10yrs],edgecolor=col,facecolor=col,alpha=0.5)
     ax2.fill_between(xlim,[lmax_10yrs, lmax_10yrs],[lmin_10yrs, lmin_10yrs],edgecolor=col,facecolor=col,alpha=0.5)
-    ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_10yrs, lmax_10yrs]), r"nEXO 10 Years", ha="left", va="center", fontsize=14)
+    ax1.text( xlim[0]*1.15, 0.85*np.mean([lmin_10yrs, lmax_10yrs]), r"nEXO 10 Years", ha="left", va="center", fontsize=20)
 
 plt.savefig("sens_nexo"+suffix+"_%dyrs_v2.pdf"%((10,5)[five_or_ten_yr]))
 plt.savefig("sens_nexo"+suffix+"_%dyrs_v2.png"%((10,5)[five_or_ten_yr]))
