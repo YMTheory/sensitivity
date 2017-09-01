@@ -40,7 +40,7 @@ if __name__ == "__main__":
     parser.add_option("--turn-off-groups", nargs=1,type=str,default='') # turn these groups off the fit (set zero expectation counts and do not include in fit)
     
     options,args = parser.parse_args()   
-    print('Using options:', options)
+    print 'Using options:', options
 
     realPath = os.path.realpath(options.output_dir)
     realPathWork = realPath + '/working'
@@ -59,6 +59,7 @@ if __name__ == "__main__":
         sens.AddUserMeanCounts(options.group,options.bkgd_counts)
 
     sens.fVerboseLevel = 10
+    #sens.fNcpu = 4
     sens.fSSFracImprovement = options.ssfrac_improvement
     sens.fRn222RateCorrection = options.rn222_rate_correction
 
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     groupsOff = options.turn_off_groups.split(',')
     if groupsOff[0] != '':
         for groupOff in groupsOff:
-            print('Turning group off the fit', groupOff)
+            print 'Turning group off the fit', groupOff
             sens.TurnGroupOff(groupOff)
 
     sens.GenAndFitData(options.number_runs,options.years,options.signal_counts,options.random_rate)
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     outtree = outfile.Get("tree")
 
     ratiohist = ROOT.TH1F("ratiohist","ratiohist",100,0,10)
-    outtree.Draw("nll_ratio>>ratiohist")
+    outtree.Draw("nll_ratio>>ratiohist","","goff")
     xq=array.array('d',[.9])
     yq=array.array('d',[0])
     ratiohist.GetQuantiles(1,yq,xq)
