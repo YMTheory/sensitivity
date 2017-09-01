@@ -1,14 +1,14 @@
 # Very basic makefile
 SILENT      ?= @
 
-CXXFLAGS = -fPIC -g  -O2 -W -Wall -Wextra -Wshadow 
-SOMAKER = g++
+CXXFLAGS = -fPIC -g -O3 -W -Wall -Wextra -Wshadow 
+SOMAKER = $(CXX)
 SOFLAGS = -shared 
 SOSUFFIX = so 
 
 ROOT_INCLUDE_FLAGS := $(shell root-config --cflags) 
 ROOT_LIB_FLAGS := $(shell root-config --libs) -lRooFit -lRooFitCore -lMinuit -lFoam
-ROOTCINT := $(shell root-config --bindir)/rootcint
+ROOTCINT := $(shell root-config --bindir)/rootcling
 ROOT := $(shell root-config --bindir)/root
 
 # --- Directories -------------------------------------------------------------------
@@ -75,8 +75,8 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.cxx
 	$(SILENT)echo "Compiling file............. $(<F)"
 	$(SILENT)$(CXX) -c $(CXXFLAGS) $(INCLUDEFLAGS) $< -o $@
 
-%.o: %.C
-	$(SILENT)$(CXX) -c $(CXXFLAGS) $(INCLUDEFLAGS) $< -o $@
+#%.o: %.C
+#	$(SILENT)$(CXX) -c $(CXXFLAGS) $(INCLUDEFLAGS) $< -o $@
 
 $(EXECUTABLES): $(OBJECTS) $(ROOTDICTOBJECT) 
 	$(SILENT)$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBFLAGS)
@@ -84,12 +84,15 @@ $(EXECUTABLES): $(OBJECTS) $(ROOTDICTOBJECT)
 $(ROOTDICTCCNAME): $(ROOTDICTHEADERS) $(AUTOLINKDEF) 
 	$(SILENT)echo "Rootifying files........... $(@F)"
 	$(SILENT)rm -f $(ROOTDICTCCNAME) $(ROOTDICTHHNAME) 
-	$(SILENT)$(ROOTCINT) $@ -c -p $(CXXFLAGS) $(ROOTDICTINCLUDE) $(DICTINCLUDEFLAGS) $^ 
+	$(SILENT)$(ROOTCINT) $@ -c -p $(CXXFLAGS) -rmf al.rootmap $(ROOTDICTINCLUDE) $(DICTINCLUDEFLAGS) $^ 
  
+$(ROOTDICTOBJECT): $(ROOTDICTCCNAME)
+	$(SILENT)$(CXX) -c $(CXXFLAGS) $(INCLUDEFLAGS) -c $< -o $@
+
 $(SHLIB): $(OBJECTS) $(ROOTDICTOBJECT)
 	$(SILENT)echo "Building library........... $(@F)"
 	$(SILENT)if [ ! -d $(LIBDIR) ]; then mkdir -p $(LIBDIR); fi
-	$(SILENT)$(SOMAKER) $(SOFLAGS) -o $@ $^ $(LIBFLAGS)
+	$(SILENT)$(SOMAKER) $(SOFLAGS) $(CXXFLAGS) $(INCLUDEFLAGS) -o $@ $^ $(LIBFLAGS)
 
 $(AUTOLINKDEF): $(LINKDEFIN) $(ROOTDICTHEADERS) 
 	$(SILENT)echo "Auto-making Linkdef........ $(@F)"

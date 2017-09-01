@@ -6,12 +6,6 @@ import glob, os
 import matplotlib.pyplot as plt
 import numpy as np
 
-import matplotlib
-matplotlib.rcParams['mathtext.fontset'] = 'custom'
-matplotlib.rcParams['mathtext.rm'] = 'Bitstream Vera Sans'
-matplotlib.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
-matplotlib.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
-
 nEXOlib = '/data/data033/exo/software/nEXO_Sensitivity/quick/v5/lib/libnEXOSensitivity.so'
 ROOT.gSystem.Load(nEXOlib)
 
@@ -21,7 +15,7 @@ def fill_between(x, y1, y2=0, **kwargs):
     ax = plt.gca()
     plt.fill_between(x, y1, y2, **kwargs)
     p = plt.Rectangle((1e-20, 1e-20), 1e-20, 1e-20, **kwargs)
-    #ax.add_patch(p)
+    ax.add_patch(p)
     return p
 
 def iterrange( x, nsig=4.0 ):
@@ -35,9 +29,6 @@ def iterrange( x, nsig=4.0 ):
     return [np.max([0,cmu-nsig*cstd]), cmu + nsig*cstd]
 
 def PlotSensitivity( s, median, unit = 1, nbins=None, crange=[], CL=0.68, xlab="90% CL upper limit", ylab="Number of Toy Fits", plot_title="" ):
-
-    axis_label_fontsize = 15
-    legend_fontsize = 14
 
     ## estimate desired bins if not specified
     if( not nbins):
@@ -65,23 +56,23 @@ def PlotSensitivity( s, median, unit = 1, nbins=None, crange=[], CL=0.68, xlab="
     fig = plt.figure()
     fill_between(xx, 0, yy, color='c', edgecolor='None', alpha=0.5, label="68% Confidence Interval")
     plt.step(be[:-1], hh, where='post', color='k', linewidth=1.5)
-    med_val = hh[ np.argmin( np.abs( bcent - median) )]
+    med_val = hh[ np.argmin( np.abs( bcent - mpos[1]) )]
 #    plt.plot( [mpos[1], mpos[1]], [0, med_val], 'r', linewidth=1.5, label="Median = %.1f " % mpos[1])
     label_unit = "Median = %.1f" % median
     if unit != 1:
         label_unit = r"%s $\times$ 10$^{%d}$"%(label_unit, np.log10(unit))
     plt.plot( [median, median], [0, med_val], 'r', linewidth=1.5, label=label_unit)
 
-    plt.legend(loc="upper right",prop={'size':legend_fontsize})
-    plt.xlabel(xlab, fontsize=axis_label_fontsize)
-    plt.ylabel(ylab, fontsize=axis_label_fontsize)
+    plt.legend(loc="upper right")
+    plt.xlabel(xlab)
+    plt.ylabel(ylab)
     if( plot_title ):
         plt.title(plot_title)
     
     return fig
 
 
-def MakePlots(inpkl, outname):
+def MakePlots(inpkl, outdir):
 
     results = pickle.load(open(inpkl,'rb'))
     ul_minos = results['ul_minos']
@@ -92,12 +83,10 @@ def MakePlots(inpkl, outname):
     sens_unit = results['sens_unit']
 
     sens_fig_minos = PlotSensitivity( ul_minos, ul_minos_median, plot_title="Upper Limit Distribution in %.1f Years"%(livetime), xlab=r"$0\nu\beta\beta$ Upper Limit (90% CL) [cts]" )
-    plt.savefig( 'nul_'+outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( 'nul_'+outname+'.png', bbox_inches='tight' )
+    plt.savefig( os.path.join( outdir, "UpperLimitDistribution.pdf" ) )
     
-    sens_fig_prof = PlotSensitivity( sens_minos, sens_minos_median, unit=sens_unit, plot_title="Sensitivity Distribution in %.1f Years"%(livetime), xlab=r"$^{136}$Xe  $0\nu\beta\beta$  T$_{1/2}$ [10$^{27}$ yr]" )
-    plt.savefig( 'sens_'+outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( 'sens_'+outname+'.png', bbox_inches='tight' )
+    sens_fig_prof = PlotSensitivity( sens_minos, sens_minos_median, unit=sens_unit, plot_title="Sensitivity Distribution in %.1f Years"%(livetime), xlab=r"T$_{1/2}$ [10$^{27}$ yr]" )
+    plt.savefig( os.path.join( outdir, "SensitivityDistribution.pdf" ) )
 
     plt.show()
 
@@ -132,8 +121,23 @@ def ReadFiles( livetime, mass, efficiency, infiles, outpkl, sens_unit = 1e27 ):
     pickle.dump(results, open( outpkl, 'wb'))
 
 if __name__ == "__main__":
+    from optparse import OptionParser
 
-    #ReadFiles( 5 , 3860, 0.82, "/data/data033/exo/software/nEXO_Sensitivity/quick/v5/results/done/fits_db_v73_2016-09-09_0nu_rdm_5.0_years_0.0_counts_*.root" , "n_sens_dbv73_5yr_fv.pkl", 1e27 )
-    #MakePlots( "n_sens_dbv73_5yr_fv.pkl", "dist_v2")
-    # ReadFiles( 10 , 3860, 0.82, "/data/data033/exo/software/nEXO_Sensitivity/quick/v5/results/done/fits_db_v73_2016-09-09_0nu_rdm_10.0_years_0.0_counts_*.root" , "n_sens_dbv73_10yr_fv.pkl", 1e27 )
-    MakePlots( "n_sens_dbv73_10yr_fv.pkl", "dist_v3")
+    usage = '''%prog -l livetime [yr] -m mass [kg] -e efficiency -i infiles -o outdir
+            '''
+
+    parser = OptionParser(usage)
+    parser.add_option("-l","--livetime", type=float, nargs=1, default=5.0)
+    parser.add_option("-m","--mass", type=float, nargs=1, default=3740)
+    parser.add_option("-e","--efficiency", type=float, nargs=1, default=1.00)
+
+    parser.add_option("-i","--infiles", default=None)
+    parser.add_option("-o","--outdir", default=".")
+
+    options,args = parser.parse_args()
+    if options.infiles == None:
+        print '*** ERROR: Must specify input file path ***'
+        parser.print_help()
+        sys.exit(1)
+
+    MakePlots( options.livetime, options.mass, options.efficiency, options.infiles, options.outdir)

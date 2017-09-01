@@ -27,12 +27,12 @@ def PlotMbb():
 
 def PlotHL():
 
-    rout = ROOT.TFile('hlv5.root','recreate')
+    rout = ROOT.TFile('hlv7.root','recreate')
 
     yrs = array.array('d',[0.5, 1., 2.5, 5., 10.])#,12.5,15.0,20.0])
     cts = array.array('d',[0,2.5,5,10,20,40,80]) #range(11))
-    count_sens = ROOT.nEXOUtils.EvalCountSensFromFiles(len(yrs),yrs,'../../v5/results/done/disc_hamamatsu_v62_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root','bkg_fwhm_3t',3000,0.81) # 80% eff to find 0nu in FV > 700 keV, 70% eff to be in FWHM
-    count_disc = ROOT.nEXOUtils.EvalCountDiscFromFiles(len(yrs),yrs,'../../v5/results/done/disc_hamamatsu_v62_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root','bkg_fwhm_3t',3000,0.81)
+    #count_sens = ROOT.nEXOUtils.EvalCountSensFromFiles(len(yrs),yrs,'../../v5/results/done/disc_hamamatsu_v62_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root','bkg_fwhm_3t',3000,0.81) # 80% eff to find 0nu in FV > 700 keV, 70% eff to be in FWHM
+    #count_disc = ROOT.nEXOUtils.EvalCountDiscFromFiles(len(yrs),yrs,'../../v5/results/done/disc_hamamatsu_v62_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root','bkg_fwhm_3t',3000,0.81)
     disc = ROOT.nEXOUtils.ReadDiscFromFiles(len(yrs),yrs,len(cts),cts,'../../v5/results/done/disc_hamamatsu_v62_0nu_eff_tpc_rdm_%0.1f_years_%0.1f_counts_*.root',3740,0.5,3)
     sens = ROOT.nEXOUtils.ReadSensFromFiles(len(yrs),yrs,'../../v5/results/done/disc_hamamatsu_v62_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root',3740)
     #count_sens = ROOT.nEXOUtils.EvalCountSensFromFiles(len(yrs),yrs,'../../v3/results/done/disc_hamamatsu_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root','bkg_fwhm_3t',3000,0.81) # 80% eff to find 0nu in FV > 700 keV, 70% eff to be in FWHM
@@ -56,9 +56,9 @@ def PlotHL():
         #plot.ReadGraphFromFiles('sens_90','Sensitivity (90% CL)',len(yrs),yrs,'../results/done/disc_hamamatsu_0nu_eff_tpc_rdm_%0.1f_years_0.0_counts_*.root',3740)
 
         plot.SetGraphPoints('sens_90','Sensitivity (90% CL)',len(yrs),yrs,sens,1)
-        plot.SetGraphPoints('count_sens_90','Counting Sensitivity (90% CL), FWHM-3t',len(yrs),yrs,count_sens,1)
+        #plot.SetGraphPoints('count_sens_90','Counting Sensitivity (90% CL), FWHM-3t',len(yrs),yrs,count_sens,1)
         plot.SetGraphPoints('disc3_50','3#sigma Discovery (50% Prob.)',len(yrs),yrs,disc,1)
-        plot.SetGraphPoints('count_disc3_50','Counting 3#sigma Discovery (50% Prob.), FWHM-3t',len(yrs),yrs,count_disc,1)
+        #plot.SetGraphPoints('count_disc3_50','Counting 3#sigma Discovery (50% Prob.), FWHM-3t',len(yrs),yrs,count_disc,1)
         
 
         canvas = plot.GetPlot()

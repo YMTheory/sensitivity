@@ -3,9 +3,9 @@ import ROOT
 
 ROOT.gSystem.Load('../lib/libnEXOSensitivity.so')
 
-filename = '../results/done/fits_hamamatsu_v68_2016-06-21_0nu_red1x_fine_rdm_5.0_years_0.0_counts_*.root'
+filename = '../results/done/fits_db_v73_2016-09-26_bb2n_0nu_rdm_10.0_years_0.0_counts_*.root' # '../results/done/fits_hamamatsu_v68_2016-06-21_0nu_red1x_fine_rdm_5.0_years_0.0_counts_*.root'
 
-def GetBkgdLimit(chain,branch,prob,max = 10):
+def GetBkgdLimit(chain,branch,prob,max = 0.10):
 
     chain.SetEstimate(chain.GetEntries()+1)
     branch = branch + '>>hist(%d,0,%d)'%(max*1000,max)
@@ -51,5 +51,9 @@ h.Draw()
 print GetBkgdLimit(chain,'bkg_fwhm_1t',0.95), GetBkgdLimit(chain,'bkg_fwhm_3t',0.95), GetBkgdLimit(chain,'bkg_fwhm_fv',0.95)
 print GetBkgdLimit(chain,'bkg_fwhm_1t',0.5), GetBkgdLimit(chain,'bkg_fwhm_3t',0.5), GetBkgdLimit(chain,'bkg_fwhm_fv',0.5)
 print GetBkgdLimit(chain,'bkg_fwhm_1t',0.9), GetBkgdLimit(chain,'bkg_fwhm_3t',0.9), GetBkgdLimit(chain,'bkg_fwhm_fv',0.9)
+
+#chi3 = ROOT.TF1('chi3','[0]*ROOT::Math::chisquared_pdf(x,[1])',0,10)
+#chi3.SetParameters(10,10)
+#h3.Fit(chi3)
 
 raw_input('')

@@ -78,9 +78,11 @@ bool nEXOUtils::BuildNLLRatioHistogram(TH1D& histo, const char* filename, const 
 {
   TChain chain(treename);
   chain.Add(filename);
+  //std::cout << "Loaded " << chain.GetEntries() << " " << filename << " "<< cut << std::endl; 
 
   chain.SetEstimate(chain.GetEntries()+1);
   chain.Draw("nll_ratio:1",cut,"goff");
+  //std::cout << "Drew " << chain.GetSelectedRows() << std::endl; 
 
   if(chain.GetSelectedRows() <= 0)
     return false;
@@ -100,6 +102,7 @@ Double_t nEXOUtils::GetDiscoveryCounts(Double_t prob, Double_t sigma, Long64_t l
   for(int i = 0; i < length; i++)
   {
     double count = counts[i];
+    //std::cout << "hey " << i << " " << count << " / " << length << std::endl;
     TString file = Form(filename,yrs,count);
     TH1D nllRatioHisto(Form("nllRatioHisto_%0.1f",count),"",bins,min,max);
 
@@ -121,13 +124,13 @@ Double_t nEXOUtils::GetDiscoveryCounts(Double_t prob, Double_t sigma, Long64_t l
     Int_t cutBin = histo->GetXaxis()->FindBin(cutVal);
 
     double y = histo->Integral(cutBin, bins); // histo should be normalized
-    //std::cout << "count " << count << " val " << y << std::endl;
+    std::cout << "count " << count << " val " << y << std::endl;
     grCounts.SetPoint(grCounts.GetN(), y, count);
   }
 
-  TFile rout(Form("disc_graph_%0.1f_yrs_%0.1f_prob_%0.1f_sigma.root",yrs,prob,sigma),"recreate");
-  grCounts.Write("g");
-  rout.Close();
+  //TFile rout(Form("disc_graph_%0.1f_yrs_%0.1f_prob_%0.1f_sigma.root",yrs,prob,sigma),"recreate");
+  //grCounts.Write("g");
+  //rout.Close();
 
   Double_t result = grCounts.Eval(prob);
   std::cout << "Discovery counts = " << result << std::endl;

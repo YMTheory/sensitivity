@@ -13,7 +13,7 @@ matplotlib.rcParams['mathtext.it'] = 'Bitstream Vera Sans:italic'
 matplotlib.rcParams['mathtext.bf'] = 'Bitstream Vera Sans:bold'
 
  
-nEXOlib = '/data/data033/exo/software/nEXO_Sensitivity/quick/v5/lib/libnEXOSensitivity.so'
+nEXOlib = '../lib/libnEXOSensitivity.so'
 ROOT.gSystem.Load(nEXOlib)
 
 def ShowPickleResults( inpkl ):
@@ -110,8 +110,6 @@ def ReadSensFiles( infiles, outpkl, livetimes = [5.0], mass = 3740, efficiency =
     results['ul_minos_cls'] = {}
     results['sens_minos_cls'] = {}
 
-    results['bkg'] = {}
-
     for livetime in livetimes:
         livetime_files = infiles % (livetime)
 
@@ -133,30 +131,18 @@ def ReadSensFiles( infiles, outpkl, livetimes = [5.0], mass = 3740, efficiency =
 
         print 'livetime', livetime, 'ul', results['ul_minos_cls'][livetime] , 'sens', results['sens_minos_cls'][livetime]
 
-        if create_disc:
-            tc.Draw("(bkg_fwhm_3t+bkg_fwhm_1t)/2.","stat_sig == 0 && covQual_sig == 3","goff")
-            results['bkg'][livetime] = ROOT.TMath.Median(tc.GetSelectedRows(),tc.GetV1())            
-
     results['ul_minos_lo_pow'] = PowerFit(results['sens_minos_cls'],0)
     results['ul_minos_med_pow'] = PowerFit(results['sens_minos_cls'],1)
     results['ul_minos_hi_pow'] = PowerFit(results['sens_minos_cls'],2)
         
     if create_disc:
         results['disc_minos'] = {}
-
-        #ba_sens_to_disc_livetimes = [0.1,0.5,1.0,2,3,4,5]
-        #ba_sens_to_disc_ratios = [.95,0.70,0.60,.50,.50,.50,.50]
-        #ba_sens_to_disc_conversion = ROOT.TGraph(len(ba_sens_to_disc_ratios),np.asarray(ba_sens_to_disc_livetimes),np.asarray(ba_sens_to_disc_ratios))
-
-        rin = ROOT.TFile.Open(create_disc)
-        gr_sens_to_disc_conversion = rin.Get('fratio')
-        
+        ba_sens_to_disc_livetimes = [0.1,0.5,1.0,2,3,4,5]
+        ba_sens_to_disc_ratios = [.95,0.70,0.60,.50,.50,.50,.50]
+        ba_sens_to_disc_conversion = ROOT.TGraph(len(ba_sens_to_disc_ratios),np.asarray(ba_sens_to_disc_livetimes),np.asarray(ba_sens_to_disc_ratios))
         for livetime in results['sens_minos_cls']:
-            results['disc_minos'][livetime] = gr_sens_to_disc_conversion.Eval(results['bkg'][livetime]*livetime)*results['sens_minos_cls'][livetime][1]
-            print 'creating discovery', livetime, results['bkg'][livetime], results['sens_minos_cls'][livetime][1], gr_sens_to_disc_conversion.Eval(results['bkg'][livetime]*livetime)
+            results['disc_minos'][livetime] = ba_sens_to_disc_conversion.Eval(livetime)*results['sens_minos_cls'][livetime][1]
         results['disc_minos_pow'] = PowerFit(results['disc_minos'])        
-
-        rin.Close()
 
     pickle.dump(results, open( outpkl, 'wb'))
 
@@ -183,7 +169,7 @@ def ReadDiscFiles( infiles, outpkl, livetimes = [5.0], signals = [0.0], mass = 3
     pickle.dump(results, open( outpkl, 'wb'))
 
 
-def MakePlot( inpkl, outname = 'out_sens_plot', discpkl = None, imprpkl = None, labels = False, exo200 = True):
+def MakePlot( inpkl, outname = 'out_sens_plot.pdf', discpkl = None, imprpkl = None, labels = False, exo200 = True):
 
     axis_label_fontsize = 15
     legend_fontsize = 14
@@ -207,7 +193,7 @@ def MakePlot( inpkl, outname = 'out_sens_plot', discpkl = None, imprpkl = None, 
         impr_median_pow = impr_results['ul_minos_med_pow']
         
 
-    fv_scale = 1.035
+    fv_scale = 0.986
     time_scale = 0.0002
     xlist = np.arange(time_scale,livetimes[-1]+time_scale,time_scale)
     ylist, ylolist, yhilist, dlist, imprlist = [], [], [], [], []
@@ -222,8 +208,6 @@ def MakePlot( inpkl, outname = 'out_sens_plot', discpkl = None, imprpkl = None, 
 
     xfom = 5.0 # yr
     yfom = median_pow[0]*(xfom**median_pow[1])*sens_unit*fv_scale
-    xfom2 = 10.0 # yr
-    yfom2 = median_pow[0]*(xfom2**median_pow[1])*sens_unit*fv_scale
 
     y200 = [1.9e25/sens_unit]
     x200 = (np.log(y200[0]) - np.log(median_pow[0]))/median_pow[1]
@@ -249,7 +233,6 @@ def MakePlot( inpkl, outname = 'out_sens_plot', discpkl = None, imprpkl = None, 
 
     plt.xlim([-0.2, livetimes[-1]])
     plt.ylim([(0.1*sens_unit,0.01*sens_unit)[exo200], 25*sens_unit])
-    #plt.ylim([(0.1*sens_unit,0.01*sens_unit)[exo200], 75*sens_unit])
     plt.yscale('log')
     plt.legend(loc="lower right",numpoints=1,prop={'size':legend_fontsize})
     fig.set_size_inches(7.5,5)
@@ -260,19 +243,16 @@ def MakePlot( inpkl, outname = 'out_sens_plot', discpkl = None, imprpkl = None, 
             ax.annotate('Nature 510, 229 (2014)', xy=(x200[0]+0.1,0.65*y200[0]), color='green', fontsize=9, style='italic')#, xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
         plt.plot([xfom],[yfom], 'rx', markersize=10, markeredgewidth=2)#, markerfacecolor='none' )
         ax.annotate('%.1fx10$^{%d}$ yr'%(yfom/(10**int(np.log10(yfom))),np.log10(yfom)), color='red',xy=(xfom-0.85,1.25*yfom), fontsize=labels_fontsize)#, xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
-        plt.plot([xfom2],[yfom2], 'rx', markersize=10, markeredgewidth=2)#, markerfacecolor='none' )
-        ax.annotate('%.1fx10$^{%d}$ yr'%(yfom2/(10**int(np.log10(yfom2))),np.log10(yfom2)), color='red',xy=(xfom2-2,1.25*yfom2), fontsize=labels_fontsize)#, xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
 
     plt.minorticks_on
     ax.grid(True, which='both')
-    plt.savefig( outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( outname+'.png', bbox_inches='tight' )
+    plt.savefig( outname )
 
     plt.show()
 
 
 
-def MakePlot5p5( inpkl, bapkl, outname = 'out_sens_plot', discpkl = None, ba_discpkl = None):
+def MakePlot5p5( inpkl, bapkl, outname = 'out_sens_plot.pdf', discpkl = None, ba_discpkl = None):
 
     axis_label_fontsize = 15
     legend_fontsize = 14
@@ -352,9 +332,9 @@ def MakePlot5p5( inpkl, bapkl, outname = 'out_sens_plot', discpkl = None, ba_dis
         plt.plot( ba_xlist, ba_comb_disc_list, 'b--', markersize=4, markerfacecolor='b', linewidth=2)
 
 
-    plt.plot( x200, y200, 'o', markersize=10, markeredgewidth=2, markerfacecolor='none', label="EXO-200 Sensitivity (90% C.L.)", markeredgecolor='green')
+    plt.plot( x200, y200, 'o', markersize=10, markeredgewidth=2, markerfacecolor='none', label="EXO-200 (Nature 510, 2014)", markeredgecolor='green')
 
-    plt.plot( [max_time,max_time], [0.01*sens_unit, 29*sens_unit], 'k--', linewidth=1.5)
+    plt.plot( [max_time,max_time], [0.01*sens_unit, 50*sens_unit], 'k--', linewidth=1.5)
 
     plt.gca().set_xticks(range(0,livetimes[-1]+1))
 
@@ -368,21 +348,20 @@ def MakePlot5p5( inpkl, bapkl, outname = 'out_sens_plot', discpkl = None, ba_dis
     plt.legend(loc="lower right",numpoints=1,prop={'size':legend_fontsize})
     fig.set_size_inches(7.5,5)
 
-    ax.annotate('Improved Background Rejection', xy=(max_time,ba_comb_list[0]), color='k', fontsize=labels_fontsize, xytext=(0,ba_comb_list[-1]), arrowprops=dict(arrowstyle='->',color='r'))# xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
-    ax.annotate('Improved Background Rejection', xy=(max_time,ba_comb_disc_list[0]), color='none', fontsize=labels_fontsize, xytext=(0,ba_comb_list[-1]), arrowprops=dict(arrowstyle='->',color='b'))# xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
+    ax.annotate('Start of Ba-tagging System', xy=(max_time,ba_comb_list[0]), color='k', fontsize=labels_fontsize, xytext=(0,ba_comb_list[-1]), arrowprops=dict(arrowstyle='->',color='r'))# xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
+    ax.annotate('Start of Ba-tagging System', xy=(max_time,ba_comb_disc_list[0]), color='none', fontsize=labels_fontsize, xytext=(0,ba_comb_list[-1]), arrowprops=dict(arrowstyle='->',color='b'))# xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
     ax.annotate('1.9x10$^{25}$', xy=(x200[0]+0.2,0.9*y200[0]), color='green', fontsize=labels_fontsize)#, xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
     ax.annotate('Nature 510, 229 (2014)', xy=(x200[0]+0.1,0.65*y200[0]), color='green', fontsize=9, style='italic')#, xytext=(x200[0]+0.25,y200[0]*2.5), arrowprops=dict(arrowstyle='->'))
 
     plt.minorticks_on
     ax.grid(True, which='both')
-    plt.savefig( outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( outname+'.png', bbox_inches='tight' )
+    plt.savefig( outname )
 
     plt.show()
 
 
 
-def MakePlot3( senspkl, imprpkl, outname, bapkl=None, discpkl=None, optdiscpkl=None, labels = False, exo200 = False):
+def MakePlot3( senspkl, bapkl, imprpkl, outname = 'out_sens3_plot.pdf', labels = False, exo200 = True):
 
     axis_label_fontsize = 15
     legend_fontsize = 14
@@ -393,35 +372,25 @@ def MakePlot3( senspkl, imprpkl, outname, bapkl=None, discpkl=None, optdiscpkl=N
     sens_unit = results['sens_unit']
     median_pow = results['ul_minos_med_pow']
 
-    if bapkl:
-        ba_results = pickle.load(open(bapkl,'rb'))
-        ba_sens_unit = ba_results['sens_unit']
-        ba_median_pow = ba_results['ul_minos_med_pow']
-
-    if discpkl and optdiscpkl:
-        disc_results = pickle.load(open(discpkl,'rb'))   
-        disc_pow = disc_results['disc_minos_pow']       
-        optdisc_results = pickle.load(open(optdiscpkl,'rb'))   
-        optdisc_pow = optdisc_results['disc_minos_pow']       
+    ba_results = pickle.load(open(bapkl,'rb'))
+    ba_sens_unit = ba_results['sens_unit']
+    ba_median_pow = ba_results['ul_minos_med_pow']
 
     impr_results = pickle.load(open(imprpkl,'rb'))
     impr_sens_unit = impr_results['sens_unit']
     impr_median_pow = impr_results['ul_minos_med_pow']
         
-    fv_scale = 1.035
+    fv_scale_sens = 0.986
+    fv_scale_ba = 0.741
+    fv_scale_impr = 1.0
     time_scale = 0.0002
     xlist = np.arange(time_scale,livetimes[-1]+time_scale,time_scale)
     ysens, yba, yimpr = [], [], []
-    disc_cont_ylist, optdisc_cont_ylist = [], []
     for x in xlist:
-        ysens.append(median_pow[0]*(x**median_pow[1])*sens_unit*fv_scale)
-        yimpr.append(impr_median_pow[0]*(x**impr_median_pow[1])*impr_sens_unit*fv_scale)
-        if bapkl:
-            yba.append(ba_median_pow[0]*(x**ba_median_pow[1])*ba_sens_unit*fv_scale)
-        if discpkl and optdiscpkl:
-            disc_cont_ylist.append(disc_pow[0]*(x**disc_pow[1])*sens_unit*fv_scale)
-            optdisc_cont_ylist.append(optdisc_pow[0]*(x**optdisc_pow[1])*sens_unit*fv_scale)
-            
+        ysens.append(median_pow[0]*(x**median_pow[1])*sens_unit*fv_scale_sens)
+        yba.append(ba_median_pow[0]*(x**ba_median_pow[1])*ba_sens_unit*fv_scale_ba)
+        yimpr.append(impr_median_pow[0]*(x**impr_median_pow[1])*impr_sens_unit*fv_scale_impr)
+
     y200 = [1.9e25/sens_unit]
     x200 = (np.log(y200[0]) - np.log(median_pow[0]))/median_pow[1]
     x200 = [np.exp(x200)]
@@ -430,22 +399,13 @@ def MakePlot3( senspkl, imprpkl, outname, bapkl=None, discpkl=None, optdiscpkl=N
 
     fig, ax = plt.subplots()
 
+    print ysens[-1], yimpr[-1], yba[-1]
+
     plt.plot( xlist, ysens, 'r-', linewidth=2, label="Baseline Concept")
-    if discpkl and optdiscpkl:
-        plt.plot( xlist, disc_cont_ylist, 'b--', linewidth=2, label="Baseline Concept (Discovery)")
-    line, = plt.plot( xlist, yimpr, '--', color='indianred', linewidth=2, label="Agressive Concept")
-    dashes = [13,3,2,3] #[6,3,6,3,2,3] #[9,3,3,3]
+    # plt.plot( xlist, yimpr, 'b--', linewidth=2, label="w/ Improvements")
+    line, = plt.plot( xlist, yba, 'g--', linewidth=2, label=r"$2\nu\beta\beta$-only Background")
+    dashes = [3,2]
     line.set_dashes(dashes)
-    if discpkl and optdiscpkl:
-        line, = plt.plot( xlist, optdisc_cont_ylist, '--', color='royalblue', linewidth=2, label="Agressive Concept (Discovery)")
-        dashes = [7,3,7,3,2,3] #[6,3,6,3,2,3] #[9,3,3,3]
-        line.set_dashes(dashes)
-        
-    if bapkl:
-        line, = plt.plot( xlist, yba, '--', color='darksage', linewidth=2, label="Ba-tagging Scenario")
-        dashes = [5,3]
-        line.set_dashes(dashes)
-        
 
     if exo200:
         plt.plot( x200, y200, 'o', markersize=10, markeredgewidth=2, markerfacecolor='none', label="EXO-200", markeredgecolor='green')
@@ -472,116 +432,15 @@ def MakePlot3( senspkl, imprpkl, outname, bapkl=None, discpkl=None, optdiscpkl=N
 
     plt.minorticks_on
     ax.grid(True, which='both')
-    plt.savefig( outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( outname+'.png', bbox_inches='tight' )
+    plt.savefig( outname )
 
-    plt.show()
+    # plt.show()
 
-def MakePlot4( senspkl, imprpkl, discpkl, optdiscpkl, outname):
 
-    axis_label_fontsize = 15
-    legend_fontsize = 14
-    labels_fontsize = 14
-
-    results = pickle.load(open(senspkl,'rb'))
-    livetimes = results['livetimes']
-    sens_unit = results['sens_unit']
-    median_pow = results['ul_minos_med_pow']
-
-    impr_results = pickle.load(open(imprpkl,'rb'))
-    impr_sens_unit = impr_results['sens_unit']
-    impr_median_pow = impr_results['ul_minos_med_pow']
-
-    disc_results = pickle.load(open(discpkl,'rb'))   
-    disc_pow = disc_results['disc_minos_pow']       
-    optdisc_results = pickle.load(open(optdiscpkl,'rb'))   
-    optdisc_pow = optdisc_results['disc_minos_pow']       
-    
-    fv_scale = 1.035
-    time_scale = 0.0002
-    xlist = np.arange(time_scale,livetimes[-1]+time_scale,time_scale)
-    ysens, yba, yimpr = [], [], []
-    disc_cont_ylist, optdisc_cont_ylist = [], []
-    for x in xlist:
-        ysens.append(median_pow[0]*(x**median_pow[1])*sens_unit*fv_scale)
-        yimpr.append(impr_median_pow[0]*(x**impr_median_pow[1])*impr_sens_unit*fv_scale)
-        disc_cont_ylist.append(disc_pow[0]*(x**disc_pow[1])*sens_unit*fv_scale)
-        optdisc_cont_ylist.append(optdisc_pow[0]*(x**optdisc_pow[1])*sens_unit*fv_scale)
-            
-    fig, ax = plt.subplots()
-
-    plt.plot( xlist, optdisc_cont_ylist, 'b--', linewidth=2, label="Aggressive, Discovery 3$\sigma$, Prob. 50%")
-    plt.plot( xlist, yimpr, 'b-', linewidth=2, label="Aggressive, Sensitivity (90% C.L.)")
-    plt.plot( xlist, disc_cont_ylist, 'r--', linewidth=2, label="Baseline, Discovery 3$\sigma$, Prob. 50%")
-    plt.plot( xlist, ysens, 'r-', linewidth=2, label="Baseline, Sensitivity (90% C.L.)")
-    #plt.plot( xlist, ysens, 'r-', linewidth=2, label="Baseline, Sensitivity (90% C.L.)")
-    #plt.plot( xlist, disc_cont_ylist, 'b--', linewidth=2, label="Baseline, Discovery 3$\sigma$, Prob. 50%")
-    #line, = plt.plot( xlist, yimpr, '--', color='indianred', linewidth=2, label="Aggressive, Sensitivity (90% C.L.)")
-    #dashes = [13,2,2,2] #[6,3,6,3,2,3] #[9,3,3,3]
-    #line.set_dashes(dashes)
-    #line, = plt.plot( xlist, optdisc_cont_ylist, '--', color='royalblue', linewidth=2, label="Aggressive, Discovery 3$\sigma$, Prob. 50%")
-    #dashes = [7,3,7,2,2,2] #[6,3,6,3,2,3] #[9,3,3,3]
-    #line.set_dashes(dashes)
-
-    plt.gca().set_xticks(range(0,livetimes[-1]+1))
-
-    plt.xlabel("Livetime [yr]", fontsize=axis_label_fontsize)
-    plt.ylabel(r"$^{136}$Xe  $0\nu\beta\beta$  T$_{1/2}$ [yr]", fontsize=axis_label_fontsize)
-
-    plt.xlim([-0.2, livetimes[-1]])
-    plt.ylim([0.1*sens_unit, 30*sens_unit])
-    plt.yscale('log')
-    #plt.legend(loc="lower right",numpoints=1,prop={'size':legend_fontsize})
-    fig.set_size_inches(7.5,5)
-
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[::-1],labels[::-1],loc="lower right",numpoints=1,prop={'size':legend_fontsize})
-
-    plt.title('nEXO Concepts Comparison')
-
-    plt.minorticks_on
-    ax.grid(True, which='both')
-    plt.savefig( outname+'.pdf', bbox_inches='tight' )
-    plt.savefig( outname+'.png', bbox_inches='tight' )
-
-    plt.show()
-
-def FitRatioDiscSens(infile,ingraph,outfile):
-
-    rin = ROOT.TFile.Open(infile)
-    grin = rin.Get(ingraph)
-
-    #fratio = ROOT.TF1('fratio','[0] + expo(1)',0,100)
-    fratio = ROOT.TF1('fratio','[0] + [1]*pow(x,[2])',0.01,20)
-    #fratio.SetParameters(0.5,1,-0.5)
-    fratio.SetParameters(0.5,0.05,-0.75)
-    for i in range(10):
-        grin.Fit(fratio,'QWR')
-    grin.Fit(fratio,'WR')
-    fratio.SetNpx(1000)
-    grin.Draw('APL')
-
-    raw_input('end')
-
-    rout = ROOT.TFile.Open(outfile,'recreate')
-    grin.Write()
-    fratio.Write()
-    rout.Close()
-
-    rin.Close()
+def main():
+    MakePlot3("sens_time_dbv73.pkl","batag_sens_time.pkl","sens_improved_time.pkl", exo200=False)
+    MakePlot("sens_time_dbv73.pkl", discpkl="sens_time_dbv73_disc.pkl", exo200=False)
 
 if __name__ == "__main__":
-
-    # FitRatioDiscSens("ratio_disc_sens_3sigma_0p5_90cl.root","1.0_year_3_t","ratio_disc_sens_3sigma_0p5_90cl_fit.root")
-
-    # ReadSensFiles( "/data/data033/exo/software/nEXO_Sensitivity/quick/v5/results/done/fits_db_v73_2016-09-09_0nu_rdm_%0.1f_years_0.0_counts_*.root", "sens_time_dbv73_disc.pkl", livetimes = [0.5,1,2.5,5,10], mass = 3740, efficiency = 0.82, sens_unit = 1e27, create_disc = "ratio_disc_sens_3sigma_0p5_90cl_fit.root" )
-    # ReadSensFiles( "/data/data033/exo/software/nEXO_Sensitivity/quick/v5/results/done/fits_db_v73_2016-09-16_optimistic_0nu_rdm_%0.1f_years_0.0_counts_*.root", "sens_optimistic_time_disc.pkl", livetimes = [0.5,1,2.5,5,10], mass = 3740, efficiency = 0.82, sens_unit = 1e27, create_disc = "ratio_disc_sens_3sigma_0p5_90cl_fit.root" )
-
-    # MakePlot( "sens_time_dbv73.pkl", "plot_nexo_sensdisc_vs_time_v0", discpkl = "disc_time_hamav62.pkl" , imprpkl = None, labels = False, exo200 = True)
-    # MakePlot3( "sens_time_dbv73_disc.pkl","sens_optimistic_time.pkl", outname="nexo_sens_designs_v4_temp", bapkl="batag_sens_time.pkl", discpkl = "disc_time_hamav62.pkl", exo200=False)
-    # MakePlot5p5( "sens_time_dbv73.pkl", "batag_sens_time.pkl", outname = 'nexo_ba_v5', discpkl = "disc_time_hamav62.pkl", ba_discpkl = "batag_disc_time.pkl")
-
-    # MakePlot4( "sens_time_dbv73_disc.pkl","sens_optimistic_time.pkl", discpkl = "disc_time_hamav62.pkl", optdiscpkl = "sens_optimistic_time_disc.pkl", outname="nexo_sens_disc_concepts_v2")
-
-    # ShowPickleResults("sens_optimistic_time_disc.pkl")
+    main()
 

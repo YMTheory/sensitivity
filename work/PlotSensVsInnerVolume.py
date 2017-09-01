@@ -38,7 +38,7 @@ def GetBkgdCounts(filename):
 
 resultsNameTemp = '../results/done/fits_hamamatsu_v68_2016-06-21_0nu_sd%dm_fine_rdm_5.0_years_0.0_counts_*.root'
 
-sdList = [100,130,160,190,220,250] #range(100,290,30) #+ [340]
+sdList = [10,100,130,160,190,220,250] #range(100,290,30) #+ [340]
 #sdList = [10] + range(100,350,60)
 
 nameList = []

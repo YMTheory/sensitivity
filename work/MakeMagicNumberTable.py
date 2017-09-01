@@ -1,11 +1,33 @@
-#sample usage: python RunSensitivity.py -n 1000 -r 1 -y 10.0 -c 0.01 -s 1 -b -d ../results -o allbkgs -t ../tables/Summary_v73_2016-09-09_0nu_allbkgs_llnl.root -m 3 --ssfrac-improvement 1.0 --rn222-rate-correction 1.00
-#or, for a fine spaced scan: 
-#for count in `seq 9 .1 11.9`; do python RunSensitivity.py -n 1000 -r 1 -y 10.0 -c ${count} -s 1 -b -d ../results -o allbkgs -t ../tables/Summary_v73_2016-09-09_0nu_allbkgs_llnl.root -m 3 --ssfrac-improvement 1.0 --rn222-rate-correction 1.00; done
+
 import ROOT
 import os,sys
 from optparse import OptionParser
 import array
-if __name__ == "__main__":
+from os import listdir
+from os.path import isfile, join
+import numpy as np
+
+#sample usage: python MakeMagicNumberTable.py -n 100 -r 1 -y 10.0 -c 0 -s 1 -d ../results -o recalctest_all -t ../tables/Summary_v73_2016-09-09_0nu_allbkgs_llnl.root -m 3 --ssfrac-improvement 1.0 --rn222-rate-correction 1.0 -M ../results/all_bkgs/
+
+
+nknots = 9
+spline_xn = array.array('d', [0.1, 1., 5., 7., 10., 15, 20, 30, 50.])
+magic_numbers = []
+
+def spline_func(x, par):
+
+    xx = x[0]
+
+    yn = array.array('d', [ par[0], par[1], par[2], par[3], par[4], par[5], par[6], par[7], par[8] ])
+
+    sp3 = ROOT.TSpline3("sp3", spline_xn, yn, nknots, "b1e1", 0, 0)
+    output = sp3.Eval(xx)
+    del sp3
+
+    return output
+
+
+def main():
 
     libRelPath = '../lib/libnEXOSensitivity.so'
     ROOT.gSystem.Load(libRelPath)
@@ -25,9 +47,10 @@ if __name__ == "__main__":
     parser.add_option("-t","--tree", nargs=1) # ROOT file with tree for input counts expectation (produced from summary table)
     parser.add_option("-d","--output-dir", nargs=1) # name of the output directory
     parser.add_option("-o","--output-name", nargs=1) # name of the output file
+    parser.add_option("-M","--magic-number-dir", nargs=1) # name of the output file
 
     parser.add_option("-c","--signal-counts", nargs=1,type=float,default=0.0) # included signal counts (for discovery potential)
-    parser.add_option("-b","--run-bkgd-only-fit", action="store_true",default=False) # run background only fit (for observation significance)
+    
 
     parser.add_option("-r","--random-rate", nargs=1,type=int,default=0) # rate (in evt^-1) at which the activity is randomized
     parser.add_option("-m","--method-bkgd", nargs=1,type=int, default=ROOT.nEXOSensitivity.kRdmCV) # method to choose activities : ROOT.nEXOSensitivity.kRdmCV, kUL, kPosUL
@@ -42,24 +65,83 @@ if __name__ == "__main__":
     options,args = parser.parse_args()   
     print 'Using options:', options
 
+
     realPath = os.path.realpath(options.output_dir)
     realPathWork = realPath + '/working'
     realPathDone = realPath + '/done'
     os.system('mkdir -p %s' % (realPathWork))
     os.system('mkdir -p %s' % (realPathDone))
-    outFileName = '%s/%s_%0.1f_years_%0.2f_counts_%04i.root' % (realPathWork,options.output_name,options.years,options.signal_counts,options.random_seed)
+    outFileName = '%s/%s_%0.1f_years_%0.1f_counts_%04i.root' % (realPathWork,options.output_name,options.years,options.signal_counts,options.random_seed)
 
     sens = ROOT.nEXOSensitivity(options.random_seed,options.tree)
     sens.fResultFileName = outFileName
 
-    sens.fRunTruthValFit = options.run_bkgd_only_fit
+    sens.fRunBkgdOnlyFit = False
     sens.fExpectCountMethod = options.method_bkgd #ROOT.nEXOSensitivity.kRdmCV #kUL #kPosUL #kRdmCV
+
+    magic_files = {f[:-9] for f in listdir(options.magic_number_dir) if isfile(join(options.magic_number_dir, f))}
+    # print(magic_files)
+
+    # c1 = ROOT.TCanvas( 'c1', 'c1')
+    for f in magic_files:
+        numcounts = float(f.split('_')[-3])
+        chain = ROOT.TChain("tree")
+        chain.Add(join(options.magic_number_dir, f) + "*")
+        print "Processing ", join(options.magic_number_dir, f)
+        ratiohist = ROOT.TH1F("ratiohist", f, 400, 0, 20)
+        chain.Draw("nll_ratio>>ratiohist",
+                   "nll_ratio>=0 && stat_sig==0 && stat_bkg==0 && covQual_sig==3 && covQual_bkg==3", "goff")
+        xq = array.array('d', [.9])
+        yq = array.array('d', [0])
+        ratiohist.GetQuantiles(1, yq, xq)
+        percent90 = yq[0]
+        # print numcounts, "\t", percent90, "\t",
+        magic_numbers.append((numcounts, percent90, ratiohist.GetEntries()))
+
+        # refresh the canvases
+        # ROOT.gSystem.ProcessEvents()
+        # c1.Modified()
+        # c1.Update()
+        # print "press a key:"
+        # sys.stdin.read(1)
+
+        del ratiohist
+
+    # Magic Numbers need to be sorted by numcounts
+    ndtemp = np.array(magic_numbers)
+    np_magic = ndtemp[ndtemp[:, 0].argsort()]
+
+    for c1, c2, c3 in np_magic:
+        print c1, "\t", c2, "\t", c3
+
+    gr = ROOT.TGraph(len(np_magic), array.array('d', np_magic[:, 0]), array.array('d', np_magic[:, 1]))
+    gr.SetMarkerStyle(22)
+    gr.SetMarkerColor(ROOT.kRed)
+    # gr.Draw("AP")
+    # ROOT.gSystem.ProcessEvents()
+
+    xmin = 0.
+    xmax = 50.
+    npars = 9
+
+    f_spline4 = ROOT.TF1("f_spline", spline_func, xmin, xmax, npars)
+    f_spline4.SetLineColor(ROOT.kBlue)
+    f_spline4.SetParameters(3, 3, 3, 3, 3, 3, 3, 3, 3)
+    # f_spline4.FixParameter(0, magic_numbers.front());
+    # f_spline4.FixParameter(8, magic_numbers.back());
+
+    gr.Fit(f_spline4, "R0")
+
+    spline_yn = f_spline4.GetParameters()
+    for i in range(0, nknots):
+        print spline_xn[i], spline_yn[i]
+        #sens.AddMagicNumber(numcounts,percent90)
+        sens.AddMagicNumber(spline_xn[i], spline_yn[i])
 
     if options.group:
         sens.AddUserMeanCounts(options.group,options.bkgd_counts)
 
-    sens.fVerboseLevel = 10
-    #sens.fNcpu = 4
+    sens.fVerboseLevel = 0
     sens.fSSFracImprovement = options.ssfrac_improvement
     sens.fRn222RateCorrection = options.rn222_rate_correction
 
@@ -77,21 +159,11 @@ if __name__ == "__main__":
             sens.TurnGroupOff(groupOff)
 
     sens.GenAndFitData(options.number_runs,options.years,options.signal_counts,options.random_rate)
-    # sens.~nEXOSensitivity()
+
     cmd = 'mv %s %s' % (outFileName,realPathDone)
     print(cmd)
-
-    import time
-    time.sleep(1)
     os.system(cmd)
-    time.sleep(1)
-    outfile = ROOT.TFile("%s/%s_%0.1f_years_%0.2f_counts_%04i.root"%(realPathDone,options.output_name,options.years,options.signal_counts,options.random_seed))
-    outtree = outfile.Get("tree")
 
-    ratiohist = ROOT.TH1F("ratiohist","ratiohist",100,0,10)
-    outtree.Draw("nll_ratio>>ratiohist","","goff")
-    xq=array.array('d',[.9])
-    yq=array.array('d',[0])
-    ratiohist.GetQuantiles(1,yq,xq)
-    percent90=yq[0]
-    print("magic number of %f counts: %f"%(options.signal_counts, percent90))
+
+if __name__ == "__main__":
+    main()
