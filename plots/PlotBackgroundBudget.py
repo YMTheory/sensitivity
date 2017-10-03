@@ -7,6 +7,7 @@ Input is from DB Excel file. Plots are generated grouping by Isotope, Material, 
 import os.path
 import sys
 from math import floor, log10
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,13 +29,16 @@ def make_plot(df, groupby, filename, xlimits=[5.0e-7, 4.0e-4]):
     df2.sort_values('value', ascending=True, inplace=True)
     print(df2)
 
+    picklefilename = "".join(filename.split('.')[:-1]) + ".pickle"
+    f = open(picklefilename, "wb")
+
     fig, ax0 = plt.subplots()
 
     # loop over all the rows to fill the lists used for plotting
     label = []
     xlimit_arrow = 10 ** floor(log10(xlimits[0])) * 10
     for index, row in df2.iterrows():
-        if row['Limit 90% C.L.'] < xlimits[0]*2*2000:
+        if row['Limit 90% C.L.'] < xlimits[0] * 2 * 2000:
             continue
 
         label.append(' '.join(index[:len(groupby)]))
@@ -45,18 +49,21 @@ def make_plot(df, groupby, filename, xlimits=[5.0e-7, 4.0e-4]):
             xuplims = 0
             value = row['C.V.'] / 2000.
             err = row['Error'] / 2000.
-            color = 'teal'
+            color = 'firebrick'
             marker = '.'
         else:
             xuplims = 1
             value = row['Limit 90% C.L.'] / 2000.
             err = value - xlimit_arrow
-            color = 'darkorange'
+            color = 'darkblue'
             marker = ''
 
         # plot one item
         ax0.errorbar(value, len(label) * 2 - 2, xerr=err, xuplims=xuplims,
-                     lw=1, capsize=2, capthick=1, color=color, marker=marker)
+                     lw=2, capsize=2, capthick=2, color=color, marker=marker, markersize=10)
+
+        data = [value, label, err, xuplims, color, marker]
+        pickle.dump(data, f)
 
     # overall plot formatting (labels, etc...)
     nn = len(label)
