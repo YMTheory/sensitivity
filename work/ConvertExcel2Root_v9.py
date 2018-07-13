@@ -25,14 +25,73 @@ class ExcelTableReader:
 
         self.suffixes = ['SS','MS']
 
-        self.specific_activity_sheet = {'name': 'SpecificActivities', 'startRow': 2, 'componentColumn': 'A', 'isotopeColumn': 'B', 'specColumn': 'H', 'specErrColumn': 'I', 'activColumn': 'J', 'activErrColumn': 'K', 'idColumn': 'L'}
-        self.counts_sheet = {'name': '%s_ExpectedCounts', 'startRow': 6, 'componentColumn': 'A', 'isotopeColumn': 'B', 'cvColumn': {'SS': 'CQ', 'MS': 'CQ'}, 'errorColumn': {'SS': 'CR', 'MS': 'CR'}, 'ulColumn': {'SS': 'CV', 'MS': 'CV'}, 'llColumn': {'SS': 'CU', 'MS': 'CU'}}
-        self.hiteff_sheet = {'name': 'MC_RawCounts_%s_Integrals', 'startRow': 6, 'componentColumn': 'A', 'isotopeColumn': 'B', 'nColumn': 'D', 'kColumn': 'AI'}
-        self.hiteff_sheet_fwhm = {'1tColumn': 'G', '3tColumn': 'O', 'fvColumn': 'S', '0p5tColumn': 'E', '1p5tColumn': 'I', '2tColumn': 'K', '2p5tColumn': 'M', '3p5tColumn': 'Q'}
-        self.hiteff_sheet_3sig = {'1tColumn': 'BC', '3tColumn': 'BK', 'fvColumn': 'BO', '0p5tColumn': 'BA', '1p5tColumn': 'BE', '2tColumn': 'BG', '2p5tColumn': 'BI', '3p5tColumn': 'BM'}
-        self.hiteff_sheet_2sig = {'1tColumn': 'BS', '3tColumn': 'CA', 'fvColumn': 'CE', '0p5tColumn': 'BQ', '1p5tColumn': 'BU', '2tColumn': 'BW', '2p5tColumn': 'BY', '3p5tColumn': 'CC'}
-        self.hiteff_sheet_1sig = {'1tColumn': 'CI', '3tColumn': 'CQ', 'fvColumn': 'CU', '0p5tColumn': 'CG', '1p5tColumn': 'CK', '2tColumn': 'CM', '2p5tColumn': 'CO', '3p5tColumn': 'CS'}
-        self.constants_sheet = {'name': 'Constants', 'startHLRow': 16, 'endHLRow': 25, 'isotopeColumn': 'A', 'hlColumn': 'B'}
+        self.specific_activity_sheet = {'name': 'SpecificActivities',\
+                                        'startRow': 2,\
+                                        'componentColumn': 'A',\
+                                        'isotopeColumn': 'B',\
+                                        'specColumn': 'H',\
+                                        'specErrColumn': 'I',\
+                                        'activColumn': 'J',\
+                                        'activErrColumn': 'K',\
+                                        'idColumn': 'L'}
+
+        self.counts_sheet = {'name': '%s_ExpectedCounts',\
+                             'startRow': 6,\
+                             'componentColumn': 'A',\
+                             'isotopeColumn': 'B',\
+                             'cvColumn': {'SS': 'CQ', 'MS': 'CQ'},\
+                             'errorColumn': {'SS': 'CR', 'MS': 'CR'},\
+                             'ulColumn': {'SS': 'CV', 'MS': 'CV'},\
+                             'llColumn': {'SS': 'CU', 'MS': 'CU'}}
+
+        self.hiteff_sheet = {'name': 'MC_RawCounts_%s_Integrals',\
+                             'startRow': 6,\
+                             'componentColumn': 'A',\
+                             'isotopeColumn': 'B',\
+                             'nColumn': 'D',\
+                             'kColumn': 'AI'}
+
+        self.hiteff_sheet_fwhm = {'1tColumn': 'G', 
+                                  '3tColumn': 'O',\
+                                  'fvColumn': 'S',\
+                                  '0p5tColumn': 'E',\
+                                  '1p5tColumn': 'I',\
+                                  '2tColumn': 'K',\
+                                  '2p5tColumn': 'M',\
+                                  '3p5tColumn': 'Q'}
+
+        self.hiteff_sheet_3sig = {'1tColumn': 'BC',\
+                                  '3tColumn': 'BK',\
+                                  'fvColumn': 'BO',\
+                                  '0p5tColumn': 'BA',\
+                                  '1p5tColumn': 'BE',\
+                                  '2tColumn': 'BG',\
+                                  '2p5tColumn': 'BI',\
+                                  '3p5tColumn': 'BM'}
+
+        self.hiteff_sheet_2sig = {'1tColumn': 'BS',\
+                                  '3tColumn': 'CA',\
+                                  'fvColumn': 'CE',\
+                                  '0p5tColumn': 'BQ',\
+                                  '1p5tColumn': 'BU',\
+                                  '2tColumn': 'BW',\
+                                  '2p5tColumn': 'BY',\
+                                  '3p5tColumn': 'CC'}
+
+        self.hiteff_sheet_1sig = {'1tColumn': 'CI',\
+                                  '3tColumn': 'CQ',\
+                                  'fvColumn': 'CU',\
+                                  '0p5tColumn': 'CG',\
+                                  '1p5tColumn': 'CK',\
+                                  '2tColumn': 'CM',\
+                                  '2p5tColumn': 'CO',\
+                                  '3p5tColumn': 'CS'}
+
+        self.constants_sheet = {'name': 'Constants',\
+                                'startHLRow': 16,\
+                                'endHLRow': 25,\
+                                'isotopeColumn': 'A',\
+                                'hlColumn': 'B'}
 
         self.name_dict = {}
         self.name_dict["OuterCryoResin"] = 'Outer Cryostat (Resin)'
@@ -139,10 +198,18 @@ class ExcelTableReader:
             isotope = self.GetCellValue(ws,sheet['isotopeColumn'],row)
             pdf = self.GetPdfName(component,isotope)
             print row, '/', end_row, ':', component, isotope, pdf
-            activ[pdf] = {'spec':self.GetCellValue(ws,sheet['specColumn'],row),'specErr':self.GetCellValue(ws,sheet['specErrColumn'],row),'activ':self.GetCellValue(ws,sheet['activColumn'],row),'activErr':self.GetCellValue(ws,sheet['activErrColumn'],row),'id':self.GetCellValue(ws,sheet['idColumn'],row)}
+
+            activ[pdf] = {'spec':self.GetCellValue(ws,sheet['specColumn'],row),\
+                          'specErr':self.GetCellValue(ws,sheet['specErrColumn'],row),\
+                          'activ':self.GetCellValue(ws,sheet['activColumn'],row),\
+                          'activErr':self.GetCellValue(ws,sheet['activErrColumn'],row),\
+                          'id':self.GetCellValue(ws,sheet['idColumn'],row)}
             
-            self.components[pdf].SetActivity(activ[pdf]['spec'],activ[pdf]['specErr'],activ[pdf]['activ'],activ[pdf]['activErr'],ROOT.TString(activ[pdf]['id']))
-    
+            self.components[pdf].SetActivity( activ[pdf]['spec'],\
+                                              activ[pdf]['specErr'],\
+                                              activ[pdf]['activ'],\
+                                              activ[pdf]['activErr'],\
+                                              ROOT.TString(activ[pdf]['id']) ) 
         return         
 
     def ReadCounts(self,suffix):
@@ -160,8 +227,12 @@ class ExcelTableReader:
             isotope = self.GetCellValue(ws,sheet['isotopeColumn'],row)
             pdf = self.GetPdfName(component,isotope)
             print row, '/', end_row, ':', component, isotope, pdf
-            counts[pdf] = {'cv':self.GetCellValue(ws,sheet['cvColumn'][suffix],row),'error':self.GetCellValue(ws,sheet['errorColumn'][suffix],row),'ul':self.GetCellValue(ws,sheet['ulColumn'][suffix],row)}
-            #counts[pdf]['ul'] = (self.quantile*counts[pdf]['error'],counts[pdf]['cv'] + self.quantile*counts[pdf]['error'])[counts[pdf]['cv'] > 0]
+            counts[pdf] = {'cv':self.GetCellValue(ws,sheet['cvColumn'][suffix],row),\
+                           'error':self.GetCellValue(ws,sheet['errorColumn'][suffix],row),\
+                           'ul':self.GetCellValue(ws,sheet['ulColumn'][suffix],row) }
+
+            #counts[pdf]['ul'] = (self.quantile*counts[pdf]['error'],\
+            #                      counts[pdf]['cv'] + self.quantile*counts[pdf]['error'])[counts[pdf]['cv'] > 0]
                        
             self.components[pdf].SetExpectedCounts(counts[pdf]['cv'],counts[pdf]['error'],counts[pdf]['ul'],suffix)
     
@@ -186,13 +257,42 @@ class ExcelTableReader:
             isotope = self.GetCellValue(ws,sheet['isotopeColumn'],row)
             pdf = self.GetPdfName(component,isotope)
             print row, '/', end_row, ':', component, isotope, pdf
-            hiteff[pdf] =  {'n':self.GetCellValue(ws,sheet['nColumn'],row),'k':self.GetCellValue(ws,sheet['kColumn'],row)}
+            hiteff[pdf] =  { 'n':self.GetCellValue(ws,sheet['nColumn'],row),\
+                             'k':self.GetCellValue(ws,sheet['kColumn'],row) }
 
             if hiteff[pdf]['k'] == 0:
-                hiteff[pdf]['fwhm_1t'] = 1; hiteff[pdf]['fwhm_2t'] = 1; hiteff[pdf]['fwhm_3t'] = 1; hiteff[pdf]['fwhm_fv'] = 1; hiteff[pdf]['fwhm_0p5t'] = 1; hiteff[pdf]['fwhm_1p5t'] = 1; hiteff[pdf]['fwhm_2p5t'] = 1; hiteff[pdf]['fwhm_3p5t'] = 1;
-                hiteff[pdf]['3sig_1t'] = 1; hiteff[pdf]['3sig_2t'] = 1; hiteff[pdf]['3sig_3t'] = 1; hiteff[pdf]['3sig_fv'] = 1; hiteff[pdf]['3sig_0p5t'] = 1; hiteff[pdf]['3sig_1p5t'] = 1; hiteff[pdf]['3sig_2p5t'] = 1; hiteff[pdf]['3sig_3p5t'] = 1;
-                hiteff[pdf]['2sig_1t'] = 1; hiteff[pdf]['2sig_2t'] = 1; hiteff[pdf]['2sig_3t'] = 1; hiteff[pdf]['2sig_fv'] = 1; hiteff[pdf]['2sig_0p5t'] = 1; hiteff[pdf]['2sig_1p5t'] = 1; hiteff[pdf]['2sig_2p5t'] = 1; hiteff[pdf]['2sig_3p5t'] = 1;
-                hiteff[pdf]['1sig_1t'] = 1; hiteff[pdf]['1sig_2t'] = 1; hiteff[pdf]['1sig_3t'] = 1; hiteff[pdf]['1sig_fv'] = 1; hiteff[pdf]['1sig_0p5t'] = 1; hiteff[pdf]['1sig_1p5t'] = 1; hiteff[pdf]['1sig_2p5t'] = 1; hiteff[pdf]['1sig_3p5t'] = 1;
+                hiteff[pdf]['fwhm_1t'] = 1
+                hiteff[pdf]['fwhm_2t'] = 1
+                hiteff[pdf]['fwhm_3t'] = 1
+                hiteff[pdf]['fwhm_fv'] = 1
+                hiteff[pdf]['fwhm_0p5t'] = 1
+                hiteff[pdf]['fwhm_1p5t'] = 1
+                hiteff[pdf]['fwhm_2p5t'] = 1
+                hiteff[pdf]['fwhm_3p5t'] = 1
+                hiteff[pdf]['3sig_1t'] = 1
+                hiteff[pdf]['3sig_2t'] = 1
+                hiteff[pdf]['3sig_3t'] = 1
+                hiteff[pdf]['3sig_fv'] = 1
+                hiteff[pdf]['3sig_0p5t'] = 1
+                hiteff[pdf]['3sig_1p5t'] = 1
+                hiteff[pdf]['3sig_2p5t'] = 1
+                hiteff[pdf]['3sig_3p5t'] = 1
+                hiteff[pdf]['2sig_1t'] = 1
+                hiteff[pdf]['2sig_2t'] = 1
+                hiteff[pdf]['2sig_3t'] = 1
+                hiteff[pdf]['2sig_fv'] = 1
+                hiteff[pdf]['2sig_0p5t'] = 1
+                hiteff[pdf]['2sig_1p5t'] = 1
+                hiteff[pdf]['2sig_2p5t'] = 1
+                hiteff[pdf]['2sig_3p5t'] = 1
+                hiteff[pdf]['1sig_1t'] = 1 
+                hiteff[pdf]['1sig_2t'] = 1 
+                hiteff[pdf]['1sig_3t'] = 1 
+                hiteff[pdf]['1sig_fv'] = 1 
+                hiteff[pdf]['1sig_0p5t'] = 1 
+                hiteff[pdf]['1sig_1p5t'] = 1 
+                hiteff[pdf]['1sig_2p5t'] = 1 
+                hiteff[pdf]['1sig_3p5t'] = 1
             else:
                 hiteff[pdf]['fwhm_1t'] = self.GetCellValue(ws,sheet_fwhm['1tColumn'],row)*1./hiteff[pdf]['k']
                 hiteff[pdf]['fwhm_2t'] = self.GetCellValue(ws,sheet_fwhm['2tColumn'],row)*1./hiteff[pdf]['k']
@@ -231,10 +331,46 @@ class ExcelTableReader:
                 hiteff[pdf]['1sig_3p5t'] = self.GetCellValue(ws,sheet_1sig['3p5tColumn'],row)*1./hiteff[pdf]['k']
 
             self.components[pdf].SetHitEfficiency(hiteff[pdf]['n'],hiteff[pdf]['k'],suffix)
-            self.components[pdf].SetHitEfficiencyROI(0,hiteff[pdf]['fwhm_fv'],hiteff[pdf]['fwhm_3t'],hiteff[pdf]['fwhm_2t'],hiteff[pdf]['fwhm_1t'],hiteff[pdf]['fwhm_3p5t'],hiteff[pdf]['fwhm_2p5t'],hiteff[pdf]['fwhm_1p5t'],hiteff[pdf]['fwhm_0p5t'],suffix)
-            self.components[pdf].SetHitEfficiencyROI(3,hiteff[pdf]['3sig_fv'],hiteff[pdf]['3sig_3t'],hiteff[pdf]['3sig_2t'],hiteff[pdf]['3sig_1t'],hiteff[pdf]['3sig_3p5t'],hiteff[pdf]['3sig_2p5t'],hiteff[pdf]['3sig_1p5t'],hiteff[pdf]['3sig_0p5t'],suffix)
-            self.components[pdf].SetHitEfficiencyROI(2,hiteff[pdf]['2sig_fv'],hiteff[pdf]['2sig_3t'],hiteff[pdf]['2sig_2t'],hiteff[pdf]['2sig_1t'],hiteff[pdf]['2sig_3p5t'],hiteff[pdf]['2sig_2p5t'],hiteff[pdf]['2sig_1p5t'],hiteff[pdf]['2sig_0p5t'],suffix)
-            self.components[pdf].SetHitEfficiencyROI(1,hiteff[pdf]['1sig_fv'],hiteff[pdf]['1sig_3t'],hiteff[pdf]['1sig_2t'],hiteff[pdf]['1sig_1t'],hiteff[pdf]['1sig_3p5t'],hiteff[pdf]['1sig_2p5t'],hiteff[pdf]['1sig_1p5t'],hiteff[pdf]['1sig_0p5t'],suffix)
+            self.components[pdf].SetHitEfficiencyROI(0,\
+                                                     hiteff[pdf]['fwhm_fv'],\
+                                                     hiteff[pdf]['fwhm_3t'],\
+                                                     hiteff[pdf]['fwhm_2t'],\
+                                                     hiteff[pdf]['fwhm_1t'],\
+                                                     hiteff[pdf]['fwhm_3p5t'],\
+                                                     hiteff[pdf]['fwhm_2p5t'],\
+                                                     hiteff[pdf]['fwhm_1p5t'],\
+                                                     hiteff[pdf]['fwhm_0p5t'],\
+                                                     suffix)
+            self.components[pdf].SetHitEfficiencyROI(3,\
+                                                     hiteff[pdf]['3sig_fv'],\
+                                                     hiteff[pdf]['3sig_3t'],\
+                                                     hiteff[pdf]['3sig_2t'],\
+                                                     hiteff[pdf]['3sig_1t'],\
+                                                     hiteff[pdf]['3sig_3p5t'],\
+                                                     hiteff[pdf]['3sig_2p5t'],\
+                                                     hiteff[pdf]['3sig_1p5t'],\
+                                                     hiteff[pdf]['3sig_0p5t'],\
+                                                     suffix)
+            self.components[pdf].SetHitEfficiencyROI(2,\
+                                                     hiteff[pdf]['2sig_fv'],\
+                                                     hiteff[pdf]['2sig_3t'],\
+                                                     hiteff[pdf]['2sig_2t'],\
+                                                     hiteff[pdf]['2sig_1t'],\
+                                                     hiteff[pdf]['2sig_3p5t'],\
+                                                     hiteff[pdf]['2sig_2p5t'],\
+                                                     hiteff[pdf]['2sig_1p5t'],\
+                                                     hiteff[pdf]['2sig_0p5t'],\
+                                                     suffix)
+            self.components[pdf].SetHitEfficiencyROI(1,\
+                                                     hiteff[pdf]['1sig_fv'],\
+                                                     hiteff[pdf]['1sig_3t'],\
+                                                     hiteff[pdf]['1sig_2t'],\
+                                                     hiteff[pdf]['1sig_1t'],\
+                                                     hiteff[pdf]['1sig_3p5t'],\
+                                                     hiteff[pdf]['1sig_2p5t'],\
+                                                     hiteff[pdf]['1sig_1p5t'],\
+                                                     hiteff[pdf]['1sig_0p5t'],\
+                                                     suffix)
    
         return 
         
@@ -274,7 +410,7 @@ class RootTreeWriter():
     def __init__(self,outTableName):
         self.filename = outTableName #'../tables/Summary_v68_2016-06-21_0nu.root' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.root' #'test_new_tree.root'
 
-        self.pdf_filename_pattern ='/p/lscratche/nexouser/sens_recalc/histos/individual_histos_2017/nEXO_Histos_%s.root'
+        self.pdf_filename_pattern ='../histos/nEXO_Histos_%s*root'
     #'/data/data033/exo/software/nEXO_Sensitivity/quick/v5/histos/PNNL/571mm_third/nEXO_Histos_%s.root' # 'individual_histos/nEXO_Histos_%s.root'
         
         self.file = ROOT.TFile.Open(self.filename,'recreate')
@@ -286,13 +422,71 @@ class RootTreeWriter():
 
         self.groups = {}
 
-        self.groups['Far'] = ["OuterCryoResin_U238","OuterCryoFiber_U238","OuterCryoSupportResin_U238","OuterCryoSupportFiber_U238","InnerCryoResin_U238","InnerCryoFiber_U238","InnerCryoSupportResin_U238","InnerCryoSupportFiber_U238","InnerCryoLiner_U238","OuterCryoResin_Th232","OuterCryoFiber_Th232","OuterCryoSupportResin_Th232","OuterCryoSupportFiber_Th232","InnerCryoResin_Th232","InnerCryoFiber_Th232","InnerCryoSupportResin_Th232","InnerCryoSupportFiber_Th232","InnerCryoLiner_Th232","OuterCryoResin_Co60","OuterCryoFiber_Co60","OuterCryoSupportResin_Co60","OuterCryoSupportFiber_Co60","InnerCryoResin_Co60","InnerCryoFiber_Co60","InnerCryoSupportResin_Co60","InnerCryoSupportFiber_Co60","InnerCryoLiner_Co60","OuterCryoResin_K40","OuterCryoFiber_K40","OuterCryoSupportResin_K40","OuterCryoSupportFiber_K40","InnerCryoResin_K40","InnerCryoFiber_K40","InnerCryoSupportResin_K40","InnerCryoSupportFiber_K40","InnerCryoLiner_K40"]
+        self.groups['Far'] = [ "OuterCryoResin_U238",\
+                               "OuterCryoFiber_U238",\
+                               "OuterCryoSupportResin_U238",\
+                               "OuterCryoSupportFiber_U238",\
+                               "InnerCryoResin_U238",\
+                               "InnerCryoFiber_U238",\
+                               "InnerCryoSupportResin_U238",\
+                               "InnerCryoSupportFiber_U238",\
+                               "InnerCryoLiner_U238",\
+                               "OuterCryoResin_Th232",\
+                               "OuterCryoFiber_Th232",\
+                               "OuterCryoSupportResin_Th232",\
+                               "OuterCryoSupportFiber_Th232",\
+                               "InnerCryoResin_Th232",\
+                               "InnerCryoFiber_Th232",\
+                               "InnerCryoSupportResin_Th232",\
+                               "InnerCryoSupportFiber_Th232",\
+                               "InnerCryoLiner_Th232",\
+                               "OuterCryoResin_Co60",\
+                               "OuterCryoFiber_Co60",\
+                               "OuterCryoSupportResin_Co60",\
+                               "OuterCryoSupportFiber_Co60",\
+                               "InnerCryoResin_Co60",\
+                               "InnerCryoFiber_Co60",\
+                               "InnerCryoSupportResin_Co60",\
+                               "InnerCryoSupportFiber_Co60",\
+                               "InnerCryoLiner_Co60",\
+                               "OuterCryoResin_K40",\
+                               "OuterCryoFiber_K40",\
+                               "OuterCryoSupportResin_K40",\
+                               "OuterCryoSupportFiber_K40",\
+                               "InnerCryoResin_K40",\
+                               "InnerCryoFiber_K40",\
+                               "InnerCryoSupportResin_K40",\
+                               "InnerCryoSupportFiber_K40",\
+                               "InnerCryoLiner_K40" ]
 
-        group_vessel = ["HFE","TPC","TPCSupportCone","HVTubes","HVCables","HVFeedthru","HVFeedthruCore","CalibrationGuideTube1","CalibrationGuideTube2"]
+        group_vessel = ["HFE",\
+                        "TPC",\
+                        "TPCSupportCone",\
+                        "HVTubes",\
+                        "HVCables",\
+                        "HVFeedthru",\
+                        "HVFeedthruCore",\
+                        "CalibrationGuideTube1",\
+                        "CalibrationGuideTube2" ]
+
         self.groups['VesselU238'] = ['%s_U238'%(group_comp) for group_comp in group_vessel]
         self.groups['VesselTh232'] = ['%s_Th232'%(group_comp) for group_comp in group_vessel]
         
-        group_internal = ["Cathode","Bulge","FieldRings","SupportSpacers","SiPMStaves","SiPMElectronics","SiPMModule","SiPMCables","SiPMs","ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
+        group_internal = [ "Cathode",\
+                           "Bulge",\
+                           "FieldRings",\
+                           "SupportSpacers",\
+                           "SiPMStaves",\
+                           "SiPMElectronics",\
+                           "SiPMModule",\
+                           "SiPMCables",\
+                           "SiPMs",\
+                           "ChargeTilesCables",\
+                           "ChargeTilesElectronics",\
+                           "ChargeTilesSupport",\
+                           "ChargeTilesBacking",\
+                           "HVPlunger" ]
+
         self.groups['InternalU238'] = ['%s_U238'%(group_comp) for group_comp in group_internal]
         self.groups['InternalTh232'] = ['%s_Th232'%(group_comp) for group_comp in group_internal]
         
