@@ -10,10 +10,9 @@
 ##     D-005: 2017 baseline
 ##
 ########################################################################
-
-import ROOT, openpyxl
+import ROOT
 import json, math, time
-from cabinet import *
+from db_tools.cabinet import *
 
 ROOT.gSystem.Load('../lib/libnEXOSensitivity.so')
 

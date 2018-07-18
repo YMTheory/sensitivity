@@ -9,11 +9,11 @@ from settings import *
 #es = Elasticsearch(['http://xenon:pi=3.14159@particle1.ph.ua.edu:3306'])
 #dburl = 'http://xenon:136@particle1.ph.ua.edu:5984/material_database/'
 
-#es = Elasticsearch(['http://xenon:pi=3.14159@nexo.ph.ua.edu/elastic/'])
-#dburl = 'http://xenon:136@nexo.ph.ua.edu/material_database/'
+es = Elasticsearch(['http://xenon:pi=3.14159@nexo.ph.ua.edu/elastic/'])
+dburl = 'http://xenon:136@nexo.ph.ua.edu/material_database/'
 
-es = Elasticsearch(['http://xenon:pi=3.14159@127.0.0.1:9200'])
-dburl = 'http://xenon:136@127.0.0.1:5984/material_database/'
+#es = Elasticsearch(['http://xenon:pi=3.14159@127.0.0.1:9200'])
+#dburl = 'http://xenon:136@127.0.0.1:5984/material_database/'
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
