@@ -463,12 +463,6 @@ if __name__ == "__main__":
     excelTable = ExcelTableReader(inTableName) #excelTable.Print()
     rootTree = RootTreeWriter(outTableName)
 
-    for group in rootTree.groups:
-      for component in group:
-        if component not in excelTable.name_dict:
-           print('ERROR: {} is not assigned to any group.'.format(component))   
-
- 
     table2tree = Excel2RootConverter(excelTable,rootTree)
     table2tree.Run()
 

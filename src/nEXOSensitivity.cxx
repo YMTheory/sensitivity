@@ -108,10 +108,10 @@ void nEXOSensitivity::SetBinning(int nBinsX, double xMin, double xMax, int nBins
 void nEXOSensitivity::LoadExcelTree(const char* filename, const char* treename) {
     TFile treeFile(filename, "read");
     TTree* tree = dynamic_cast<TTree*> (treeFile.Get(treename));
-    
+
     fExcelTree = tree->CloneTree();
     fExcelTree->SetDirectory(0);
-    
+
     treeFile.Close();
 }
 
@@ -170,7 +170,7 @@ void nEXOSensitivity::ReadExcelTree() {
         //std::cout << "Working on " << table->fPdf << std::endl;
         if (fVerboseLevel > 0)
             table->Print();
-        
+
         fComponentNames.push_back(table->fPdf.Data());
         
         if (fWithEff && table->fGroup == fSignalName) // set efficiency
@@ -491,7 +491,7 @@ void nEXOSensitivity::LoadComponentHistograms() {
         //std::cout << "Working on " << table->fPdf << std::endl;
         if (fVerboseLevel)
             table->Print();
-        
+ 
         fIn = new TFile(table->fFileName.Data()); // new TFile(Form("%s/nEXO_Histos_%s_R.root", fHistoPathIn.Data(), pdfNames[i].Data()));
         
         h_ss = (TH2D*) fIn->Get("h_StandoffVsEnergySS_Smear");
@@ -863,7 +863,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         rdmRate = nRuns;
     if (rdmRate < nRuns)
         fRandomizeMeanCounts = true;
-    
+
     LoadExcelTree(fTreeFileName.Data());
     LoadComponentHistograms();
     

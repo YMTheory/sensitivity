@@ -6,7 +6,11 @@
 ##
 ########################################################################
 
-import ROOT, openpyxl
+
+import ROOT
+import openpyxl
+import sys
+import time
 
 ROOT.gSystem.Load('../lib/libnEXOSensitivity.so')
 
@@ -132,7 +136,8 @@ class ExcelTableReader:
         #        self.name_dict["bb0n"] = 'Full LXe'
         self.name_dict["ActiveLXe"] = 'Active LXe'
         self.name_dict["InactiveLXe"] = 'Inactive LXe'
-
+        self.name_dict["SolderAnode"] = 'Solder (Anode)'
+        self.name_dict["SolderSiPM"] = 'Solder (SiPM)'
         self.ReadContents()
 
     def ReadContents(self):
@@ -147,7 +152,7 @@ class ExcelTableReader:
         return        
 
     def ReadComponents(self):
-        print 'Reading components...'
+        print('Reading components...')
 
         sheet = self.specific_activity_sheet
         ws = self.wb.get_sheet_by_name(sheet['name'])
@@ -158,7 +163,7 @@ class ExcelTableReader:
                 break
             row = cells[0].row
             component = self.GetCellValue(ws,sheet['componentColumn'],row)
-            print "##%s##" % component
+            print("##%s##" % component)
             isotope = self.GetCellValue(ws,sheet['isotopeColumn'],row)
             pdf = self.GetPdfName(component,isotope)
             
@@ -167,7 +172,7 @@ class ExcelTableReader:
         return
 
     def ReadHalflife(self):
-        print 'Reading half-life...'
+        print('Reading half-life...')
         
         sheet = self.constants_sheet
         ws = self.wb.get_sheet_by_name(sheet['name'])
@@ -184,7 +189,7 @@ class ExcelTableReader:
         return
 
     def ReadActivity(self):
-        print 'Reading activity...'
+        print('Reading activity...')
 
         sheet = self.specific_activity_sheet
         ws = self.wb.get_sheet_by_name(sheet['name'])
@@ -410,12 +415,12 @@ class RootTreeWriter():
     def __init__(self,outTableName):
         self.filename = outTableName #'../tables/Summary_v68_2016-06-21_0nu.root' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.root' #'test_new_tree.root'
 
-        self.pdf_filename_pattern ='../histos/nEXO_Histos_%s*root'
+        self.pdf_filename_pattern ='/Users/blenardo/Research/nEXO/Sensitivity/sensitivity/histos/nEXO_Histos_%s.root'
     #'/data/data033/exo/software/nEXO_Sensitivity/quick/v5/histos/PNNL/571mm_third/nEXO_Histos_%s.root' # 'individual_histos/nEXO_Histos_%s.root'
         
         self.file = ROOT.TFile.Open(self.filename,'recreate')
         self.tree = ROOT.TTree('ExcelTableValues','Values from Excel Summary Table')
-        
+        self.tree.SetName('table') 
         self.table = ROOT.ExcelTableValues()
         
         self.tree.Branch('table',self.table)
@@ -493,8 +498,8 @@ class RootTreeWriter():
         group_tpc_k40 = ["SupportSpacers","SiPMModule","ChargeTilesBacking"]
         self.groups['FullTpcK40'] = ['%s_K40'%(group_comp) for group_comp in group_tpc_k40]
         
-        #group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
-        #self.groups['FullTpcCo60'] = ['%s_Co60'%(group_comp) for group_comp in group_tpc_co60]
+        group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
+        self.groups['FullTpcCo60'] = ['%s_Co60'%(group_comp) for group_comp in group_tpc_co60]
         
         self.groups['ActiveLXeRn222'] = ["ActiveLXe_Rn222"]
         self.groups['InactiveLXeRn222'] = ["InactiveLXe_Rn222","CathodeRn_Rn222"]
@@ -503,8 +508,24 @@ class RootTreeWriter():
         self.groups['LXeBb2n'] = ["LXe_bb2n"]
         self.groups['LXeBb0n'] = ["LXe_bb0n"]
     
-        self.groups['GhostComponents'] = ["HVCables_K40","HVCables_Co60","HVFeedthruCore_K40"]
-    
+#        self.groups['GhostComponents'] = ["HVCables_K40","HVCables_Co60","HVFeedthruCore_K40"]
+        self.groups['GhostComponents'] = ['%s_K40'%(group_comp) for group_comp in group_internal]
+        self.groups['GhostComponents'].extend(['%s_Co60'%(group_comp) for group_comp in group_internal])
+        self.groups['GhostComponents'].extend(['%s_K40'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['%s_Co60'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['SolderAnode_U238']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_Th232']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_K40']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_Co60']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_Ag110m']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_U238']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_Th232']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_K40']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_Co60']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_Ag110m']) 
+        self.groups['GhostComponents'].extend(['LXe_B8nu'])
+        self.groups['GhostComponents'].extend(['SupportSpacers_Al26'])
+        self.groups['GhostComponents'].extend(['FieldRings_Cs137'])
 
     def FindGroup(self, pdf):
 
@@ -568,10 +589,17 @@ if __name__ == "__main__":
         inTableName = sys.argv[1] # '../tables/Summary_v68_2016-06-21_0nu.xlsx'
         outTableName = sys.argv[2] # '../tables/Summary_v68_2016-06-21_0nu.root'
     else:
-        print 'Must enter input and output table names...'
+        sys.exit('\nERROR: Must enter input and output table names...\n')
+
+    start_time = time.time()
+    print('Script started at {}'.format(start_time))
 
     excelTable = ExcelTableReader(inTableName) #excelTable.Print()
     rootTree = RootTreeWriter(outTableName)
-    
+
+ 
     table2tree = Excel2RootConverter(excelTable,rootTree)
     table2tree.Run()
+
+    end_time = time.time()
+    print('Elapsed time = {} seconds ({} minutes).'.format( end_time-start_time, (end_time-start_time)/60. ) )
