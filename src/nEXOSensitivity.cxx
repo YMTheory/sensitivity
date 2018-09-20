@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <stdlib.h>
 
 #include "nEXOSensitivity.hh"
 #include "TObjectTable.h"
@@ -167,9 +168,14 @@ void nEXOSensitivity::ReadExcelTree() {
     for (int i = 0; i < fExcelTree->GetEntriesFast(); i++) {
         fExcelTree->GetEntry(i);
         
-        //std::cout << "Working on " << table->fPdf << std::endl;
+        std::cout << "Working on " << table->fPdf << " which is in group " << table->fGroup << std::endl;
         if (fVerboseLevel > 0)
             table->Print();
+        if ( fTurnedOffGroups.count(table->fGroup) != 0 )
+        {
+            std::cout << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
+            std::cout << "Skipping...." << std::endl; 
+        }
 
         fComponentNames.push_back(table->fPdf.Data());
         
@@ -488,12 +494,25 @@ void nEXOSensitivity::LoadComponentHistograms() {
     for (int i = 0; i < fExcelTree->GetEntriesFast(); i++) {
         fExcelTree->GetEntry(i);
         
-        std::cout << "Working on " << table->fPdf << std::endl;
-        if (fVerboseLevel)
+        //std::cout << "Working on " << table->fPdf << " which is in group " << table->fGroup << std::endl;
+        if (fVerboseLevel > 0)
             table->Print();
- 
+        if ( fTurnedOffGroups.count(table->fGroup) != 0 )
+        {
+            std::cout << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
+            std::cout << "Skipping...." << std::endl;
+            continue; 
+        }
+
+          
         fIn = new TFile(table->fFileName.Data()); // new TFile(Form("%s/nEXO_Histos_%s_R.root", fHistoPathIn.Data(), pdfNames[i].Data()));
-        
+        if( fIn->IsZombie() ) {
+          std::cerr << "No file for pdf " << table->fPdf << std::endl;
+          exit (EXIT_FAILURE);
+        }
+
+
+
         h_ss = (TH2D*) fIn->Get("h_StandoffVsEnergySS_Smear");
         h_ms = (TH2D*) fIn->Get("h_StandoffVsEnergyMS_Smear");
         h_ss->SetName(Form("h_%s_ss", table->fPdf.Data()));
