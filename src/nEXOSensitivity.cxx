@@ -488,7 +488,7 @@ void nEXOSensitivity::LoadComponentHistograms() {
     for (int i = 0; i < fExcelTree->GetEntriesFast(); i++) {
         fExcelTree->GetEntry(i);
         
-        //std::cout << "Working on " << table->fPdf << std::endl;
+        std::cout << "Working on " << table->fPdf << std::endl;
         if (fVerboseLevel)
             table->Print();
  
@@ -638,6 +638,7 @@ void nEXOSensitivity::MakeGroupHistograms() {
     //double roi_r3t = 0.;
     //double sum = 0.;
     for (std::map<TString, std::vector<TString> >::iterator group = fGroups.begin(); group != fGroups.end(); group++) {
+        printf("Hey, I'm in the loop.\n");
         TString groupName = group->first;
         std::vector<TString>& groupComponents = group->second;
         
