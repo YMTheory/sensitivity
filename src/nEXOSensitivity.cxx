@@ -175,6 +175,7 @@ void nEXOSensitivity::ReadExcelTree() {
         {
             std::cout << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
             std::cout << "Skipping...." << std::endl; 
+            continue;
         }
 
         fComponentNames.push_back(table->fPdf.Data());
@@ -659,6 +660,7 @@ void nEXOSensitivity::MakeGroupHistograms() {
     for (std::map<TString, std::vector<TString> >::iterator group = fGroups.begin(); group != fGroups.end(); group++) {
         printf("Hey, I'm in the loop.\n");
         TString groupName = group->first;
+        
         std::vector<TString>& groupComponents = group->second;
         
         std::vector<Double_t> groupFractionsSS;
@@ -2173,8 +2175,13 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
     RooArgList coefList; //List of component coeficients
     
     for (Int_t i = 0; i < nFitPdfs; i++) {
+        std::cout << "Beginning of loop..." << std::endl;
         TString name = pdfNames[i];
-        
+        if ( fTurnedOffGroups.count(name) != 0 ) 
+        {
+            std::cout << "Group " << name << " is turned off." << std::endl;
+            continue;
+        }
         if (fVerboseLevel > 0)
             std::cout << "Adding group " << name << " to pdfs... " << std::endl;
         
@@ -2184,22 +2191,27 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
         //Get the mean number of events and ss fraction for the component
         Double_t meanNum = ((RooRealVar*) fWsp->var(Form("mean_num_%s", name.Data())))->getVal();
         Double_t meanFrac = ((RooRealVar*) fWsp->var(Form("mean_frac_%s", name.Data())))->getVal();
-        
+    
+        std::cout << "Creating coefficient..." << std::endl;    
         //Create the component's coefficient
         num_tomakefit.emplace_back(new RooRealVar(Form("num_%s", name.Data()), "", meanNum, 0., meanNum * 10.)); //meanNum*(1.-0.3), meanNum*(1.+0.3));
         frac_tomakefit.emplace_back(new RooRealVar(Form("frac_%s", name.Data()), "", meanFrac, 0., 1.)); //meanFrac*(1.-3.*fFracError), meanFrac*(1.+3.*fFracError));
         coef_tomakefit.emplace_back(new RooFormulaVar(Form("num_%s_%s", name.Data(), suffix.Data()), "", formula.Data(), RooArgList(*num_tomakefit.back().get(), *frac_tomakefit.back().get())));
-        
+       
+        std::cout << "Getting pdf from workspace..." << std::endl; 
         //Get the pdf from the workspace
         pdf = (RooHistPdf*) fWsp->pdf(Form("pdf_%s_%s", name.Data(), suffix.Data()));
         pdf1D = (RooHistPdf*) fWsp->pdf(Form("pdf1D_%s_%s", name.Data(), suffix.Data()));
         
+        std::cout << "Adding component pdf to the list..." << std::endl;
         //Add the component pdf and coefficient to the list
         pdfList.add(*pdf);
         pdfList1D.add(*pdf1D);
         coefList.add(*coef_tomakefit.back().get());
+        std::cout << "end of loop..." << std::endl;
     }
-    
+   
+    std::cout << "Create the signal component..." << std::endl; 
     //Create the signal component
     Double_t meanNum = ((RooRealVar*) fWsp->var(Form("mean_num_%s", fSignalName.Data())))->getVal();
     Double_t meanFrac = ((RooRealVar*) fWsp->var(Form("mean_frac_%s", fSignalName.Data())))->getVal();
@@ -2207,6 +2219,8 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
     num_tomakefit.emplace_back(new RooRealVar(Form("num_%s", fSignalName.Data()), "", meanNum, 0., 500.));
     frac_tomakefit.emplace_back(new RooRealVar(Form("frac_%s", fSignalName.Data()), "", meanFrac, 0., 1.)); //meanFrac*(1.-3.*fFracError), meanFrac*(1.+3.*fFracError));
     RooRealVar* efficiency = 0;
+
+    std::cout << "if (fWithEff) { ... " << std::endl;
     if (fWithEff) {
         RooRealVar meanSignalEfficiency(Form("mean_eff_%s", fSignalName.Data()), "", fMeanSignalEff);
         fWsp->import(meanSignalEfficiency);

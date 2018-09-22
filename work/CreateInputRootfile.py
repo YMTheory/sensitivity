@@ -155,7 +155,7 @@ class ExcelTableReader:
         mainmcdoc = get_doc(component['montecarloid'])
 
         for isotope in self.halflives.keys():
-          pdf = '%s_%s' % (component['name'].replace(' ',''),isotope) # "pdf" is just a string used as key
+          pdf = '%s_%s' % (component['name'].replace(' ','').replace('(','').replace(')',''),isotope) # "pdf" is just a string used as key
 
           # Get raddoc from matDB
           isoname = ''.join(isotope.split('-')).lower()   # Reformat from U-238 to u238
@@ -170,7 +170,7 @@ class ExcelTableReader:
             if s['isotope'] == isotope:
               #mckey = component['montecarloid']+'_'+isotope      # key used in mcdocs
               dbkey = component['montecarloid']+'.'+str(i+1) # key used in the matdb
-              filename = 'nEXO_Histos_%s_%s.root' % (component['name'].replace(' ',''), isotope)  # path to save to
+              filename = 'nEXO_Histos_%s_%s.root' % (component['name'].replace(' ','').replace('(','').replace(')',''), isotope)  # path to save to
               mcpath = get_mc(dbkey,filename)
               #print 'MC file (%s) for %s is saved to %s' % (pdf, isotope, mcpath)
               mcdoc = s
@@ -284,16 +284,16 @@ class RootTreeWriter():
 
         # If this pdf involves a special volume (e.g. LXe) or a special isotope (e.g. Rn-222)
         special_pdfs = {
-          'ActiveLXe_Xe-137': 'ActiveLXeXe137',
-          'ActiveLXe_Rn-222': 'ActiveLXeRn222',
-          'InactiveLXe_Xe-137': 'InactiveLXeXe137',
-          'InactiveLXe_Rn-222':    'InactiveLXeRn222',
-          'Cathode(Radon)_Rn-222': 'InactiveLXeRn222',
+          'ActiveLXe_Xe-137': 'ActiveLXeXe-137',
+          'ActiveLXe_Rn-222': 'ActiveLXeRn-222',
+          'InactiveLXe_Xe-137': 'InactiveLXeXe-137',
+          'InactiveLXe_Rn-222':    'InactiveLXeRn-222',
+          'Cathode(Radon)_Rn-222': 'InactiveLXeRn-222',
           'FullLXe_bb2n': 'LXeBb2n',
           'FullLXe_bb0n': 'LXeBb0n',
           'FullLXe_B8nu': 'LXeB8nu',
-          'Solder(Anode)_Ag-110m': 'InternalAg110m',
-          'Solder(SiPM)_Ag-110m':  'InternalAg110m',
+          'Solder(Anode)_Ag-110m': 'InternalAg-110m',
+          'Solder(SiPM)_Ag-110m':  'InternalAg-110m',
           'FieldRings_Cs-137': 'GhostComponents',
           'ActiveLXe_Kr-85': 'GhostComponents',
           'InactiveLXe_Kr-85': 'GhostComponents',
@@ -322,16 +322,16 @@ class RootTreeWriter():
         if component in group_far: return 'Far'
 
         if component in group_internal: 
-          if isotope == 'U-238':  return 'InternalU238'
-          if isotope == 'Th-232': return 'InternalTh232'
-          if isotope == 'K-40':   return 'FullTpcK40'
-          if isotope == 'Co-60':  return 'FullTpcCo60'
+          if isotope == 'U-238':  return 'InternalU-238'
+          if isotope == 'Th-232': return 'InternalTh-232'
+          if isotope == 'K-40':   return 'FullTpcK-40'
+          if isotope == 'Co-60':  return 'FullTpcCo-60'
 
         if component in group_vessel: 
-          if isotope == 'U-238':  return 'VesselU238'
-          if isotope == 'Th-232': return 'VesselTh232'
-          if isotope == 'K-40':   return 'FullTpcK40'
-          if isotope == 'Co-60':  return 'FullTpcCo60'
+          if isotope == 'U-238':  return 'VesselU-238'
+          if isotope == 'Th-232': return 'VesselTh-232'
+          if isotope == 'K-40':   return 'FullTpcK-40'
+          if isotope == 'Co-60':  return 'FullTpcCo-60'
 
         print '***** CANNOT FIND GROUP FOR %s *****' % (pdf)
         return None

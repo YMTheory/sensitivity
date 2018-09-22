@@ -49,7 +49,8 @@ class ExcelTableReader:
         for index, row in self.dfSpecActiv.iterrows():
             component = row['Component']
             isotope   = row['Isotope']
-            pdf       = '%s_%s' % (self.name_dict[component], isotope.replace('-','') )
+            #pdf       = '%s_%s' % (self.name_dict[component], isotope.replace('-','') )
+            pdf       = '%s_%s' % (self.name_dict[component], isotope )
             self.components[pdf] = ROOT.ExcelTableValues( ROOT.TString(pdf),\
                                                           ROOT.TString(component),\
                                                           ROOT.TString(isotope) )
@@ -294,63 +295,63 @@ class RootTreeWriter():
 
         self.groups = {}
 
-        self.groups['Far'] = [ "OuterCryoResin_U238",\
-                               "OuterCryoFiber_U238",\
-                               "OuterCryoSupportResin_U238",\
-                               "OuterCryoSupportFiber_U238",\
-                               "InnerCryoResin_U238",\
-                               "InnerCryoFiber_U238",\
-                               "InnerCryoSupportResin_U238",\
-                               "InnerCryoSupportFiber_U238",\
-                               "InnerCryoLiner_U238",\
-                               "OuterCryoResin_Th232",\
-                               "OuterCryoFiber_Th232",\
-                               "OuterCryoSupportResin_Th232",\
-                               "OuterCryoSupportFiber_Th232",\
-                               "InnerCryoResin_Th232",\
-                               "InnerCryoFiber_Th232",\
-                               "InnerCryoSupportResin_Th232",\
-                               "InnerCryoSupportFiber_Th232",\
-                               "InnerCryoLiner_Th232",\
-                               "OuterCryoResin_Co60",\
-                               "OuterCryoFiber_Co60",\
-                               "OuterCryoSupportResin_Co60",\
-                               "OuterCryoSupportFiber_Co60",\
-                               "InnerCryoResin_Co60",\
-                               "InnerCryoFiber_Co60",\
-                               "InnerCryoSupportResin_Co60",\
-                               "InnerCryoSupportFiber_Co60",\
-                               "InnerCryoLiner_Co60",\
-                               "OuterCryoResin_K40",\
-                               "OuterCryoFiber_K40",\
-                               "OuterCryoSupportResin_K40",\
-                               "OuterCryoSupportFiber_K40",\
-                               "InnerCryoResin_K40",\
-                               "InnerCryoFiber_K40",\
-                               "InnerCryoSupportResin_K40",\
-                               "InnerCryoSupportFiber_K40",\
-                               "InnerCryoLiner_K40" ]
+        self.groups['Far'] = [ "OuterCryostatResin_U-238",\
+                               "OuterCryostatFiber_U-238",\
+                               "OuterCryostatSupportResin_U-238",\
+                               "OuterCryostatSupportFiber_U-238",\
+                               "InnerCryostatResin_U-238",\
+                               "InnerCryostatFiber_U-238",\
+                               "InnerCryostatSupportResin_U-238",\
+                               "InnerCryostatSupportFiber_U-238",\
+                               "InnerCryostatLiner_U-238",\
+                               "OuterCryostatResin_Th-232",\
+                               "OuterCryostatFiber_Th-232",\
+                               "OuterCryostatSupportResin_Th-232",\
+                               "OuterCryostatSupportFiber_Th-232",\
+                               "InnerCryostatResin_Th-232",\
+                               "InnerCryostatFiber_Th-232",\
+                               "InnerCryostatSupportResin_Th-232",\
+                               "InnerCryostatSupportFiber_Th-232",\
+                               "InnerCryostatLiner_Th-232",\
+                               "OuterCryostatResin_Co-60",\
+                               "OuterCryostatFiber_Co-60",\
+                               "OuterCryostatSupportResin_Co-60",\
+                               "OuterCryostatSupportFiber_Co-60",\
+                               "InnerCryostatResin_Co-60",\
+                               "InnerCryostatFiber_Co-60",\
+                               "InnerCryostatSupportResin_Co-60",\
+                               "InnerCryostatSupportFiber_Co-60",\
+                               "InnerCryostatLiner_Co-60",\
+                               "OuterCryostatResin_K-40",\
+                               "OuterCryostatFiber_K-40",\
+                               "OuterCryostatSupportResin_K-40",\
+                               "OuterCryostatSupportFiber_K-40",\
+                               "InnerCryostatResin_K-40",\
+                               "InnerCryostatFiber_K-40",\
+                               "InnerCryostatSupportResin_K-40",\
+                               "InnerCryostatSupportFiber_K-40",\
+                               "InnerCryostatLiner_K-40" ]
 
         group_vessel = ["HFE",\
-                        "TPC",\
+                        "TPCVessel",\
                         "TPCSupportCone",\
                         "HVTubes",\
                         "HVCables",\
-                        "HVFeedthru",\
-                        "HVFeedthruCore",\
+                        "HVFeedthrough",\
+                        "HVFeedthroughCore",\
                         "CalibrationGuideTube1",\
                         "CalibrationGuideTube2" ]
 
-        self.groups['VesselU238'] = ['%s_U238'%(group_comp) for group_comp in group_vessel]
-        self.groups['VesselTh232'] = ['%s_Th232'%(group_comp) for group_comp in group_vessel]
+        self.groups['VesselU-238'] = ['%s_U-238'%(group_comp) for group_comp in group_vessel]
+        self.groups['VesselTh-232'] = ['%s_Th-232'%(group_comp) for group_comp in group_vessel]
         
         group_internal = [ "Cathode",\
                            "Bulge",\
                            "FieldRings",\
-                           "SupportSpacers",\
+                           "SupportRodsandSpacers",\
                            "SiPMStaves",\
                            "SiPMElectronics",\
-                           "SiPMModule",\
+                           "SiPMModuleInterposer",\
                            "SiPMCables",\
                            "SiPMs",\
                            "ChargeTilesCables",\
@@ -359,40 +360,39 @@ class RootTreeWriter():
                            "ChargeTilesBacking",\
                            "HVPlunger" ]
 
-        self.groups['InternalU238'] = ['%s_U238'%(group_comp) for group_comp in group_internal]
-        self.groups['InternalTh232'] = ['%s_Th232'%(group_comp) for group_comp in group_internal]
+        self.groups['InternalU-238'] = ['%s_U-238'%(group_comp) for group_comp in group_internal]
+        self.groups['InternalTh-232'] = ['%s_Th-232'%(group_comp) for group_comp in group_internal]
         
-        group_tpc_k40 = ["SupportSpacers","SiPMModule","ChargeTilesBacking"]
-        self.groups['FullTpcK40'] = ['%s_K40'%(group_comp) for group_comp in group_tpc_k40]
+        group_tpc_k40 = ["SupportRodsandSpacers","SiPMModuleInterposer","ChargeTilesBacking"]
+        self.groups['FullTpcK-40'] = ['%s_K-40'%(group_comp) for group_comp in group_tpc_k40]
         
         group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
-        self.groups['FullTpcCo60'] = ['%s_Co60'%(group_comp) for group_comp in group_tpc_co60]
+        self.groups['FullTpcCo-60'] = ['%s_Co-60'%(group_comp) for group_comp in group_tpc_co60]
         
-        self.groups['ActiveLXeRn222'] = ["ActiveLXe_Rn222"]
-        self.groups['InactiveLXeRn222'] = ["InactiveLXe_Rn222","CathodeRn_Rn222"]
-        self.groups['InactiveLXeXe137'] = ["InactiveLXe_Xe137"]
-        self.groups['ActiveLXeXe137'] = ["ActiveLXe_Xe137"]
-        self.groups['LXeBb2n'] = ["LXe_bb2n"]
-        self.groups['LXeBb0n'] = ["LXe_bb0n"]
+        self.groups['ActiveLXeRn-222'] = ["ActiveLXe_Rn-222"]
+        self.groups['InactiveLXeRn-222'] = ["InactiveLXe_Rn-222","CathodeRadon_Rn-222"]
+        self.groups['InactiveLXeXe-137'] = ["InactiveLXe_Xe-137"]
+        self.groups['ActiveLXeXe-137'] = ["ActiveLXe_Xe-137"]
+        self.groups['FullLXeBb2n'] = ["FullLXe_bb2n"]
+        self.groups['FullLXeBb0n'] = ["FullLXe_bb0n"]
     
-        self.groups['GhostComponents'] = ['%s_K40'%(group_comp) for group_comp in group_internal]
-        self.groups['GhostComponents'].extend(['%s_Co60'%(group_comp) for group_comp in group_internal])
-        self.groups['GhostComponents'].extend(['%s_K40'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['%s_Co60'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['SolderAnode_U238']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_Th232']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_K40']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_Co60']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_Ag110m']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_U238']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_Th232']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_K40']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_Co60']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_Ag110m']) 
-        self.groups['GhostComponents'].extend(['LXe_B8nu'])
-        self.groups['GhostComponents'].extend(['SupportSpacers_Al26'])
-        self.groups['GhostComponents'].extend(['FieldRings_Cs137'])    
-
+        self.groups['GhostComponents'] = ['%s_K-40'%(group_comp) for group_comp in group_internal]
+        self.groups['GhostComponents'].extend(['%s_Co-60'%(group_comp) for group_comp in group_internal])
+        self.groups['GhostComponents'].extend(['%s_K-40'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['%s_Co-60'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['SolderAnode_U-238']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_Th-232']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_K-40']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_Co-60']) 
+        self.groups['GhostComponents'].extend(['SolderAnode_Ag-110m']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_U-238']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_Th-232']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_K-40']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_Co-60']) 
+        self.groups['GhostComponents'].extend(['SolderSiPM_Ag-110m']) 
+        self.groups['GhostComponents'].extend(['FullLXe_B8nu'])
+        self.groups['GhostComponents'].extend(['SupportRodsandSpacers_Al-26'])
+        self.groups['GhostComponents'].extend(['FieldRings_Cs-137'])    
 
     def FindGroup(self, pdf):
 
