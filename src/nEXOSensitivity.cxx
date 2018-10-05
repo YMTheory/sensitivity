@@ -12,6 +12,9 @@
 
 ClassImp(nEXOSensitivity)
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// nEXOSensitivity() (constructor)
+///////////////////////////////////////////////////////////////////////////////////////////////
 nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTree(0), fWsp(0) {
     fVerboseLevel = 0;
     std::cout << "Creating nEXOSensitivity object...\n";
@@ -24,7 +27,7 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     }
     fTreeFileName = treeFileName;
     
-    fWriteWsp = false;
+    fWriteWsp = true;
     fWspFileName = "RooFitWorkspace.root";
     
     SetBinning(270, 800, 3500, 21, 10, 640);
@@ -58,7 +61,7 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     fFracError = 0.059; //relative ss fraction error
     fRnRateError = 0.10; //relative rate error (for Rn222 specifically)
     
-    fSignalName = "LXeBb0n"; //"bb0n";  //The name of the signal pdf
+    fSignalName = "FullLXeBb0n"; //"bb0n";  //The name of the signal pdf
     fWsp = new RooWorkspace("wsp"); //Global workspace
     
     fBaTag = false;
@@ -85,17 +88,26 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     fRn222RateCorrection = 1.;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// ~nEXOSensitivity() (destructor)
+///////////////////////////////////////////////////////////////////////////////////////////////
 nEXOSensitivity::~nEXOSensitivity() {
     std::cout << "Killing nEXOSensitivity object...\n";
     
     if (fWsp)  fWsp->Delete();
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// SetSeed()
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::SetSeed(int seed) {
     fRandom.SetSeed(seed);
     RooRandom::randomGenerator()->SetSeed(seed);
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// SetBinning()
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::SetBinning(int nBinsX, double xMin, double xMax, int nBinsY, double yMin, double yMax) {
     fNbinsX = nBinsX;
     fNbinsY = nBinsY;
@@ -103,9 +115,18 @@ void nEXOSensitivity::SetBinning(int nBinsX, double xMin, double xMax, int nBins
     fYmin = yMin;
     fXmax = xMax;
     fYmax = yMax;
-    std::cout << "Binning set to: " << fNbinsX << " x bins = ( " << xMin << " , " << xMax << " ); " << fNbinsY << " y bins = ( " << yMin << " , " << yMax << " )." << std::endl;
+    std::cout << "Binning set to: " << fNbinsX << 
+                 " x bins = ( " << xMin << 
+                 " , " << xMax << 
+                 " ); " << fNbinsY << 
+                 " y bins = ( " << yMin << 
+                 " , " << yMax << 
+                 " )." << std::endl;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// LoadExcelTree()
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::LoadExcelTree(const char* filename, const char* treename) {
     TFile treeFile(filename, "read");
     TTree* tree = dynamic_cast<TTree*> (treeFile.Get(treename));
@@ -116,6 +137,9 @@ void nEXOSensitivity::LoadExcelTree(const char* filename, const char* treename) 
     treeFile.Close();
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// ReadExcelTree()
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::ReadExcelTree() {
     // Set vectors of groups: group fractions and mean counts - fGroups, fGroupFractions and fGroupMeanCounts
     fComponentNames.clear();
@@ -168,13 +192,11 @@ void nEXOSensitivity::ReadExcelTree() {
     for (int i = 0; i < fExcelTree->GetEntriesFast(); i++) {
         fExcelTree->GetEntry(i);
         
-        std::cout << "Working on " << table->fPdf << " which is in group " << table->fGroup << std::endl;
         if (fVerboseLevel > 0)
-            table->Print();
+            {;}//table->Print();
         if ( fTurnedOffGroups.count(table->fGroup) != 0 )
         {
-            std::cout << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
-            std::cout << "Skipping...." << std::endl; 
+            std::cout << "Skipping " << table->fPdf << " (it is in group " << table->fGroup << ", which is currently off)" << std::endl;
             continue;
         }
 
@@ -190,9 +212,11 @@ void nEXOSensitivity::ReadExcelTree() {
             fMeanSignalEff *= fNormHistoBins.at(Form("%s_effcor", fSignalName.Data()));
             fSignalEffError *= fNormHistoBins.at(Form("%s_effcor", fSignalName.Data()));
         }
-        
+       
+        // If this group doesn't already exist in the fGroups map, create it. 
         if (fGroups.count(table->fGroup.Data()) <= 0)
             fGroups.insert(std::make_pair(table->fGroup.Data(), std::vector<TString>()));
+        // Push PDF name into the list for the correct group.
         fGroups[table->fGroup.Data()].push_back(table->fPdf.Data());
         
         // Fill group fractions and group mean counts
@@ -209,19 +233,25 @@ void nEXOSensitivity::ReadExcelTree() {
             
             
             Double_t counts = 0.;
+            // Note: UL = upper limit, CV = central value
             switch (fExpectCountMethod) {
+                // What is kUL?
                 case kUL:
+                // What is kPosUL?
                 case kPosUL:
                     counts = table->fCountsUL[s];
                     break;
-                    
+                // What is kPosCV?    
                 case kPosCV:
                     counts = (table->fCountsCV[s] > 0) ? table->fCountsCV[s] : 0;
                     break;
-                    
+                // What is kRdmCV?
                 case kRdmCV:
-                    if (groupFractionName == "LXeBb2n_SS" or groupFractionName == "LXeBb2n_MS" or groupFractionName == "LXeBb0n_SS" or groupFractionName == "LXeBb0n_MS")
-                        counts = table->fCountsCV[s];
+                    if (groupFractionName == "FullLXeBb2n_SS" or 
+                        groupFractionName == "FullLXeBb2n_MS" or 
+                        groupFractionName == "FullLXeBb0n_SS" or 
+                        groupFractionName == "FullLXeBb0n_MS")
+                          counts = table->fCountsCV[s];
                     else {
                         Double_t specActivity = table->fSpecActivCV;
                         TString activID = Form("%s_%s", table->fActivID.Data(), table->fIsotope.Data());
@@ -233,11 +263,6 @@ void nEXOSensitivity::ReadExcelTree() {
                                 int nDraws = 1000;
                                 while (specActivity < 0 && nDraws > 0) {
                                     specActivity = fRandom.Gaus(table->fSpecActivCV, table->fSpecActivError);
-                                    //std::cout << "Seed " << fRandom.GetSeed() << " randomized activity " << specActivity << " from " << table->fSpecActivCV << " " << table->fSpecActivError << std::endl;
-                                    //double unif = fRandom.Uniform();
-                                    //double alternative = GenTruncGaus(table->fSpecActivCV,table->fSpecActivError,unif);
-                                    //std::cout << "Uniform " << unif << " alternative " << alternative << std::endl;
-                                    //std::cin.get();
                                     nDraws--;
                                 }
                                 if (specActivity < 0 && nDraws == 0)
@@ -250,7 +275,13 @@ void nEXOSensitivity::ReadExcelTree() {
                         Double_t activity = factor * specActivity;
                         
                         if (fVerboseLevel > 0)
-                            std::cout << Form("Using activity ID: %s , spec = %g +- %g , full = %g +- %g , eval = %g (from %g and %g)", table->fActivID.Data(), table->fSpecActivCV, table->fSpecActivError, table->fActivCV, table->fActivError, activity, factor, specActivity) << std::endl;
+                            std::cout << Form("Using activity ID: %s , spec = %g +- %g , full = %g +- %g , eval = %g (from %g and %g)", 
+                                         table->fActivID.Data(), 
+                                         table->fSpecActivCV, 
+                                         table->fSpecActivError, 
+                                         table->fActivCV, 
+                                         table->fActivError, 
+                                         activity, factor, specActivity) << std::endl;
                         counts = EvalCounts(table->fHitEffK[s] / table->fHitEffN[s], activity, 1., table->fHalflife);
                     }
                     break;
@@ -434,6 +465,9 @@ void nEXOSensitivity::ReadExcelTree() {
     delete table;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// SetUserMeanCounts
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::SetUserMeanCounts(TString groupName, Double_t value) {
     // User value should correspond to inner ROI (SS) in FWHM-3t
     
@@ -470,6 +504,9 @@ void nEXOSensitivity::SetUserMeanCounts(TString groupName, Double_t value) {
     
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// SetAllGroupMeanCounts
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::SetAllGroupMeanCounts(Double_t value, TString except) {
     // Set the mean counts of all groups to value
     // Value must correspond top inner 3t scaled to full by ratio3t
@@ -481,9 +518,15 @@ void nEXOSensitivity::SetAllGroupMeanCounts(Double_t value, TString except) {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// MakeFittingHistogramFile
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::MakeFittingHistogramFile() {
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// LoadComponentHistograms
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::LoadComponentHistograms() {
     TFile* fIn = 0;
     
@@ -497,11 +540,11 @@ void nEXOSensitivity::LoadComponentHistograms() {
         
         //std::cout << "Working on " << table->fPdf << " which is in group " << table->fGroup << std::endl;
         if (fVerboseLevel > 0)
-            table->Print();
+            {;}//table->Print();
         if ( fTurnedOffGroups.count(table->fGroup) != 0 )
         {
-            std::cout << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
-            std::cout << "Skipping...." << std::endl;
+            std::cout << "\t" << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
+            std::cout << "\tSkipping...." << std::endl;
             continue; 
         }
 
@@ -512,42 +555,19 @@ void nEXOSensitivity::LoadComponentHistograms() {
           exit (EXIT_FAILURE);
         }
 
-
-
         h_ss = (TH2D*) fIn->Get("h_StandoffVsEnergySS_Smear");
         h_ms = (TH2D*) fIn->Get("h_StandoffVsEnergyMS_Smear");
         h_ss->SetName(Form("h_%s_ss", table->fPdf.Data()));
         h_ss->SetTitle("SS: Stand Off Vs. Smeared Energy Histogram");
         h_ms->SetName(Form("h_%s_ms", table->fPdf.Data()));
         h_ms->SetTitle("MS: Stand Off Vs. Smeared Energy Histogram");
-        
-        //outFile->cd();
-        
-        //TH2D* hh_ss = (TH2D*)h_ss->Clone();
-        //TH2D* hh_ms = (TH2D*)h_ms->Clone();
-        
-        //int nBinsXcomp = hh_ss->GetNbinsX();
-        //int xRebin = (int) nBinsXcomp / fNbinsX;
-        //int nBinsYcomp = hh_ss->GetNbinsY();
-        //int yRebin = (int) nBinsYcomp / fNbinsY;
-        //hh_ss->Rebin2D(xRebin, yRebin);
-        //hh_ms->Rebin2D(xRebin, yRebin);
-        
-        //TAxis* xAxis = h_ss->GetXaxis();
-        //TAxis* yAxis = h_ss->GetYaxis();
-        
-        //double histFull = h_ss->Integral();
-        //double histFWHMfv = h_ss->Integral(xAxis->FindBin(2428),xAxis->FindBin(2488),1,genHist_ss->GetNbinsY());
-        //double histFWHM3t = h_ss->Integral(xAxis->FindBin(2428),xAxis->FindBin(2488),yAxis->FindBin(90),genHist_ss->GetNbinsY());
-        //double histFWHM1t = h_ss->Integral(xAxis->FindBin(2428),xAxis->FindBin(2488),yAxis->FindBin(256),genHist_ss->GetNbinsY());
-        
+         
         TH2D* hh_ss = AdjustedBinHist(*h_ss);
         TH2D* hh_ms = AdjustedBinHist(*h_ms);
         
         TString h_ss_name = Form("%s_ss", table->fPdf.Data());
-        TString h_ms_name = Form("%s_ms", table->fPdf.Data());
+        TfString h_ms_name = Form("%s_ms", table->fPdf.Data());
         
-        std::cout<<"size "<<fComponentHistos.size()<<std::endl;
         fComponentHistos.insert(std::make_pair(h_ss_name, hh_ss));
         fComponentHistos.insert(std::make_pair(h_ms_name, hh_ms));
         
@@ -560,14 +580,10 @@ void nEXOSensitivity::LoadComponentHistograms() {
         fNormHistoBins.insert(std::make_pair(h_ss_name, hh_ss->Integral() / h_ss->Integral()));
         fNormHistoBins.insert(std::make_pair(h_ms_name, hh_ms->Integral() / h_ms->Integral()));
         
-        //fNormHistoFull.insert(std::make_pair(h_ss_name,histFull));
-        //fRatioHistoFV.insert(std::make_pair(h_ss_name,histFWHMfv/histFull));
-        //fRatioHisto3t.insert(std::make_pair(h_ss_name,histFWHM3t/histFull));
-        //fRatioHisto1t.insert(std::make_pair(h_ss_name,histFWHM1t/histFull));
-        
         if (fWithEff && table->fGroup == fSignalName) // set efficiency
         {
-            fNormHistoBins.insert(std::make_pair(Form("%s_effcor", fSignalName.Data()), (hh_ss->Integral() + hh_ms->Integral()) / (h_ss->Integral() + h_ms->Integral())));
+            fNormHistoBins.insert(std::make_pair(Form("%s_effcor", fSignalName.Data()), 
+                                                 (hh_ss->Integral() + hh_ms->Integral()) / (h_ss->Integral() + h_ms->Integral())));
         }
         
         fIn->Close();
@@ -576,12 +592,18 @@ void nEXOSensitivity::LoadComponentHistograms() {
     delete table;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// AdjustedBinHist
+///////////////////////////////////////////////////////////////////////////////////////////////
 TH2D* nEXOSensitivity::AdjustedBinHist(TH2D& inHist) {
-    if (fXmin < inHist.GetXaxis()->GetXmin() or fXmax > inHist.GetXaxis()->GetXmax() or fYmin < inHist.GetYaxis()->GetXmin() or fYmax > inHist.GetYaxis()->GetXmax()) {
+    if (fXmin < inHist.GetXaxis()->GetXmin() or 
+        fXmax > inHist.GetXaxis()->GetXmax() or 
+        fYmin < inHist.GetYaxis()->GetXmin() or 
+        fYmax > inHist.GetYaxis()->GetXmax()) {
         std::cout << "Requested limits outside of given boundaries, please fix this issue. Will quit now...\n";
         exit(1);
     }
-    TH2D* resHist = new TH2D(Form("%s_binned", inHist.GetName()), inHist.GetTitle(), fNbinsX, fXmin, fXmax, fNbinsY, fYmin, fYmax); //fNbinsY, fYbins); //fNbinsY, fYmin, fYmax);
+    TH2D* resHist = new TH2D(Form("%s_binned", inHist.GetName()), inHist.GetTitle(), fNbinsX, fXmin, fXmax, fNbinsY, fYmin, fYmax);
     if(fbinAdjustMap.size()!=inHist.GetNbinsX()*inHist.GetNbinsY()){
         fbinAdjustMap.clear();
         //        std::cout<<"Making histogram adjustment map: "<<inHist.GetNbinsX()*inHist.GetNbinsY()<<std::endl;
@@ -608,6 +630,9 @@ TH2D* nEXOSensitivity::AdjustedBinHist(TH2D& inHist) {
     return resHist;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// MakeGroupHistograms
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::MakeGroupHistograms() {
     // Make the histograms (pdfs) of the combined groups - fGroupHistos
     
@@ -658,7 +683,6 @@ void nEXOSensitivity::MakeGroupHistograms() {
     //double roi_r3t = 0.;
     //double sum = 0.;
     for (std::map<TString, std::vector<TString> >::iterator group = fGroups.begin(); group != fGroups.end(); group++) {
-        printf("Hey, I'm in the loop.\n");
         TString groupName = group->first;
         
         std::vector<TString>& groupComponents = group->second;
@@ -762,6 +786,9 @@ void nEXOSensitivity::MakeGroupHistograms() {
         std::cout << Form("Total integral : SS = %g , MS = %g , ROI = %g , 3t = %g , a3t = %g, a2t = %g, aFV = %g", tot_ss, tot_ms, roi, roi_3t, fBkgdFwhm3t, fBkgdFwhm2t, fBkgdFwhmFV) << std::endl;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// BuildWorkspace
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
     // Build the workspace for the fit
     if (fWsp){
@@ -795,7 +822,7 @@ void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
     for (std::map<TString, std::vector<TString> >::iterator group = fGroups.begin(); group != fGroups.end(); group++) {
         TString groupName = group->first;
         
-        if (fBaTag and groupName != "LXeBb2n" and groupName != "LXeBb0n")
+        if (fBaTag and groupName != "FullLXeBb2n" and groupName != "FullLXeBb0n")
             continue;
         
         if (fTurnedOffGroups.count(groupName) > 0)
@@ -828,6 +855,7 @@ void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
     BuildFitPdfs(&fitPdfNames[0], fitPdfNames.size());
     
     //Write the workspace to file, and print the fit setup
+    printf("If fWriteWsp\n");
     if (fWriteWsp) {
         std::cout << "Writing wsp into file " << fWspFileName << " ..." << std::endl;
         fWsp->writeToFile(fWspFileName.Data());
@@ -868,10 +896,16 @@ void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// AddMagicNumber
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::AddMagicNumber(double signal, double magicN){//wrapper for python
     fMagic_numbers[signal]=magicN;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// GenAndFitData
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCounts, Int_t rdmRate) {
     std::cout << "Generate and fit data...\n";
     
@@ -901,13 +935,16 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
     TStopwatch clock;
     int iRun = 0;
     while (iRun < nRuns) {
+        std::cout << "Entering while iRun loop. iRun: " << iRun << " rdmRate: " << rdmRate <<  std::endl;
         fitResult->Reset();
         
         if (iRun % rdmRate == 0) {
             ReadExcelTree();
             if (not fUserMeanCounts.empty()) {
                 SetAllGroupMeanCounts(1e-16);
-                for (std::map<TString, Double_t>::iterator userGroupCount = fUserMeanCounts.begin(); userGroupCount != fUserMeanCounts.end(); userGroupCount++)
+                for (std::map<TString, Double_t>::iterator userGroupCount = fUserMeanCounts.begin(); 
+                     userGroupCount != fUserMeanCounts.end(); 
+                     userGroupCount++)
                     SetUserMeanCounts(userGroupCount->first, userGroupCount->second);
             }
             MakeGroupHistograms();
@@ -1095,6 +1132,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
                 fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
             }
+
         }
         
         if (withEff) {
@@ -1134,517 +1172,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         // hijack this variable to store the minos error
          fitResult->num_signal_eLo = minuit_num_signal_eHi;
 
-        
-        ////////////////////
-        //// PLOTTING
-        ///////////////////
-        int color_idx = 0;
-       // 2015 baseline component groups
-       // int colors[] = {Far, FullTpcK40, InternalTh232, InternalU238, LXeRn222, LXeXe137, VesselTh232,
-       //     VesselU238, blank, };
-        //int colors[] = {kViolet-6, kAzure+10, kSpring-2, kOrange-3, kMagenta, kGray+2, kGreen+3, kOrange+9};
-        
-        //2017 baseline component groups
-        // int colors[] = {ActiveLXeRn222, ActiveLXeXe137, Far, FullTpcK40, InactiveLXeRn222, InactiveLXeXe137, InternalTh232, InternalU238, VesselTh232, VesselU238 };
-        //
-        int colors[] = {kMagenta, kGray+2, kViolet-6, kAzure+10, kMagenta-9, kGray+3, kSpring-2, kOrange-3, kGreen+3, kOrange+9};
-        
-        
-        if (fVerboseLevel>0) {
-            TFile *fout = new TFile("plots.root", "RECREATE");
-            
-            
-            TH1* hh_data_ss = data_ss->createHistogram("energy,standoff");
-            //            TCanvas* can = new TCanvas("can","can");
-            //            hh_data_ss->Draw("SURF3");
-            //            can->SaveAs("test.root");
-            hh_data_ss->Write();
-            
-            //        RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf("pdf_InternalU238_ss");
-            //        TH1* htest = pdf->createHistogram("prova", *energy, RooFit::YVar(*standoff));
-            //        htest->Write();
-            
-            TH2D* hh_pdf_ss;
-            TH1* h_py;
-            TString name1;
-            Float_t ROI_min = 2433;
-            Float_t ROI_max = 2483;
-            TCanvas *c2 = new TCanvas("ROI_overlay_ss", "ROI_overlay_ss");
-            TLegend *leg = new TLegend(0.45,0.35, 0.1, 0.1);
-            leg->SetNColumns(2);
-            
-            // data
-            h_py = (TH1F*) data_ss->createHistogram("data", *standoff, RooFit::Cut("energy>2430 && energy<2490"));
-            //h_py->Scale(1,"width");
-            h_py->Write();
-            c2->cd();
-            h_py->GetXaxis()->SetTitle("Standoff [mm]");
-            h_py->GetYaxis()->SetTitle("Counts");
-            h_py->SetMarkerStyle(20);
-            h_py->SetMinimum(1.0e-6);
-            h_py->Draw("");
-            leg->AddEntry(h_py, "Toy Data", "lep");
-            leg->AddEntry("", "", "");
-            
-            // full pdfs
-            hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram("Sum_PDFs_SS", *energy, RooFit::YVar(*standoff));
-            hh_pdf_ss->Write();
-            h_py = hh_pdf_ss->ProjectionY("Sum_PDFs_SS_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-            //h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
-            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral());// alt scaling
-            h_py->Write();
-            h_py->SetLineColor(kBlue);
-            h_py->SetLineWidth(3);
-            c2->cd();
-            h_py->Draw("same");
-            
-            // bb0n
-            name1 = "pdf_LXeBb0n_ss";
-            hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name1, *energy, RooFit::YVar(*standoff), RooFit::Components(name1) );
-            //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
-            //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
-            h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-            // h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
-            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral());//alt scaling
-            h_py->Write();
-            h_py->SetLineColor(kAzure-3);
-            h_py->SetLineWidth(1);
-            h_py->SetFillColorAlpha(kAzure-3, 0.45);
-            c2->cd();
-            h_py->Draw("same");
-            leg->AddEntry(h_py, "#beta#beta0#nu", "f");
-            
-            // bb2n
-            name1 = "pdf_LXeBb2n_ss";
-            hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name1, *energy, RooFit::YVar(*standoff), RooFit::Components(name1) );
-            //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
-            //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
-            h_py = hh_pdf_ss->ProjectionY(name1 + "_ROI", hh_pdf_ss->GetXaxis()->FindBin(ROI_min), hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-            //h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral(),"width");
-            h_py->Scale(h_py->Integral("width")*hh_pdf_ss->GetXaxis()->GetBinWidth(1)/h_py->Integral());//alt scaling
-            h_py->Write();
-            h_py->SetLineColor(kGray);
-            h_py->SetLineWidth(1);
-            h_py->SetFillColorAlpha(kGray, 1.0);
-            c2->cd();
-            h_py->Draw("same");
-            leg->AddEntry(h_py, "#beta#beta2#nu", "f");
-            
-            //same plots just for ms
-            TH2D* hh_pdf_ms;
-            TH1* h_ms_py;
-            TString name2;
-            
-            TCanvas *c3 = new TCanvas("ROI_overlay_ms", "ROI_overlay_ms");
-            TLegend *leg2 = new TLegend(0.45,0.35, 0.1, 0.1);
-            leg2->SetNColumns(2);
-            
-            // data for ms
-            h_ms_py = (TH1F*) data_ms->createHistogram("data_ms", *standoff, RooFit::Cut("energy>2430 && energy<2490"));
-            h_ms_py->Scale(1,"width");
-            h_ms_py->Write();
-            c3->cd();
-            h_ms_py->GetXaxis()->SetTitle("Standoff [mm]");
-            h_ms_py->GetYaxis()->SetTitle("Counts / 30mm");
-            h_ms_py->SetMarkerStyle(20);
-            h_ms_py->SetMinimum(1.0e-8);
-            h_ms_py->Draw("");
-            leg2->AddEntry(h_ms_py, "Toy Data", "lep");
-            leg2->AddEntry("", "", "");
-            
-            // full pdfs for ms
-            hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram("Sum_PDFs_MS", *energy, RooFit::YVar(*standoff));
-            hh_pdf_ms->Write();
-            h_ms_py = hh_pdf_ms->ProjectionY("Sum_PDFs_MS_ROI", hh_pdf_ms->GetXaxis()->FindBin(ROI_min), hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
-            h_ms_py->Scale(h_ms_py->Integral("width")*hh_pdf_ms->GetXaxis()->GetBinWidth(1)/h_ms_py->Integral(),"width");
-            //h_ms_py->SetMarkerStyle(0);
-            //h_ms_py->SetLineStyle(1);
-            h_ms_py->Write();
-            h_ms_py->SetLineColor(kBlue);
-            h_ms_py->SetLineWidth(3);
-            c3->cd();
-            h_ms_py->Draw("hist same");
-            
-            // bb0n for ms
-            name2 = "pdf_LXeBb0n_ms";
-            hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram(name2, *energy, RooFit::YVar(*standoff), RooFit::Components(name2) );
-            //        hh_pdf_ss->GetXaxis()->SetTitle("Energy [keV]");
-            //        hh_pdf_ss->GetYaxis()->SetTitle("Standoff [keV]");
-            h_ms_py = hh_pdf_ms->ProjectionY(name2 + "_ROI", hh_pdf_ms->GetXaxis()->FindBin(ROI_min), hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
-            h_ms_py->Scale(h_ms_py->Integral("width")*hh_pdf_ms->GetXaxis()->GetBinWidth(1)/h_ms_py->Integral(),"width");
-            h_ms_py->Write();
-            h_ms_py->SetLineColor(kAzure-3);
-            h_ms_py->SetLineWidth(1);
-            h_ms_py->SetFillColorAlpha(kAzure-3, 0.45);
-            c3->cd();
-            h_ms_py->Draw("hist same");
-            leg2->AddEntry(h_ms_py, "#beta#beta0#nu", "f");
-            
-            // bb2n for ms
-            name2 = "pdf_LXeBb2n_ms";
-            hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram(name2, *energy, RooFit::YVar(*standoff), RooFit::Components(name2) );
-            
-            h_ms_py = hh_pdf_ms->ProjectionY(name2 + "_ROI", hh_pdf_ms->GetXaxis()->FindBin(ROI_min), hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
-            h_ms_py->Scale(h_ms_py->Integral("width")*hh_pdf_ms->GetXaxis()->GetBinWidth(1)/h_ms_py->Integral(),"width");
-            h_ms_py->Write();
-            h_ms_py->SetLineColor(kGray);
-            h_ms_py->SetLineWidth(1);
-            h_ms_py->SetFillColorAlpha(kGray, 1.0);
-            c3->cd();
-            h_ms_py->Draw("hist same");
-            leg2->AddEntry(h_ms_py, "#beta#beta2#nu", "f");
-            
-            
-            RooArgList pdfList = fitPdf_ss->pdfList();
-            fNFitPdfs = (int) pdfList.getSize();
-            //int color_idx = 0;
-
-            for (int i = 0; i < fNFitPdfs; i++) {
-                TString name = pdfList.at(i)->GetName();
-                //            RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf(name);
-                //            TH1* hh_pdf_ss = pdf->createHistogram(name, *energy, RooFit::YVar(*standoff));
-                hh_pdf_ss = (TH2D*) genPdf_ss->createHistogram(name, *energy, RooFit::YVar(*standoff),RooFit::Components(name) );
-                //            genPdf_ss->fillHistogram(hh_pdf_ss, *energy, 10, 0, true);
-                //            hh_pdf_ss->Draw("");
-                //            can->SaveAs("test.root");
-                hh_pdf_ss->GetXaxis()->SetTitle("Standoff [mm]");
-                hh_pdf_ss->GetYaxis()->SetTitle("Counts");
-                
-                hh_pdf_ss->SetLineWidth(2);
-                hh_pdf_ss->SetLineColor(colors[color_idx]);
-                
-                //remove the K40 line from ROI plot, only add legend entries from plots that haven't been added above
-                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0){
-                    //make legend entries pretty
-                   if ((fFitPdfNames[i].CompareTo("Far"))==0){
-                        leg->AddEntry( hh_pdf_ss, "Far components", "l");
-                        //leg->AddEntry(" "," "," ");
-                    }
-                    
-                    if ((fFitPdfNames[i].CompareTo("ActiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "Active LXe ^{222}Rn", "l");}
-                    if ((fFitPdfNames[i].CompareTo("ActiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "Active LXe ^{137}Xe", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ss,"Internals ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ss, "TPCVessel ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ss, "TPCVessel ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InactiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ss, "Inactive ^{137}Xe", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InactiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ss, "Inactive ^{222}Rn", "l");}
-                
-                    //leg->AddEntry( hh_pdf_ss, fFitPdfNames[i], "l");
-                }
-                // add legend to the ROI overlay plot only
-                if ((fFitPdfNames[i].CompareTo("LXeBb2n"))==0){leg->Draw();}
-               
-                //remove the K40 line from ROI plot
-                if (fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
-                    hh_pdf_ss->Write();
-                }
-                
-                // Make a 3D plot canvas
-                TCanvas *c1 = new TCanvas(Form("XD_%d_",iRun) + name, Form("XD_%d_",iRun) + name);
-                gStyle->SetOptStat(0);
-                c1->SetLogz();
-                c1->SetTheta(15.55342);
-                c1->SetPhi(164.374);
-                hh_pdf_ss->Draw("SURF3");
-                hh_pdf_ss->SetMaximum(1);
-                hh_pdf_ss->SetMinimum(1e-6);
-             
-                hh_pdf_ss->SetAxisRange(0., 2800.,"X");
-                hh_pdf_ss->GetXaxis()->SetTitleOffset(1.55);
-                hh_pdf_ss->GetYaxis()->SetTitleOffset(1.85);
-                hh_pdf_ss->GetZaxis()->SetTitleOffset(1.3);
-                
-                // If you want pretty blue 3D graphs, uncomment the next two lines
-                // Note: the legend for the ROI will get messed up
-//                hh_pdf_ss->SetLineColor(kBlue);
-//                hh_pdf_ss->SetLineWidth(1);
-                c1->Write();
-                    
-                if (name.BeginsWith("pdf_LXeBb")) continue;
-                
-                // Get the Projection in the ROI
-                h_py = hh_pdf_ss->ProjectionY(name + "_ROI",
-                                              hh_pdf_ss->GetXaxis()->FindBin(ROI_min),
-                                              hh_pdf_ss->GetXaxis()->FindBin(ROI_max));
-                //h_py->Scale(h_py->Integral("width")*10./h_py->Integral(),"width");
-                h_py->Scale(h_py->Integral("width")*10./h_py->Integral());//alt scaling
-                h_py->Write();
-                h_py->SetLineColor(colors[color_idx++]);
-                h_py->SetLineWidth(2);
-                
-                c2->cd();
-                h_py->Draw("same");
-
-                gPad->SetLogy();
-                
-                //c2->BuildLegend(0.7, 0.35, 0.9, 0.9);
-                
-               // c1->SaveAs(name + ".pdf");
-            }//i
-            
-            // Now add custom second x axis labels to ROI overlay for SS
-            c2->cd();
-            float sd_positions[] = {90, 159, 256, 500};
-            TString sd_labels[] = {"3000", "2000", "1000","LXe Volume [kg]"};
-            
-            TLine *l;
-            TText *t;
-            for (int j=0; j<4; j++) {
-                
-                if(j<3){l = new TLine(sd_positions[j],65.0,sd_positions[j],71.0);}
-                l->Draw();
-                
-                t = new TText();
-                t->SetTextFont(4);
-                t->SetTextSize(0.04);
-                t->SetTextAlign(21);
-                t->DrawText(sd_positions[j], 1.0, sd_labels[j]);
-            }//j
-            t->SetTextFont(4);
-            
-            c2->Write();
-            
-            c2->SaveAs(name1 + ".pdf");
-            
-            //--- make the ROI overlay plot, Counts/30mm vs Standoff[mm] (fig 6 in sens paper) with MS data instead of SS data
-        
-            RooArgList pdfList2 = fitPdf_ms->pdfList();
-            fNFitPdfs = (int) pdfList2.getSize();
-            int color_idx_2 = 0;
-            
-            for (int i = 0; i < fNFitPdfs; i++) {
-                TString name3 = pdfList2.at(i)->GetName();
-                //            RooHistPdf* pdf = (RooHistPdf*) fWsp->pdf(name);
-                //            TH1* hh_pdf_ss = pdf->createHistogram(name, *energy, RooFit::YVar(*standoff));
-                hh_pdf_ms = (TH2D*) genPdf_ms->createHistogram(name3, *energy, RooFit::YVar(*standoff),RooFit::Components(name3) );
-                //            genPdf_ss->fillHistogram(hh_pdf_ss, *energy, 10, 0, true);
-                //            hh_pdf_ss->Draw("");
-                //            can->SaveAs("test.root");
-                hh_pdf_ms->GetXaxis()->SetTitle("Standoff [mm]");
-                hh_pdf_ms->GetYaxis()->SetTitle("Counts / 30mm");
-            
-                hh_pdf_ms->SetLineWidth(2);
-                hh_pdf_ms->SetLineColor(colors[color_idx_2]);
-            
-                //remove the K40 line from ROI plot, only add legend entries from plots that haven't been added above
-                if(fFitPdfNames[i].CompareTo("LXeBb0n")!=0 && fFitPdfNames[i].CompareTo("LXeBb2n")!=0){
-                    
-                    if ((fFitPdfNames[i].CompareTo("Far"))==0){
-                        leg->AddEntry( hh_pdf_ms, "Far components", "l");
-                        //leg->AddEntry(" "," "," ");
-                    }
-                    
-                    if ((fFitPdfNames[i].CompareTo("ActiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ms, "Active LXe ^{222}Rn", "l");}
-                    if ((fFitPdfNames[i].CompareTo("ActiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ms, "Active LXe ^{137}Xe", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( hh_pdf_ms,"Internals ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( hh_pdf_ms,"Internals ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( hh_pdf_ms, "TPCVessel ^{232}Th", "l");}
-                    if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( hh_pdf_ms, "TPCVessel ^{238}U", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InactiveLXeXe137"))==0){leg->AddEntry( hh_pdf_ms, "Inactive ^{137}Xe", "l");}
-                    if ((fFitPdfNames[i].CompareTo("InactiveLXeRn222"))==0){leg->AddEntry( hh_pdf_ms, "Inactive ^{222}Rn", "l");}
-                   
-                }
-                 // add legend to the ROI overlay plot only
-                if ((fFitPdfNames[i].CompareTo("LXeBb2n"))==0){leg2->Draw();}
-            
-                //remove the K40 line from ROI plot
-                if (fFitPdfNames[i].CompareTo("FullTpcK40")!=0){
-                    hh_pdf_ms->Write();
-                }
-             
-                /*
-                // Make a 3D plot canvas
-                TCanvas *c5 = new TCanvas(Form("XD_%d_",iRun) + name3, Form("XD_%d_",iRun) + name3);
-                gStyle->SetOptStat(0);
-                c5->SetLogz();
-                c5->SetTheta(15.55342);
-                c5->SetPhi(164.374);
-                hh_pdf_ms->Draw("SURF3");
-                hh_pdf_ms->SetMaximum(1);
-                hh_pdf_ms->SetMinimum(1e-6);
-                
-                hh_pdf_ms->SetAxisRange(0., 2800.,"X");
-                hh_pdf_ms->GetXaxis()->SetTitleOffset(1.55);
-                hh_pdf_ms->GetYaxis()->SetTitleOffset(1.85);
-                hh_pdf_ms->GetZaxis()->SetTitleOffset(1.3);
-                
-                // If you want pretty blue 3D graphs, uncomment the next two lines
-                // Note: the legend for the ROI will get messed up
-                //                hh_pdf_ss->SetLineColor(kBlue);
-                //                hh_pdf_ss->SetLineWidth(1);
-                c5->Write();
-                */
-                
-                if (name3.BeginsWith("pdf_LXeBb")) continue;
-                
-                // Get the Projection in the ROI
-                h_ms_py = hh_pdf_ms->ProjectionY(name3 + "_ROI",
-                                              hh_pdf_ms->GetXaxis()->FindBin(ROI_min),
-                                              hh_pdf_ms->GetXaxis()->FindBin(ROI_max));
-                h_ms_py->Scale(h_ms_py->Integral("width")*10./h_ms_py->Integral(),"width");
-                h_ms_py->Write();
-                h_ms_py->SetLineColor(colors[color_idx_2++]);
-                h_ms_py->SetLineWidth(2);
-                
-                c3->cd();
-                h_ms_py->Draw("hist same");
-                
-                gPad->SetLogy();
-                
-              }//i
-              /*  // Now add custom second x axis labels to ROI overlay for MS
-                c3->cd();
-                float sd_positions_2[] = {90, 159, 256, 500};
-                TString sd_labels_2[] = {"3000", "2000", "1000","LXe Volume [kg]"};
-            
-                TLine *l2;
-                TText *t2;
-                for (int j=0; j<4; j++) {
-                
-                    if(j<3){l2 = new TLine(sd_positions_2[j],8.0,sd_positions_2[j],9.5);}
-                    l2->Draw();
-                
-                    t2 = new TText();
-                    t2->SetTextFont(4);
-                    t2->SetTextSize(0.04);
-                    t2->SetTextAlign(21);
-                    t2->DrawText(sd_positions_2[j], 1.0, sd_labels_2[j]);
-                }//j
-                t2->SetTextFont(4);
-            */
-            c3->cd();
-            c3->Write();
-            
-            c3->SaveAs(name2 + ".pdf");
-            fout->Close();
-            
-        }//fVerboseLevel
-        
-        for (int k=0; k<4 && fVerboseLevel>0; k++) {
-            RooPlot* frame;
-            RooDataHist *data;
-            RooAddPdf* fitPdf;
-            TString plot_filename;
-            
-            switch (k) {
-                case 0:
-                    frame = energy->frame();
-                    frame->SetTitle("SS Energy");
-                    frame->SetXTitle("Energy [keV]");
-                    frame->SetYTitle("Counts");
-                    data = data_ss;
-                    fitPdf = fitPdf_ss;
-                    plot_filename = Form("Fit-SS_Energy-%.0fyr-Signal_%.1f",yrs,signalCounts);
-                    break;
-                case 1:
-                    frame = energy->frame();
-                    frame->SetTitle("MS Energy");
-                    frame->SetXTitle("Energy [keV]");
-                    frame->SetYTitle("Counts");
-                    data = data_ms;
-                    fitPdf = fitPdf_ms;
-                    plot_filename = Form("Fit-MS_Energy-%.0fyr-Signal_%.1f",yrs,signalCounts);
-                    break;
-                case 2:
-                    frame = standoff->frame();
-                    frame->SetTitle("SS Standoff");
-                    frame->SetXTitle("Standoff [mm]");
-                    frame->SetYTitle("Counts");
-                    data = data_ss;
-                    fitPdf = fitPdf_ss;
-                    plot_filename = Form("Fit-SS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
-                    break;
-                case 3:
-                    frame = standoff->frame();
-                    frame->SetTitle("MS Standoff");
-                    frame->SetXTitle("Standoff [mm]");
-                    frame->SetYTitle("Counts");
-                    data = data_ms;
-                    fitPdf = fitPdf_ms;
-                    plot_filename = Form("Fit-MS_Standoff-%.0fyr-Signal_%.1f",yrs,signalCounts);
-                    break;
-            }
-            
-//            TLegend *leg = new TLegend(0.7, 0.35, 0.9, 0.9);
-            TLegend *leg = new TLegend(0.55, 0.65, 0.9, 0.9);
-            leg->SetNColumns(2);
-            
-            data->plotOn(frame);
-//            auto *toyMC = fitPdf->generate(RooArgSet(*energy,*standoff),10000);
-//            auto *toyMCslice = toyMC->reduce("energy>2000 && energy<3000");
-            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(3));
-//            fitPdf->plotOn(frame, RooFit::LineColor(kBlue), RooFit::LineWidth(2),
-//                            RooFit::ProjWData(*energy, *toyMCslice));
-            fitPdf->plotOn(frame, RooFit::Components("pdf_LXeBb2n_*"), RooFit::DrawOption("FL"), RooFit::MoveToBack());
-            
-            TGraph* data_graph = (TGraph*) frame->getObject(1);
-            leg->AddEntry(data_graph, "Toy Data", "lep");
-            
-            TGraph* bestfit_gr = (TGraph*) frame->getObject(2);
-            leg->AddEntry(bestfit_gr, "Best Fit", "l");
-            
-            TGraph* bb2n_gr = (TGraph*) frame->getObject(0);
-            bb2n_gr->SetLineColor(kGray);
-            bb2n_gr->SetLineWidth(2);
-            bb2n_gr->SetFillColorAlpha(kGray, 1.0);
-            leg->AddEntry(bb2n_gr, "#beta#beta2#nu", "f");
-            
-            fitPdf->plotOn(frame,RooFit::Components("pdf_LXeBb0n_*"), RooFit::DrawOption("FL"));
-            TGraph* bb0n_gr = (TGraph*) frame->getObject( frame->numItems() - 1  );
-            bb0n_gr->SetLineColor(kAzure-3);
-            bb0n_gr->SetLineWidth(2);
-            bb0n_gr->SetFillColorAlpha(kAzure-3, 0.45);
-            leg->AddEntry(bb0n_gr, "#beta#beta0#nu", "f");
-            
-            color_idx = 0;
-            RooArgList pdfList = fitPdf->pdfList();
-            fNFitPdfs = (int) pdfList.getSize();
-            for (int i = 0; i < fNFitPdfs; i++) {
-                TString name = pdfList.at(i)->GetName();
-                if (name.BeginsWith("pdf_LXeBb")) continue;
-                fitPdf->plotOn(frame, RooFit::Components(name));
-                TGraph* gg = (TGraph*) frame->getObject( frame->numItems() - 1  );
-                gg->SetLineColor(colors[color_idx++]);
-                gg->SetLineStyle(1);
-                gg->SetLineWidth(2);
-               
-                //make legend entries pretty
-                if ((fFitPdfNames[i].CompareTo("Far"))==0){leg->AddEntry( gg, "Far components", "l");}
-                if ((fFitPdfNames[i].CompareTo("ActiveLXeRn222"))==0){leg->AddEntry(gg, "Active LXe ^{222}Rn", "l");}
-                if ((fFitPdfNames[i].CompareTo("ActiveLXeXe137"))==0){leg->AddEntry(gg, "Active LXe ^{137}Xe", "l");}
-                if ((fFitPdfNames[i].CompareTo("InternalTh232"))==0){leg->AddEntry( gg,"Internals ^{232}Th", "l");}
-                if ((fFitPdfNames[i].CompareTo("InternalU238"))==0){leg->AddEntry( gg,"Internals ^{238}U", "l");}
-                if ((fFitPdfNames[i].CompareTo("VesselTh232"))==0){leg->AddEntry( gg, "TPCVessel ^{232}Th", "l");}
-                if ((fFitPdfNames[i].CompareTo("VesselU238"))==0){leg->AddEntry( gg, "TPCVessel ^{238}U", "l");}
-                if ((fFitPdfNames[i].CompareTo("InactiveLXeXe137"))==0){leg->AddEntry( gg, "Inactive ^{137}Xe", "l");}
-                if ((fFitPdfNames[i].CompareTo("InactiveLXeRn222"))==0){leg->AddEntry( gg, "Inactive ^{222}Rn", "l");}
-
-                //else {leg->AddEntry( gg, fFitPdfNames[i], "l");}
-                
-                //        fitPdf_ss->plotOn(frame, RooFit::Components("pdf_FullTpcK40_ss"), RooFit::LineStyle(kDashed));
-            }
-            
-            TCanvas* cc = new TCanvas(Form("cc_%d_%d",iRun, k),Form("cc_%d_%d",iRun, k));
-            cc->SetLogy();
-            frame->SetMaximum(3.e7);
-            frame->SetMinimum(0.01);
-            frame->Draw();
-            if (k==0) {
-                leg->Draw();
-            }
-            
-            cc->SaveAs(plot_filename + ".pdf");
-            cc->SaveAs(plot_filename + ".root");
-            
-            delete cc;
-            delete leg;
-            
-        }
-        ////////////////////
-        //// END PLOTTING
-        ///////////////////
-        
+         
         if (fRunTruthValFit) {
             //Set the floating pars to random starting values or just the mean values
             co60Flag = false;
@@ -1920,6 +1448,9 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// MakeCombinedHisto
+///////////////////////////////////////////////////////////////////////////////////////////////
 TH2D* nEXOSensitivity::MakeCombinedHisto(TString histName, Int_t nComp, TString* compNames, Double_t* fractions, TString , Bool_t isSS) {
     if (fVerboseLevel > 0)
         std::cout << "Working on " << histName << std::endl;
@@ -1930,16 +1461,9 @@ TH2D* nEXOSensitivity::MakeCombinedHisto(TString histName, Int_t nComp, TString*
     
     Double_t overallNorm = 0.;
     
-    //double combRatioFV(0.), combRatio3t(0.), combRatio1t(0.);
-    //double combFull(0.);
     for (int i = 0; i < nComp; i++) {
         TString compName = Form("%s_%s", compNames[i].Data(), (isSS ? "ss" : "ms"));
         compHist = dynamic_cast<TH2*> (fComponentHistos.at(compName.Data()));
-        //int nBinsXcomp = compHist->GetNbinsX();
-        //int xRebin = (int) nBinsXcomp / fNbinsX;
-        //int nBinsYcomp = compHist->GetNbinsY();
-        //int yRebin = (int) nBinsYcomp / fNbinsY;
-        //compHist->Rebin2D(xRebin, yRebin);
         
         overallNorm += fractions[i]; //compHist->Integral()*fractions[i];
         
@@ -1950,20 +1474,8 @@ TH2D* nEXOSensitivity::MakeCombinedHisto(TString histName, Int_t nComp, TString*
             std::cout << Form("Group fractions histName : %s , comp : %s , fraction : %g , integral : %g", histName.Data(), compNames[i].Data(), fractions[i], histIntegral) << std::endl;
         
         retHist->Add(compHist);
-        
-        //combFull += fractions[i]*fNormHistoFull.at(compName);
-        //combRatioFV += fractions[i]*fRatioHistoFV.at(compName);
-        //combRatio3t += fractions[i]*fRatioHisto3t.at(compName);
-        //combRatio1t += fractions[i]*fRatioHisto1t.at(compName);
     }
-    
-    //if(isSS)
-    //{
-    //  fRatioHistoFV.insert(std::make_pair(histName,combRatioFV/combFull));
-    //  fRatioHisto3t.insert(std::make_pair(histName,combRatio3t/combFull));
-    //  fRatioHisto1t.insert(std::make_pair(histName,combRatio1t/combFull));
-    //}
-    
+
     retHist->Scale(1. / overallNorm);
     //if(fVerboseLevel > 0)
     //  std::cout << Form("Group integral : %g , ROI = %g", retHist->Integral(), retHist->Integral(retHist->GetXaxis()->FindBin(2428),retHist->GetXaxis()->FindBin(2488),1,fNbinsY)) << std::endl;
@@ -1977,6 +1489,9 @@ TH2D* nEXOSensitivity::MakeCombinedHisto(TString histName, Int_t nComp, TString*
 //1. It loads all component pdfs into the workspace.
 //2. It builds the generating pdfs
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// BuildGenHistos
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::BuildGenHistos(TString* pdfNames, const int nPdfs, Double_t* meanPerYear_ss, Double_t* meanPerYear_ms, Double_t yrs, Double_t signalCounts) {
     //Get the file containing the simulated histograms
     
@@ -2147,6 +1662,9 @@ void nEXOSensitivity::BuildGenHistos(TString* pdfNames, const int nPdfs, Double_
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Build the fit pdf in SS and MS
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// BuildFitPdfs
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::BuildFitPdfs(TString* pdfNames, const int nFitPdfs) {
     BuildFitPdf(pdfNames, nFitPdfs, true);
     BuildFitPdf(pdfNames, nFitPdfs, false);
@@ -2155,6 +1673,9 @@ void nEXOSensitivity::BuildFitPdfs(TString* pdfNames, const int nFitPdfs) {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Build the fit pdf in SS or MS
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// BuildFitPdf
+///////////////////////////////////////////////////////////////////////////////////////////////
 void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t isSS) {
     //Suffix and formula for ss or ms
     TString suffix = "ms";
@@ -2175,15 +1696,15 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
     RooArgList coefList; //List of component coeficients
     
     for (Int_t i = 0; i < nFitPdfs; i++) {
-        std::cout << "Beginning of loop..." << std::endl;
+        //std::cout << "Beginning of loop..." << std::endl;
         TString name = pdfNames[i];
         if ( fTurnedOffGroups.count(name) != 0 ) 
         {
-            std::cout << "Group " << name << " is turned off." << std::endl;
+            //std::cout << "Group " << name << " is turned off." << std::endl;
             continue;
         }
         if (fVerboseLevel > 0)
-            std::cout << "Adding group " << name << " to pdfs... " << std::endl;
+            //std::cout << "Adding group " << name << " to pdfs... " << std::endl;
         
         //We'll handle the signal pdf separately
         if (pdfNames[i] == fSignalName) continue;
@@ -2192,27 +1713,28 @@ void nEXOSensitivity::BuildFitPdf(TString* pdfNames, const int nFitPdfs, Bool_t 
         Double_t meanNum = ((RooRealVar*) fWsp->var(Form("mean_num_%s", name.Data())))->getVal();
         Double_t meanFrac = ((RooRealVar*) fWsp->var(Form("mean_frac_%s", name.Data())))->getVal();
     
-        std::cout << "Creating coefficient..." << std::endl;    
+        //std::cout << "Creating coefficient..." << std::endl;    
         //Create the component's coefficient
         num_tomakefit.emplace_back(new RooRealVar(Form("num_%s", name.Data()), "", meanNum, 0., meanNum * 10.)); //meanNum*(1.-0.3), meanNum*(1.+0.3));
         frac_tomakefit.emplace_back(new RooRealVar(Form("frac_%s", name.Data()), "", meanFrac, 0., 1.)); //meanFrac*(1.-3.*fFracError), meanFrac*(1.+3.*fFracError));
         coef_tomakefit.emplace_back(new RooFormulaVar(Form("num_%s_%s", name.Data(), suffix.Data()), "", formula.Data(), RooArgList(*num_tomakefit.back().get(), *frac_tomakefit.back().get())));
        
-        std::cout << "Getting pdf from workspace..." << std::endl; 
+        //std::cout << "Getting pdf from workspace..." << std::endl; 
         //Get the pdf from the workspace
         pdf = (RooHistPdf*) fWsp->pdf(Form("pdf_%s_%s", name.Data(), suffix.Data()));
         pdf1D = (RooHistPdf*) fWsp->pdf(Form("pdf1D_%s_%s", name.Data(), suffix.Data()));
         
-        std::cout << "Adding component pdf to the list..." << std::endl;
+        //std::cout << "Adding component pdf to the list..." << std::endl;
         //Add the component pdf and coefficient to the list
         pdfList.add(*pdf);
         pdfList1D.add(*pdf1D);
         coefList.add(*coef_tomakefit.back().get());
-        std::cout << "end of loop..." << std::endl;
+        //std::cout << "end of loop..." << std::endl;
     }
    
     std::cout << "Create the signal component..." << std::endl; 
     //Create the signal component
+    std::cout << "Signal is called: " << fSignalName.Data() <<std::endl;
     Double_t meanNum = ((RooRealVar*) fWsp->var(Form("mean_num_%s", fSignalName.Data())))->getVal();
     Double_t meanFrac = ((RooRealVar*) fWsp->var(Form("mean_frac_%s", fSignalName.Data())))->getVal();
     
@@ -2270,8 +1792,8 @@ RooGaussian* nEXOSensitivity::GetRn222Constraint(Double_t rateError, Bool_t rand
 
 RooGaussian* nEXOSensitivity::GetEfficiencyConstraint(Double_t effError, Bool_t randomize) {
     
-    RooRealVar* eff = (RooRealVar*) fWsp->var("eff_LXeBb0n");
-    Double_t meanEff = ((RooRealVar*) fWsp->var("mean_eff_LXeBb0n"))->getVal();
+    RooRealVar* eff = (RooRealVar*) fWsp->var("eff_FullLXeBb0n");
+    Double_t meanEff = ((RooRealVar*) fWsp->var("mean_eff_FullLXeBb0n"))->getVal();
     Double_t meanErr = meanEff*effError;
     
     //If we want to draw a random constraint value
@@ -2371,6 +1893,9 @@ RooAbsData* nEXOSensitivity::GenerateData(RooAbsPdf* genPdf, RooArgSet obs, Bool
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// EvalCounts
+///////////////////////////////////////////////////////////////////////////////////////////////
 Double_t nEXOSensitivity::EvalCounts(Double_t hitEfficiency, Double_t activity, Double_t time, Double_t halflife) {
     if (time / halflife > 0.01) {
         double lhl = TMath::Log2(halflife);
@@ -2382,6 +1907,9 @@ Double_t nEXOSensitivity::EvalCounts(Double_t hitEfficiency, Double_t activity, 
     return counts;
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////
+// GenTruncGaus
+///////////////////////////////////////////////////////////////////////////////////////////////
 Double_t nEXOSensitivity::GenTruncGaus(Double_t mean, Double_t sigma, Double_t unif, Int_t low) {
     // generate truncated Gauss(mean,sigma) sample from unif[0,1] number
     // low truncation at low (default = 0)
