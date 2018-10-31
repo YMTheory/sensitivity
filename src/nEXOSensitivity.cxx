@@ -566,7 +566,7 @@ void nEXOSensitivity::LoadComponentHistograms() {
         TH2D* hh_ms = AdjustedBinHist(*h_ms);
         
         TString h_ss_name = Form("%s_ss", table->fPdf.Data());
-        TfString h_ms_name = Form("%s_ms", table->fPdf.Data());
+        TString h_ms_name = Form("%s_ms", table->fPdf.Data());
         
         fComponentHistos.insert(std::make_pair(h_ss_name, hh_ss));
         fComponentHistos.insert(std::make_pair(h_ms_name, hh_ms));
