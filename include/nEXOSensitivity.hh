@@ -50,7 +50,7 @@
 #include "nEXOFitResult.hh"
 
 typedef struct ExcelTableValues {
-  TString fPdf, fComponent, fIsotope;
+  TString fPdf, fComponent, fIsotope, fMC_ID;
   Double_t fHalflife;
 
   std::vector<TString> fSuffixes;
@@ -66,10 +66,11 @@ typedef struct ExcelTableValues {
   TString fGroup;
   TString fFileName;
 
-  ExcelTableValues(TString pdf = "", TString component = "", TString isotope = "") {
+  ExcelTableValues(TString pdf = "", TString component = "", TString isotope = "", TString mc_id = "") {
     fPdf = pdf;
     fComponent = component;
     fIsotope = isotope;
+    fMC_ID = mc_id;
   }
 
   int FindSuffixIdx(TString suffix){
@@ -253,6 +254,10 @@ typedef struct ExcelTableValues {
 
     return totN > 0 ? sqrt(totEff)/totN : -1;
   }  
+
+  TString GetMC_ID(){
+     return fMC_ID;
+  }
 
   void Print(){
     std::cout << Form("* PDF : %s , Group: %s ", fPdf.Data(), fGroup.Data()) << std::endl;

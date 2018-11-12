@@ -12,6 +12,7 @@ import sys
 import pandas as pd
 import NameDict
 import time
+import os
 
 ROOT.gSystem.Load('../lib/libnEXOSensitivity.so')
 
@@ -36,11 +37,15 @@ class ExcelTableReader:
 
         print 'Loading sheets...'
         self.dfSpecActiv = self.ReadBasicSheet( self.specActivSheet )
-        self.dfHalflife = self.ReadBasicSheet( self.halflifeSheet )
+        #self.dfHalflife = self.ReadBasicSheet( self.halflifeSheet )
+        self.dfHalflife = pd.read_excel( self.filename, sheet_name=self.halflifeSheet, header=None )
+        self.dfHalflife.columns = ['Isotopes','Halflife (yrs)']
         self.dfCountsSS = self.ReadNestedSheet( self.countsSheet % 'SS' )
         self.dfCountsMS = self.ReadNestedSheet( self.countsSheet % 'MS' )
         self.dfHitEffSS = self.ReadNestedSheet( self.hitEffSheet % 'SS' )
         self.dfHitEffMS = self.ReadNestedSheet( self.hitEffSheet % 'MS' )
+        #print(self.dfHalflife.head())
+        #print(self.dfSpecActiv.head())
         print 'Sheets loaded.'
 
         self.name_dict = {y:x for x,y in NameDict.NameDict().data.items()}
@@ -49,12 +54,14 @@ class ExcelTableReader:
         for index, row in self.dfSpecActiv.iterrows():
             component = row['Component']
             isotope   = row['Isotope']
+            mc_id = row['Monte Carlo']
             #pdf       = '%s_%s' % (self.name_dict[component], isotope.replace('-','') )
-            pdf       = '%s_%s' % (self.name_dict[component], isotope )
+            pdf       = '%s_%s' % (isotope.replace('-',''),self.name_dict[component])#, isotope )
             self.components[pdf] = ROOT.ExcelTableValues( ROOT.TString(pdf),\
                                                           ROOT.TString(component),\
-                                                          ROOT.TString(isotope) )
-            print 'Component: %s\t Isotope: %s' % (component, isotope)
+                                                          ROOT.TString(isotope),\
+                                                          ROOT.TString(mc_id) )
+            print 'Component: %s\t Isotope: %s\t MC_ID: %s' % (component, isotope, mc_id)
 
 
             # Set halflives
@@ -69,6 +76,7 @@ class ExcelTableReader:
             rawActiv     = thisrow[ 'Activity [Bq]' ].iloc[0]
             rawActivErr  = thisrow[ 'Error [Bq]' ].iloc[0]
             activ_ID     = thisrow[ 'Source' ].iloc[0]
+            mc_ID        = thisrow[ 'Monte Carlo' ].iloc[0]
             self.components[pdf].SetActivity( specActiv,\
                                               specActivErr,\
                                               rawActiv,\
@@ -280,10 +288,11 @@ class RootTreeWriter():
     # Adds group information
     # Modify '__init__' appropriately for desired tree
 
-    def __init__(self,outTableName):
+    def __init__(self,outTableName,pdfFilePath):
         self.filename = outTableName #'../tables/Summary_v68_2016-06-21_0nu.root' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.root' #'test_new_tree.root'
 
-        self.pdf_filename_pattern ='../histos/nEXO_Histos_%s.root'
+        self.pdf_filename_pattern ='../histos/Sens_%s.root'
+        self.pdf_file_path = pdfFilePath;
     #'/data/data033/exo/software/nEXO_Sensitivity/quick/v5/histos/PNNL/571mm_third/nEXO_Histos_%s.root' # 'individual_histos/nEXO_Histos_%s.root'
         
         self.file = ROOT.TFile.Open(self.filename,'recreate')
@@ -295,42 +304,42 @@ class RootTreeWriter():
 
         self.groups = {}
 
-        self.groups['Far'] = [ "OuterCryostatResin_U-238",\
-                               "OuterCryostatFiber_U-238",\
-                               "OuterCryostatSupportResin_U-238",\
-                               "OuterCryostatSupportFiber_U-238",\
-                               "InnerCryostatResin_U-238",\
-                               "InnerCryostatFiber_U-238",\
-                               "InnerCryostatSupportResin_U-238",\
-                               "InnerCryostatSupportFiber_U-238",\
-                               "InnerCryostatLiner_U-238",\
-                               "OuterCryostatResin_Th-232",\
-                               "OuterCryostatFiber_Th-232",\
-                               "OuterCryostatSupportResin_Th-232",\
-                               "OuterCryostatSupportFiber_Th-232",\
-                               "InnerCryostatResin_Th-232",\
-                               "InnerCryostatFiber_Th-232",\
-                               "InnerCryostatSupportResin_Th-232",\
-                               "InnerCryostatSupportFiber_Th-232",\
-                               "InnerCryostatLiner_Th-232",\
-                               "OuterCryostatResin_Co-60",\
-                               "OuterCryostatFiber_Co-60",\
-                               "OuterCryostatSupportResin_Co-60",\
-                               "OuterCryostatSupportFiber_Co-60",\
-                               "InnerCryostatResin_Co-60",\
-                               "InnerCryostatFiber_Co-60",\
-                               "InnerCryostatSupportResin_Co-60",\
-                               "InnerCryostatSupportFiber_Co-60",\
-                               "InnerCryostatLiner_Co-60",\
-                               "OuterCryostatResin_K-40",\
-                               "OuterCryostatFiber_K-40",\
-                               "OuterCryostatSupportResin_K-40",\
-                               "OuterCryostatSupportFiber_K-40",\
-                               "InnerCryostatResin_K-40",\
-                               "InnerCryostatFiber_K-40",\
-                               "InnerCryostatSupportResin_K-40",\
-                               "InnerCryostatSupportFiber_K-40",\
-                               "InnerCryostatLiner_K-40" ]
+        self.groups['Far'] = [ "U238_OuterCryostatResin",\
+                               "U238_OuterCryostatFiber",\
+                               "U238_OuterCryostatSupportResin",\
+                               "U238_OuterCryostatSupportFiber",\
+                               "U238_InnerCryostatResin",\
+                               "U238_InnerCryostatFiber",\
+                               "U238_InnerCryostatSupportResin",\
+                               "U238_InnerCryostatSupportFiber",\
+                               "U238_InnerCryostatLiner",\
+                               "Th232_OuterCryostatResin",\
+                               "Th232_OuterCryostatFiber",\
+                               "Th232_OuterCryostatSupportResin",\
+                               "Th232_OuterCryostatSupportFiber",\
+                               "Th232_InnerCryostatResin",\
+                               "Th232_InnerCryostatFiber",\
+                               "Th232_InnerCryostatSupportResin",\
+                               "Th232_InnerCryostatSupportFiber",\
+                               "Th232_InnerCryostatLiner",\
+                               "Co60_OuterCryostatResin",\
+                               "Co60_OuterCryostatFiber",\
+                               "Co60_OuterCryostatSupportResin",\
+                               "Co60_OuterCryostatSupportFiber",\
+                               "Co60_InnerCryostatResin",\
+                               "Co60_InnerCryostatFiber",\
+                               "Co60_InnerCryostatSupportResin",\
+                               "Co60_InnerCryostatSupportFiber",\
+                               "Co60_InnerCryostatLiner",\
+                               "K40_OuterCryostatResin",\
+                               "K40_OuterCryostatFiber",\
+                               "K40_OuterCryostatSupportResin",\
+                               "K40_OuterCryostatSupportFiber",\
+                               "K40_InnerCryostatResin",\
+                               "K40_InnerCryostatFiber",\
+                               "K40_InnerCryostatSupportResin",\
+                               "K40_InnerCryostatSupportFiber",\
+                               "K40_InnerCryostatLiner" ]
 
         group_vessel = ["HFE",\
                         "TPCVessel",\
@@ -342,8 +351,8 @@ class RootTreeWriter():
                         "CalibrationGuideTube1",\
                         "CalibrationGuideTube2" ]
 
-        self.groups['VesselU-238'] = ['%s_U-238'%(group_comp) for group_comp in group_vessel]
-        self.groups['VesselTh-232'] = ['%s_Th-232'%(group_comp) for group_comp in group_vessel]
+        self.groups['VesselU-238'] = ['U238_%s'%(group_comp) for group_comp in group_vessel]
+        self.groups['VesselTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_vessel]
         
         group_internal = [ "Cathode",\
                            "Bulge",\
@@ -354,45 +363,49 @@ class RootTreeWriter():
                            "SiPMModuleInterposer",\
                            "SiPMCables",\
                            "SiPMs",\
-                           "ChargeTilesCables",\
-                           "ChargeTilesElectronics",\
-                           "ChargeTilesSupport",\
-                           "ChargeTilesBacking",\
+                           #"ChargeTilesCables",\
+                           #"ChargeTilesElectronics",\
+                           "ChargeModuleSupport",\
+                           "ChargeModuleBacking",\
                            "HVPlunger" ]
 
-        self.groups['InternalU-238'] = ['%s_U-238'%(group_comp) for group_comp in group_internal]
-        self.groups['InternalTh-232'] = ['%s_Th-232'%(group_comp) for group_comp in group_internal]
+        self.groups['InternalU-238'] = ['U238_%s'%(group_comp) for group_comp in group_internal]
+        self.groups['InternalTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_internal]
         
         group_tpc_k40 = ["SupportRodsandSpacers","SiPMModuleInterposer","ChargeTilesBacking"]
-        self.groups['FullTpcK-40'] = ['%s_K-40'%(group_comp) for group_comp in group_tpc_k40]
+        self.groups['FullTpcK-40'] = ['K40_%s'%(group_comp) for group_comp in group_tpc_k40]
         
         group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
-        self.groups['FullTpcCo-60'] = ['%s_Co-60'%(group_comp) for group_comp in group_tpc_co60]
+        self.groups['FullTpcCo-60'] = ['Co60_%s'%(group_comp) for group_comp in group_tpc_co60]
         
-        self.groups['ActiveLXeRn-222'] = ["ActiveLXe_Rn-222"]
-        self.groups['InactiveLXeRn-222'] = ["InactiveLXe_Rn-222","CathodeRadon_Rn-222"]
-        self.groups['InactiveLXeXe-137'] = ["InactiveLXe_Xe-137"]
-        self.groups['ActiveLXeXe-137'] = ["ActiveLXe_Xe-137"]
-        self.groups['FullLXeBb2n'] = ["FullLXe_bb2n"]
-        self.groups['FullLXeBb0n'] = ["FullLXe_bb0n"]
+        self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
+        self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
+        self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
+        self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
+        self.groups['FullLXeBb2n'] = ["bb2n_FullLXe"]
+        self.groups['FullLXeBb0n'] = ["bb0n_FullLXe"]
     
-        self.groups['GhostComponents'] = ['%s_K-40'%(group_comp) for group_comp in group_internal]
-        self.groups['GhostComponents'].extend(['%s_Co-60'%(group_comp) for group_comp in group_internal])
-        self.groups['GhostComponents'].extend(['%s_K-40'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['%s_Co-60'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['SolderAnode_U-238']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_Th-232']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_K-40']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_Co-60']) 
-        self.groups['GhostComponents'].extend(['SolderAnode_Ag-110m']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_U-238']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_Th-232']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_K-40']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_Co-60']) 
-        self.groups['GhostComponents'].extend(['SolderSiPM_Ag-110m']) 
-        self.groups['GhostComponents'].extend(['FullLXe_B8nu'])
-        self.groups['GhostComponents'].extend(['SupportRodsandSpacers_Al-26'])
-        self.groups['GhostComponents'].extend(['FieldRings_Cs-137'])    
+        self.groups['GhostComponents'] = ['K40_%s'%(group_comp) for group_comp in group_internal]
+        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal])
+        self.groups['GhostComponents'].extend(['K40_%s'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['U238_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['Th232_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['K40_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['Co60_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['Ag110m_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['U238_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['Th232_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['K40_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['Co60_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['Ag110m_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['B8nu_FullLXe'])
+        self.groups['GhostComponents'].extend(['Al26_SupportRodsandSpacers'])
+        self.groups['GhostComponents'].extend(['Cs137_FieldRings'])    
+        self.groups['GhostComponents'].extend(['U238_ChargeModuleCables'])
+        self.groups['GhostComponents'].extend(['Th232_ChargeModuleCables'])
+        self.groups['GhostComponents'].extend(['Th232_ChargeModuleElectronics'])
+        self.groups['GhostComponents'].extend(['U238_ChargeModuleElectronics'])
 
     def FindGroup(self, pdf):
 
@@ -409,7 +422,8 @@ class RootTreeWriter():
         print 'Filling tree...'
 
         values.SetGroup(self.FindGroup(values.fPdf))
-        values.SetFileName(self.pdf_filename_pattern % values.fPdf)
+        #values.SetFileName(self.pdf_filename_pattern % values.fPdf)
+        values.SetFileName( self.GeneratePDFFilename(values) )
         #if values.fIsotope == 'bb0n':
         #    values.fFileName = values.fFileName.replace('resol0.005','resol0.010')
         
@@ -425,7 +439,16 @@ class RootTreeWriter():
 
     def CloseFile(self):
         print 'Closing file...', self.file.GetName()
-        self.file.Close()        
+        self.file.Close()
+  
+    def GeneratePDFFilename(self, values):
+        mc_id = values.fMC_ID
+        files = os.listdir(self.pdf_file_path)
+        for f in files:
+            if values.fIsotope.replace('-','') in f and mc_id in f:
+              #print(self.pdf_file_path + '/' + f)
+              return self.pdf_file_path + '/' + f
+        
 
 ######################################################
 ############# TABLE TO TREE CONVERTER ################
@@ -452,16 +475,23 @@ import sys
 if __name__ == "__main__":
    
     
-    if len(sys.argv) == 3:
+    if len(sys.argv) == 4:
         inTableName = sys.argv[1] # '../tables/Summary_v68_2016-06-21_0nu.xlsx'
         outTableName = sys.argv[2] # '../tables/Summary_v68_2016-06-21_0nu.root'
+        pathToPDFs = sys.argv[3]
+        if not os.path.exists(pathToPDFs):
+           sys.exit('\nERROR: path to PDF files does not exist\n')
     else:
-        sys.exit('\nERROR: Must enter input and output table names...\n')
+        print('\n\nERROR: ConvertExcel2Root_pandas.py requires 3 arguments');
+        print('Usage:')
+        print('\tpython ConvertExcel2Root_pandas.py <inputExcelTableName> <outputRootTableName> </path/to/pdf/rootfiles/>')
+        sys.exit('\n')
+       
 
     start_time = time.time()    
 
     excelTable = ExcelTableReader(inTableName) #excelTable.Print()
-    rootTree = RootTreeWriter(outTableName)
+    rootTree = RootTreeWriter(outTableName,pathToPDFs)
 
     table2tree = Excel2RootConverter(excelTable,rootTree)
     table2tree.Run()
