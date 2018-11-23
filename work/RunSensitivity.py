@@ -5,8 +5,9 @@ import ROOT
 import os,sys
 from optparse import OptionParser
 import array
+import time
 if __name__ == "__main__":
-
+    start_time = time.time()
     libRelPath = '../lib/libnEXOSensitivity.so'
     ROOT.gSystem.Load(libRelPath)
     # ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.WARNING)
@@ -95,3 +96,6 @@ if __name__ == "__main__":
     ratiohist.GetQuantiles(1,yq,xq)
     percent90=yq[0]
     print("magic number of %f counts: %f"%(options.signal_counts, percent90))
+
+    end_time = time.time()
+    print('{} seconds elapsed...'.format(end_time-start_time))

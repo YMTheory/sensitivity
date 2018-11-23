@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <stdlib.h>
+#include <cstdio>
 
 #include "nEXOSensitivity.hh"
 #include "TObjectTable.h"
@@ -543,8 +544,9 @@ void nEXOSensitivity::LoadComponentHistograms() {
             {;}//table->Print();
         if ( fTurnedOffGroups.count(table->fGroup) != 0 )
         {
-            std::cout << "\t" << table->fPdf << " is in group " << table->fGroup << ", which is currently off." << std::endl;
-            std::cout << "\tSkipping...." << std::endl;
+            std::cout << "Skipping" << table->fPdf << 
+                         ": it is in group " << table->fGroup << 
+                         ", which is currently off." << std::endl;
             continue; 
         }
 
@@ -1152,7 +1154,9 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         m.setPrintLevel(fPrintLevel);
         m.optimizeConst(true);
         m.setErrorLevel(fErrorLevel);
+        printf("Running migrad...\n");
         m.migrad();
+        printf("Run migrad...\n");
         m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
         //Get the best fit results for the bkgd + signal fit
         fitResult->num_signal = fWsp->var(Form("num_%s", fSignalName.Data()))->getVal();
@@ -1163,19 +1167,24 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             std::cout << "Fit signal results: \n";
             fitResult->fitres_sig->Print();
         }
+        printf("Getting quantities from fitResult\n");
+        fflush(stdout);
         fitResult->nll_sig = fitResult->fitres_sig->minNll();
         fitResult->stat_sig = fitResult->fitres_sig->status();
         fitResult->covQual_sig = fitResult->fitres_sig->covQual();
-        
+        printf("got quaantities from fitResult\n");
+        fflush(stdout);
         // FIXME: this variable should be saved in the fit result TTree
         Double_t minuit_num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         // hijack this variable to store the minos error
          fitResult->num_signal_eLo = minuit_num_signal_eHi;
 
-         
+        printf("if(fRunTruthValFit)\n");
+        fflush(stdout);
         if (fRunTruthValFit) {
             //Set the floating pars to random starting values or just the mean values
             co60Flag = false;
+            printf("loop over pdfs\n");
             for (int i = 0; i < fNFitPdfs; i++) {
                 TString name = fFitPdfNames.at(i);
                 if (name == fSignalName) continue;
@@ -1196,6 +1205,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
                 }
             }
+            printf("End loop over pdfs\n");
             //Set the signal variables constant
             // NOTE only the signal counts should be fixed, not the frac
             fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(signalCounts);
@@ -1212,7 +1222,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             }
             
             //Do the bkgd only fit
-            
+            printf("Doing BG only fit.\n"); 
             m.setPrintLevel(fPrintLevel);
             m.optimizeConst(true);
             m.migrad();
@@ -1234,7 +1244,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
         }
         else{
-            
+            printf("if not fRunTruthValFit\n"); 
+            fflush(stdout);
             ///////
             /// This is where we find the upper limit by finding the intersection
             /// between the magic number (critical lambda) spline
@@ -1247,7 +1258,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             // If the background + signal fit was bad, don't waste time
             //if (fitResult->stat_sig ==0 && fitResult->covQual_sig==3) {
             if (true) {
-                
+                printf("Creating spline...\n"); 
+                fflush(stdout);
                 // Create the spline from the magic number (2*nll_ratio) table
                 // FIXME: this does not need to be created every time
                 // FIXME: check that fMagic_numbers is not empty
@@ -1412,7 +1424,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             
             
             
-        }
+        } // End if(fRunTruthValFit){...}else{
         
         fitResult->real_time = clock.RealTime();
         

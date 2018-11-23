@@ -13,6 +13,7 @@ import pandas as pd
 import NameDict
 import time
 import os
+import openpyxl
 
 ROOT.gSystem.Load('../lib/libnEXOSensitivity.so')
 
@@ -25,6 +26,11 @@ class ExcelTableReader:
 
     def __init__(self,inTableName):
         self.filename = inTableName #'../tables/Summary_v68_2016-06-21_0nu.xlsx' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.xlsx'
+        #writer = pd.ExcelWriter(inTableName,engine='openpyxl')
+        #writer.save()
+        wb = openpyxl.load_workbook( inTableName )
+        wb.template = True
+        wb.save( inTableName )
 
         self.quantile = 1.64
 
@@ -180,7 +186,7 @@ class ExcelTableReader:
     def ReadBasicSheet(self, inSheetName ):
         
         print '\tReading %s...' % inSheetName
-        df = pd.read_excel( self.filename, sheet_name = inSheetName ) 
+        df = pd.read_excel( self.filename, sheet_name = inSheetName  ) 
    
         return df
 
