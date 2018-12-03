@@ -33,6 +33,7 @@ def main():
     parser = OptionParser(usage)
     
     parser.add_option("-M","--magic-number-dir", nargs=1) # name of the output file
+    options,args = parser.parse_args()
 
     magic_files = {f[:-9] for f in listdir(options.magic_number_dir) if isfile(join(options.magic_number_dir, f))}
     # print(magic_files)
