@@ -80,10 +80,13 @@ def main():
     sens.fExpectCountMethod = options.method_bkgd #ROOT.nEXOSensitivity.kRdmCV #kUL #kPosUL #kRdmCV
 
     magic_files = {f[:-9] for f in listdir(options.magic_number_dir) if isfile(join(options.magic_number_dir, f))}
-    # print(magic_files)
+    print('Magic files loaded...')
+    #print(magic_files)
+    #sys.exit()
 
-    # c1 = ROOT.TCanvas( 'c1', 'c1')
+    #can1 = ROOT.TCanvas( 'can1', 'can1')
     for f in magic_files:
+        print('Drawing hist for {}'.format(f))
         numcounts = float(f.split('_')[-3])
         chain = ROOT.TChain("tree")
         chain.Add(join(options.magic_number_dir, f) + "*")
@@ -117,7 +120,10 @@ def main():
     gr = ROOT.TGraph(len(np_magic), array.array('d', np_magic[:, 0]), array.array('d', np_magic[:, 1]))
     gr.SetMarkerStyle(22)
     gr.SetMarkerColor(ROOT.kRed)
-    # gr.Draw("AP")
+    gr.GetXaxis().SetRangeUser(0.,20.)
+    gr.GetYaxis().SetRangeUser(0.,3.4)
+    #gr.Draw("AP")
+    #can1.Print("gr_test.pdf")
     # ROOT.gSystem.ProcessEvents()
 
     xmin = 0.
@@ -130,7 +136,12 @@ def main():
     # f_spline4.FixParameter(0, magic_numbers.front());
     # f_spline4.FixParameter(8, magic_numbers.back());
 
+    gr.SetTitle("")
+    gr.GetYaxis().SetTitle("Lambda")
+    gr.GetXaxis().SetTitle("Signal Counts")
     gr.Fit(f_spline4, "R0")
+    #f_spline4.Draw("LSAME")
+    #can1.Print("gr_test_w_spline.pdf")
 
     spline_yn = f_spline4.GetParameters()
     for i in range(0, nknots):
@@ -141,7 +152,7 @@ def main():
     if options.group:
         sens.AddUserMeanCounts(options.group,options.bkgd_counts)
 
-    sens.fVerboseLevel = 0
+    sens.fVerboseLevel = 10
     sens.fSSFracImprovement = options.ssfrac_improvement
     sens.fRn222RateCorrection = options.rn222_rate_correction
 
@@ -159,6 +170,15 @@ def main():
             sens.TurnGroupOff(groupOff)
 
     sens.GenAndFitData(options.number_runs,options.years,options.signal_counts,options.random_rate)
+
+    #g_lambda = sens.GetLambdaVsHypGraph()
+    #g_lambda.SetMarkerSize(2)
+    #g_lambda.SetMarkerStyle(7)
+    #g_lambda.SetMarkerColor(1)
+    #g_lambda.SetLineWidth(2)
+    #g_lambda.SetLineColor(1)
+    #g_lambda.Draw("LPSAME")
+    #can1.Print("gr_test_w_spline_w_example.pdf")
 
     cmd = 'mv %s %s' % (outFileName,realPathDone)
     print(cmd)

@@ -87,6 +87,9 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     
     fSSFracImprovement = 1.;
     fRn222RateCorrection = 1.;
+
+    g_nllratio_vs_hyp = new TGraph();
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -857,7 +860,6 @@ void nEXOSensitivity::BuildWorkspace(Double_t yrs, Double_t signalCounts) {
     BuildFitPdfs(&fitPdfNames[0], fitPdfNames.size());
     
     //Write the workspace to file, and print the fit setup
-    printf("If fWriteWsp\n");
     if (fWriteWsp) {
         std::cout << "Writing wsp into file " << fWspFileName << " ..." << std::endl;
         fWsp->writeToFile(fWspFileName.Data());
@@ -1160,9 +1162,11 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
         //Get the best fit results for the bkgd + signal fit
         fitResult->num_signal = fWsp->var(Form("num_%s", fSignalName.Data()))->getVal();
+        printf("Num signal: %f\n",fitResult->num_signal);
         //        fitResult->num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         //        fitResult->num_signal_eLo = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorLo();
         fitResult->fitres_sig = m.save();
+        //if(true){
         if (fVerboseLevel > 0) {
             std::cout << "Fit signal results: \n";
             fitResult->fitres_sig->Print();
@@ -1174,17 +1178,59 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         fitResult->covQual_sig = fitResult->fitres_sig->covQual();
         printf("got quaantities from fitResult\n");
         fflush(stdout);
+
+
+
+        //// testing convergence
+        for (int j = 0; j < 2; j++) {
+            if (fitResult->stat_sig != 0 || fitResult->covQual_sig != 3) {//bad fit, try again
+            
+                for (int i = 0; i < fNFitPdfs; i++) {
+                    TString name = fFitPdfNames.at(i);
+                    double meanNum = fWsp->var(Form("mean_num_%s", name.Data()))->getVal();
+                    meanNum = fRandom.Gaus(meanNum, meanNum * 0.01);
+                    fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
+                
+                    double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
+                    meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
+                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                
+                }//for i
+
+                //Minimize again
+                m.setPrintLevel(fPrintLevel);
+                m.optimizeConst(true);
+                m.setErrorLevel(fErrorLevel);
+                m.migrad();
+            
+                m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
+                //Get the best fit results for the bkgd + signal fit
+                fitResult->num_signal = fWsp->var(Form("num_%s", fSignalName.Data()))->getVal();
+        
+                fitResult->fitres_sig = m.save();
+        
+                fitResult->nll_sig = fitResult->fitres_sig->minNll();
+                fitResult->stat_sig = fitResult->fitres_sig->status();
+                fitResult->covQual_sig = fitResult->fitres_sig->covQual();
+            
+            
+//                  std::cout << "~~~~~~~ Main Fitting loop: Take 2 - Fit signal results: \n";
+//                  fitResult->fitres_sig->Print();
+//                  std::cout <<"~~~~~~~ Main Fitting loop: Take 2 -  fitResult->nll_sig = "<<fitResult->nll_sig<<"\n";
+//                  std::cout <<"~~~~~~~ Main Fitting loop: Take 2 -  fitResult->stat_sig = "<<fitResult->stat_sig<<"\n";
+//                  std::cout <<"~~~~~~~ Main Fitting loop: Take 2 -  fitResult->covQual_sig = "<<fitResult->covQual_sig<<"\n";
+
+            }//bad fit, try again
+        }// triple loop
         // FIXME: this variable should be saved in the fit result TTree
         Double_t minuit_num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         // hijack this variable to store the minos error
          fitResult->num_signal_eLo = minuit_num_signal_eHi;
 
-        printf("if(fRunTruthValFit)\n");
-        fflush(stdout);
         if (fRunTruthValFit) {
             //Set the floating pars to random starting values or just the mean values
             co60Flag = false;
-            printf("loop over pdfs\n");
+//            printf("loop over pdfs\n");
             for (int i = 0; i < fNFitPdfs; i++) {
                 TString name = fFitPdfNames.at(i);
                 if (name == fSignalName) continue;
@@ -1205,7 +1251,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
                 }
             }
-            printf("End loop over pdfs\n");
+//            printf("End loop over pdfs\n");
             //Set the signal variables constant
             // NOTE only the signal counts should be fixed, not the frac
             fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(signalCounts);
@@ -1238,6 +1284,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             fitResult->stat_bkg = fitResult->fitres_bkg->status();
             fitResult->covQual_bkg = fitResult->fitres_bkg->covQual();
             
+            
             //Remove constant status of floating pars
             fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
             fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
@@ -1257,7 +1304,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             
             // If the background + signal fit was bad, don't waste time
             //if (fitResult->stat_sig ==0 && fitResult->covQual_sig==3) {
-            if (true) {
+            if (true) {   // NOTE (12/2/2018): if(false) runs iterations over hypotheses for the purposes of plotting
                 printf("Creating spline...\n"); 
                 fflush(stdout);
                 // Create the spline from the magic number (2*nll_ratio) table
@@ -1271,14 +1318,15 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     xn.push_back(it->first);
                     yn.push_back(it->second);
                 }
-                TSpline3 magicSp3("magicSp3", &xn[0], &yn[0], n_magics, "b1e1", 0, 0);
+                
+               TSpline3 magicSp3("magicSp3", &xn[0], &yn[0], n_magics, "b1e1", 0, 0);
                 
                 
                 // Settings
                 // FIXME: some of these should be exposed to the user not hardcoded
                 Double_t signal_precision = 1e-3;
 //                Double_t nll_ratio_precision = 1e-4;
-                Double_t max_iterations = 20;
+                Double_t max_iterations = 30;
                 
                 
                 // Implement the secant algorithm to find the intersection between the profile likelihood curve
@@ -1293,6 +1341,8 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 Double_t f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
                 Double_t f_c = 9e99;
                 auto n_iter = 1;
+                double initial_nll_ratio = -1;
+                double initial_nll_ratio_2 = -1;
                 while (n_iter < max_iterations) {
                     
                     // Now prepare for the fit at fixed signal = b
@@ -1315,7 +1365,7 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                             //continue;
                         } else {
                             double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                            meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
+                             meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.001);
                             fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
                         }
                     }
@@ -1355,6 +1405,48 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     fitResult->stat_bkg = fitres_hyp->status();
                     fitResult->covQual_bkg = fitres_hyp->covQual();
                     
+                    //// testing convergence
+                    for (int j = 0; j < 2; j++) {
+                        if (fitResult->stat_bkg != 0 || fitResult->covQual_bkg != 3) {//bad fit, try again
+                        
+                            for (int i = 0; i < fNFitPdfs; i++) {
+                                TString name = fFitPdfNames.at(i);
+                                if (name == fSignalName) continue;
+                                double meanNum = fWsp->var(Form("mean_num_%s", name.Data()))->getVal();
+                                meanNum = fRandom.Gaus(meanNum, meanNum * 0.001);//--conv test
+                                fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
+
+                                double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
+                                meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.001);//--conv test
+                                fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                            }//for i
+                
+                            //Minimize again
+                            m.setPrintLevel(fPrintLevel);
+                            m.optimizeConst(true);
+                            m.migrad();
+                            fitres_hyp = m.save();
+                       
+                            //Get the best fit results for the truth-value fit
+                            nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
+
+                            fitResult->stat_bkg = fitres_hyp->status();
+                            fitResult->covQual_bkg = fitres_hyp->covQual();
+                            if (n_iter==1) {
+                                initial_nll_ratio_2 = nll_ratio;
+                            }
+
+                        
+//                              std::cout << "~~~~ Take 2 ------ ~~~~~~ Migrad result fitres_hyp->minNll = " << fitres_hyp->minNll() << std::endl;
+//                              std::cout << "~~~~ Take 2 ------  ~~~~~~ fitResult->nll_sig = " << fitResult->nll_sig << std::endl;
+//                              std::cout <<"~~~~ Take 2 ------  ~~~~~~ fitResult->stat_sig = "<<fitResult->stat_sig<<"\n";
+//                              std::cout <<"~~~~ Take 2 ------  ~~~~~~ fitResult->covQual_sig = "<<fitResult->covQual_sig<<"\n";
+//                              std::cout << "~~~~ Take 2 ------  ~~~~~~ Fit hypothesis results after " << n_iter << " iterations" <<std::endl;
+ //                               fitres_hyp->Print();
+//                              std::cout << "~~~~ Take 2 ------ Computed nll_ratio for signal= " << b << " hypothesis = "<<nll_ratio << std::endl;
+                        
+                        }//bad fit, try again
+                    }// for j, triple loop
                     //Remove constant status of floating pars
                     fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
                     fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
@@ -1418,8 +1510,129 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     
                     n_iter++;
                 }
+            } else {  //end if(false) generating sppline
+
+
+                // Create the spline from the magic number (2*nll_ratio) table
+                // FIXME: this does not need to be created every time
+                // FIXME: check that fMagic_numbers is not empty
+                
+                std::vector<Double_t> xn;
+                std::vector<Double_t> yn;
+                Int_t n_magics = fMagic_numbers.size();
+                for(std::map<double,double>::iterator it = fMagic_numbers.begin(); it != fMagic_numbers.end(); ++it) {
+                    xn.push_back(it->first);
+                    yn.push_back(it->second);
+                }
+                TSpline3 magicSp3("magicSp3", &xn[0], &yn[0], n_magics, "b1e1", 0, 0);
+                
+                
+                // Settings
+                // FIXME: some of these should be exposed to the user not hardcoded
+                Double_t signal_precision = 1e-3;
+//                Double_t nll_ratio_precision = 1e-4;
+                Double_t max_iterations = 25;
+                
+                
+                // Implement the secant algorithm to find the intersection between the profile likelihood curve
+                // and the spline from the magic numbers
+                // This is done assuming that nll_ratio(s) grows with s for s > than the value at the best fit
+                
+                // As starting points, use the result of the bkgd+signal fit
+                // and a point some number of signals to the right of it
+                Double_t a = fitResult->num_signal;
+                Double_t b = fitResult->num_signal + 16.;
+                Double_t c = fitResult->num_signal + 32.;
+                Double_t f_a = 0. - magicSp3.Eval(a); // by definition since a is the best fit nll
+                Double_t f_c = 9e99;
+                auto n_iter = 1;
+                int n_pts = 0;
+                g_nllratio_vs_hyp->Set(0);
+                while (n_iter < max_iterations) {
+                    
+                    // Now prepare for the fit at fixed signal = b
+                    
+                    //Set the floating pars to random starting values or just the mean values
+                    co60Flag = false;
+                    for (int i = 0; i < fNFitPdfs; i++) {
+                        TString name = fFitPdfNames.at(i);
+                        if (name == fSignalName) continue;
+                        double meanNum = fWsp->var(Form("mean_num_%s", name.Data()))->getVal();
+                        meanNum = fRandom.Gaus(meanNum, meanNum * 0.001);
+                        fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
+                        //Pay attention to the internal Co60 ss fraction
+                        if (co60Flag) {//name.Contains("Co60") && !co60Flag) {
+                            double meanFrac = fWsp->var("mean_frac_Internal_Co60")->getVal();
+                            meanFrac = fRandom.Gaus(meanFrac, meanFrac * fracError);
+                            fWsp->var("mean_frac_Internal_Co60")->setVal(meanFrac);
+                            co60Flag = true;
+                            //} else if (name.Contains("Co60")) {
+                            //continue;
+                        } else {
+                            double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
+                            meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
+                            fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                        }
+                    }
+                    
+                    //Set the signal variables constant
+                    // NOTE only the signal counts should be fixed, not the frac
+                    //                fWsp->var(Form("num_%s", fSignalName.Data()))->setVal(rit->first);
+                    fWsp->var(Form("num_%s", fSignalName.Data()))->setVal((double) n_iter);
+                    fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(true);
+                    
+                    //                double meanFrac = fWsp->var(Form("mean_frac_%s", fSignalName.Data()))->getVal();
+                    //                fWsp->var(Form("frac_%s", fSignalName.Data()))->setVal(meanFrac);
+                    //                fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(true);
+                    
+                    if (withEff) {
+                        double meanEff = fWsp->var(Form("mean_eff_%s", fSignalName.Data()))->getVal();
+                        fWsp->var(Form("eff_%s", fSignalName.Data()))->setVal(meanEff);
+                        fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(true);
+                    }
+                    
+                    //Run minuit
+                    
+                    m.setPrintLevel(fPrintLevel);
+                    m.optimizeConst(true);
+                    m.migrad();
+                    RooFitResult* fitres_hyp = m.save();
+                    
+                    
+                    //Get the best fit results for the truth-value fit
+                    double nll_ratio = 2. * (fitres_hyp->minNll() - fitResult->nll_sig);
+                    if (fVerboseLevel > 0) {
+                        //                    std::cout << "Fit "<<rit->first<<" hypothesis results: \n";
+                        //                    std::cout << "Fit "<<c<<" hypothesis results: \n";
+                        //                    fitres_hyp->Print();
+                        std::cout << "Computed nll_ratio for signal= " << b << " hypothesis = "<<nll_ratio << std::endl;
+                    }
+                    fitResult->stat_bkg = fitres_hyp->status();
+                    fitResult->covQual_bkg = fitres_hyp->covQual();
+
+                    if( fitres_hyp->status() == 0 ) { // this indicates a fit that minimized properly
+                        g_nllratio_vs_hyp->SetPoint(n_pts,(double) n_iter,nll_ratio);
+                        n_pts++;
+                    }
+                    
+                    
+                    //Remove constant status of floating pars
+                    fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
+                    fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
+                    if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
+                    Double_t f_b = nll_ratio - magicSp3.Eval(b);
+                    // compute f_b
+                    // if(!fBaTag){
+                    
+                    n_iter++;
+                }
+
             }
-            
+            double x,y;
+            for(int pts=0; pts<g_nllratio_vs_hyp->GetN(); pts++){
+                g_nllratio_vs_hyp->GetPoint(pts,x,y);
+                printf("%f\t%f\n",x,y);
+            }
             // TODO: find the lower bound of the confidence interval in the same manner as before
             
             

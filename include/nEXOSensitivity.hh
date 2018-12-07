@@ -309,6 +309,9 @@ public:
   Double_t EvalCounts(Double_t hitEfficiency, Double_t activity, Double_t time, Double_t halflife);
   Double_t GenTruncGaus(Double_t mean, Double_t sigma, Double_t unif, Int_t low = 0.);
 
+  TGraph * GetLambdaVsHypGraph() { return g_nllratio_vs_hyp; }
+
+
   TString fResultFileName;
 
   ExpectCount fExpectCountMethod;
@@ -374,7 +377,7 @@ protected:
   // Member variables
   Int_t fSeed;
   TRandom3 fRandom;
-
+  TGraph * g_nllratio_vs_hyp;
   
   //std::vector<TString> fAllComponents;
   std::vector<TString> fComponentNames;
