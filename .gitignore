@@ -28,6 +28,10 @@
 *.out
 *.app
 
+# ROOT files and plots (i.e. PDF files)
+*.root
+*.pdf
+
 tables/
 quick/
 histos/

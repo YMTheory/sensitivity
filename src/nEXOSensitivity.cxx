@@ -347,10 +347,38 @@ void nEXOSensitivity::ReadExcelTree() {
             Double_t mean = 0.;
             Double_t error = pow(table->fCountsError[s], 2);
             
-            Double_t ratioFVfwhm(table->fRatioFWHMfv[s]), ratio3tfwhm(table->fRatioFWHM3t[s]), ratio2tfwhm(table->fRatioFWHM2t[s]), ratio1tfwhm(table->fRatioFWHM1t[s]), ratio3p5tfwhm(table->fRatioFWHM3p5t[s]), ratio2p5tfwhm(table->fRatioFWHM2p5t[s]), ratio1p5tfwhm(table->fRatioFWHM1p5t[s]), ratio0p5tfwhm(table->fRatioFWHM0p5t[s]);
-            Double_t ratioFV1s(table->fRatio1sfv[s]), ratio3t1s(table->fRatio1s3t[s]), ratio2t1s(table->fRatio1s2t[s]), ratio1t1s(table->fRatio1s1t[s]), ratio3p5t1s(table->fRatio1s3p5t[s]), ratio2p5t1s(table->fRatio1s2p5t[s]), ratio1p5t1s(table->fRatio1s1p5t[s]), ratio0p5t1s(table->fRatio1s0p5t[s]);
-            Double_t ratioFV2s(table->fRatio2sfv[s]), ratio3t2s(table->fRatio2s3t[s]), ratio2t2s(table->fRatio2s2t[s]), ratio1t2s(table->fRatio2s1t[s]), ratio3p5t2s(table->fRatio2s3p5t[s]), ratio2p5t2s(table->fRatio2s2p5t[s]), ratio1p5t2s(table->fRatio2s1p5t[s]), ratio0p5t2s(table->fRatio2s0p5t[s]);
-            Double_t ratioFV3s(table->fRatio3sfv[s]), ratio3t3s(table->fRatio3s3t[s]), ratio2t3s(table->fRatio3s2t[s]), ratio1t3s(table->fRatio3s1t[s]), ratio3p5t3s(table->fRatio3s3p5t[s]), ratio2p5t3s(table->fRatio3s2p5t[s]), ratio1p5t3s(table->fRatio3s1p5t[s]), ratio0p5t3s(table->fRatio3s0p5t[s]);
+            Double_t ratioFVfwhm(table->fRatioFWHMfv[s]), 
+                     ratio3tfwhm(table->fRatioFWHM3t[s]), 
+                     ratio2tfwhm(table->fRatioFWHM2t[s]), 
+                     ratio1tfwhm(table->fRatioFWHM1t[s]), 
+                     ratio3p5tfwhm(table->fRatioFWHM3p5t[s]), 
+                     ratio2p5tfwhm(table->fRatioFWHM2p5t[s]), 
+                     ratio1p5tfwhm(table->fRatioFWHM1p5t[s]), 
+                     ratio0p5tfwhm(table->fRatioFWHM0p5t[s]);
+            Double_t ratioFV1s(table->fRatio1sfv[s]), 
+                     ratio3t1s(table->fRatio1s3t[s]), 
+                     ratio2t1s(table->fRatio1s2t[s]), 
+                     ratio1t1s(table->fRatio1s1t[s]), 
+                     ratio3p5t1s(table->fRatio1s3p5t[s]), 
+                     ratio2p5t1s(table->fRatio1s2p5t[s]), 
+                     ratio1p5t1s(table->fRatio1s1p5t[s]), 
+                     ratio0p5t1s(table->fRatio1s0p5t[s]);
+            Double_t ratioFV2s(table->fRatio2sfv[s]), 
+                     ratio3t2s(table->fRatio2s3t[s]), 
+                     ratio2t2s(table->fRatio2s2t[s]), 
+                     ratio1t2s(table->fRatio2s1t[s]), 
+                     ratio3p5t2s(table->fRatio2s3p5t[s]), 
+                     ratio2p5t2s(table->fRatio2s2p5t[s]), 
+                     ratio1p5t2s(table->fRatio2s1p5t[s]), 
+                     ratio0p5t2s(table->fRatio2s0p5t[s]);
+            Double_t ratioFV3s(table->fRatio3sfv[s]), 
+                     ratio3t3s(table->fRatio3s3t[s]), 
+                     ratio2t3s(table->fRatio3s2t[s]), 
+                     ratio1t3s(table->fRatio3s1t[s]), 
+                     ratio3p5t3s(table->fRatio3s3p5t[s]), 
+                     ratio2p5t3s(table->fRatio3s2p5t[s]), 
+                     ratio1p5t3s(table->fRatio3s1p5t[s]), 
+                     ratio0p5t3s(table->fRatio3s0p5t[s]);
             
             switch (fExpectCountMethod) {
                 case kUL:
