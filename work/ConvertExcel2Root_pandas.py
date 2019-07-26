@@ -41,7 +41,7 @@ class ExcelTableReader:
         self.hitEffSheet = 'MC_RawCounts_%s_Integrals'
         self.halflifeSheet = 'Halflives'                
 
-        print 'Loading sheets...'
+        print('Loading sheets...')
         self.dfSpecActiv = self.ReadBasicSheet( self.specActivSheet )
         #self.dfHalflife = self.ReadBasicSheet( self.halflifeSheet )
         self.dfHalflife = pd.read_excel( self.filename, sheet_name=self.halflifeSheet, header=None )
@@ -52,7 +52,7 @@ class ExcelTableReader:
         self.dfHitEffMS = self.ReadNestedSheet( self.hitEffSheet % 'MS' )
         #print(self.dfHalflife.head())
         #print(self.dfSpecActiv.head())
-        print 'Sheets loaded.'
+        print('Sheets loaded.')
 
         self.name_dict = {y:x for x,y in NameDict.NameDict().data.items()}
 
@@ -67,7 +67,7 @@ class ExcelTableReader:
                                                           ROOT.TString(component),\
                                                           ROOT.TString(isotope),\
                                                           ROOT.TString(mc_id) )
-            print 'Component: %s\t Isotope: %s\t MC_ID: %s' % (component, isotope, mc_id)
+            print('Component: %s\t Isotope: %s\t MC_ID: %s' % (component, isotope, mc_id))
 
 
             # Set halflives
@@ -185,7 +185,7 @@ class ExcelTableReader:
     ##########################################################################
     def ReadBasicSheet(self, inSheetName ):
         
-        print '\tReading %s...' % inSheetName
+        print('\tReading %s...' % inSheetName)
         df = pd.read_excel( self.filename, sheet_name = inSheetName  ) 
    
         return df
@@ -194,7 +194,7 @@ class ExcelTableReader:
 
     def ReadNestedSheet( self, inSheetName ):
 
-        print '\tReading %s' % inSheetName
+        print('\tReading %s' % inSheetName)
         header_rows = 4
 
         # The data in the sheet can be read in directly by skipping the header.
@@ -421,11 +421,11 @@ class RootTreeWriter():
                 if pdf == component:
                     return name
 
-        print '***** CANNOT FIND GROUP FOR %s *****' % (pdf)
+        print('***** CANNOT FIND GROUP FOR %s *****' % (pdf))
         return None
 
     def Fill(self, values):
-        print 'Filling tree...'
+        print('Filling tree...')
 
         values.SetGroup(self.FindGroup(values.fPdf))
         #values.SetFileName(self.pdf_filename_pattern % values.fPdf)
@@ -439,12 +439,12 @@ class RootTreeWriter():
         self.tree.Fill()
 
     def Write(self):
-        print 'Writing tree into file...'
+        print('Writing tree into file...')
         self.file.cd()
         self.tree.Write()
 
     def CloseFile(self):
-        print 'Closing file...', self.file.GetName()
+        print('Closing file...', self.file.GetName())
         self.file.Close()
   
     def GeneratePDFFilename(self, values):
@@ -467,7 +467,7 @@ class Excel2RootConverter():
         self.tree = rootTree
 
     def Run(self):
-        print 'Converting table to tree...'
+        print('Converting table to tree...')
         for pdf in self.table.components:
             self.tree.Fill(self.table.components[pdf])
         self.tree.Write()
