@@ -9,6 +9,7 @@
 
 import sys
 import pandas as pd
+import numpy as np
 import NameDict
 import time
 import os
@@ -22,21 +23,132 @@ class ExcelTableReader:
     # Modify '__init__' appropriately for table in use  
 
     def __init__(self,inTableName):
-        self.filename = inTableName #'../tables/Summary_v68_2016-06-21_0nu.xlsx' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.xlsx'
-        #writer = pd.ExcelWriter(inTableName,engine='openpyxl')
-        #writer.save()
-        #wb = openpyxl.load_workbook( inTableName )
-        #wb.template = True
-        #wb.save( inTableName )
+
+        self.DEBUG=False
+
+        self.filename = inTableName
 
         self.quantile = 1.64
 
-        self.suffixes = ['SS','MS']
+        #self.suffixes = ['SS','MS']
 
         self.specActivSheet = 'SpecificActivities'
         self.countsSheet = '%s_ExpectedCounts'
         self.hitEffSheet = 'MC_RawCounts_%s_Integrals'
         self.halflifeSheet = 'Halflives'                
+
+        self.groups = {}
+
+        self.groups['Far'] = [ "U238_OuterCryostatResin",\
+                               "U238_OuterCryostatFiber",\
+                               "U238_OuterCryostatSupportResin",\
+                               "U238_OuterCryostatSupportFiber",\
+                               "U238_InnerCryostatResin",\
+                               "U238_InnerCryostatFiber",\
+                               "U238_InnerCryostatSupportResin",\
+                               "U238_InnerCryostatSupportFiber",\
+                               "U238_InnerCryostatLiner",\
+                               "Th232_OuterCryostatResin",\
+                               "Th232_OuterCryostatFiber",\
+                               "Th232_OuterCryostatSupportResin",\
+                               "Th232_OuterCryostatSupportFiber",\
+                               "Th232_InnerCryostatResin",\
+                               "Th232_InnerCryostatFiber",\
+                               "Th232_InnerCryostatSupportResin",\
+                               "Th232_InnerCryostatSupportFiber",\
+                               "Th232_InnerCryostatLiner",\
+                               "Co60_OuterCryostatResin",\
+                               "Co60_OuterCryostatFiber",\
+                               "Co60_OuterCryostatSupportResin",\
+                               "Co60_OuterCryostatSupportFiber",\
+                               "Co60_InnerCryostatResin",\
+                               "Co60_InnerCryostatFiber",\
+                               "Co60_InnerCryostatSupportResin",\
+                               "Co60_InnerCryostatSupportFiber",\
+                               "Co60_InnerCryostatLiner",\
+                               "K40_OuterCryostatResin",\
+                               "K40_OuterCryostatFiber",\
+                               "K40_OuterCryostatSupportResin",\
+                               "K40_OuterCryostatSupportFiber",\
+                               "K40_InnerCryostatResin",\
+                               "K40_InnerCryostatFiber",\
+                               "K40_InnerCryostatSupportResin",\
+                               "K40_InnerCryostatSupportFiber",\
+                               "K40_InnerCryostatLiner" ]
+
+        group_vessel = ["HFE",\
+                        "TPCVessel",\
+                        "TPCSupportCone",\
+                        "HVTubes",\
+                        "HVCables",\
+                        "HVFeedthrough",\
+                        "HVFeedthroughCore",\
+                        "CalibrationGuideTube1",\
+                        "CalibrationGuideTube2" ]
+
+        self.groups['VesselU-238'] = ['U238_%s'%(group_comp) for group_comp in group_vessel]
+        self.groups['VesselTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_vessel]
+        
+        group_internal = [ "Cathode",\
+                           "Bulge",\
+                           "FieldRings",\
+                           "SupportRodsandSpacers",\
+                           "SiPMStaves",\
+                           "SiPMElectronics",\
+                           "SiPMModuleInterposer",\
+                           "SiPMCables",\
+                           "SiPMs",\
+                           #"ChargeTilesCables",\
+                           #"ChargeTilesElectronics",\
+                           "ChargeModuleSupport",\
+                           "ChargeModuleBacking",\
+                           "HVPlunger" ]
+
+        self.groups['InternalU-238'] = ['U238_%s'%(group_comp) for group_comp in group_internal]
+        self.groups['InternalTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_internal]
+        
+        group_tpc_k40 = ["SupportRodsandSpacers","SiPMModuleInterposer","ChargeTilesBacking"]
+        self.groups['FullTpcK-40'] = ['K40_%s'%(group_comp) for group_comp in group_tpc_k40]
+        
+        group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
+        self.groups['FullTpcCo-60'] = ['Co60_%s'%(group_comp) for group_comp in group_tpc_co60]
+        
+        self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
+        self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
+        self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
+        self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
+        self.groups['FullLXeBb2n'] = ["bb2n_FullLXe"]
+        self.groups['FullLXeBb0n'] = ["bb0n_FullLXe"]
+    
+        self.groups['GhostComponents'] = ['K40_%s'%(group_comp) for group_comp in group_internal]
+        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal])
+        self.groups['GhostComponents'].extend(['K40_%s'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_vessel])
+        self.groups['GhostComponents'].extend(['U238_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['Th232_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['K40_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['Co60_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['Ag110m_SolderAnode']) 
+        self.groups['GhostComponents'].extend(['U238_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['Th232_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['K40_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['Co60_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['Ag110m_SolderSiPM']) 
+        self.groups['GhostComponents'].extend(['B8nu_FullLXe'])
+        self.groups['GhostComponents'].extend(['Al26_SupportRodsandSpacers'])
+        self.groups['GhostComponents'].extend(['Cs137_FieldRings'])    
+        self.groups['GhostComponents'].extend(['U238_ChargeModuleCables'])
+        self.groups['GhostComponents'].extend(['Th232_ChargeModuleCables'])
+        self.groups['GhostComponents'].extend(['Th232_ChargeModuleElectronics'])
+        self.groups['GhostComponents'].extend(['U238_ChargeModuleElectronics'])
+        
+        # END OF CONSTRUCTOR
+
+    ##########################################################################
+    # Reads the necessary data from the .xlsx spreadsheet file into a single
+    # pandas dataframe. This replaces the old C++ class.
+    ##########################################################################
+    def ConvertExcel2DataFrame( self ):
 
         print('Loading sheets...')
         self.dfSpecActiv = self.ReadBasicSheet( self.specActivSheet )
@@ -47,129 +159,79 @@ class ExcelTableReader:
         self.dfCountsMS = self.ReadNestedSheet( self.countsSheet % 'MS' )
         self.dfHitEffSS = self.ReadNestedSheet( self.hitEffSheet % 'SS' )
         self.dfHitEffMS = self.ReadNestedSheet( self.hitEffSheet % 'MS' )
-        #print(self.dfHalflife.head())
-        #print(self.dfSpecActiv.head())
         print('Sheets loaded.')
 
         self.name_dict = {y:x for x,y in NameDict.NameDict().data.items()}
 
-        self.components = {}
+        self.components = pd.DataFrame()
         for index, row in self.dfSpecActiv.iterrows():
+            thispdf = pd.Series()
+
             component = row['Component']
             isotope   = row['Isotope']
-            mc_id = row['Monte Carlo']
-            #pdf       = '%s_%s' % (self.name_dict[component], isotope.replace('-','') )
-            pdf       = '%s_%s' % (isotope.replace('-',''),self.name_dict[component])#, isotope )
-            self.components[pdf] = ROOT.ExcelTableValues( ROOT.TString(pdf),\
-                                                          ROOT.TString(component),\
-                                                          ROOT.TString(isotope),\
-                                                          ROOT.TString(mc_id) )
-            print('Component: %s\t Isotope: %s\t MC_ID: %s' % (component, isotope, mc_id))
+            thispdf['PDF'] = '%s_%s' % (isotope.replace('-',''),self.name_dict[component])
+            thispdf['Component'] = row['Component']
+            thispdf['Isotope'] = row['Isotope']
+            thispdf['MC ID'] = row['Monte Carlo']
+            print('Component: %s\t Isotope: %s\t MC_ID: %s' % (thispdf['Component'], thispdf['Isotope'], thispdf['MC ID']))
 
 
             # Set halflives
             df = self.dfHalflife
-            self.components[pdf].SetHalflife( df.loc[ df['Isotopes']==isotope, 'Halflife (yrs)'].iloc[0] )
+            thispdf['Halflife'] = df.loc[ df['Isotopes']==isotope, 'Halflife (yrs)'].iloc[0]
 
             # Setting activities.
             df = self.dfSpecActiv
             thisrow = ( df.loc[ df['Component']==component ] ).loc[ df['Isotope']==isotope ]
-            specActiv    = thisrow[ 'Specific Activity [mBq/kg]' ].iloc[0]
-            specActivErr = thisrow[ 'Error [mBq/kg]' ].iloc[0]
-            rawActiv     = thisrow[ 'Activity [Bq]' ].iloc[0]
-            rawActivErr  = thisrow[ 'Error [Bq]' ].iloc[0]
-            activ_ID     = thisrow[ 'Source' ].iloc[0]
-            mc_ID        = thisrow[ 'Monte Carlo' ].iloc[0]
-            self.components[pdf].SetActivity( specActiv,\
-                                              specActivErr,\
-                                              rawActiv,\
-                                              rawActivErr,\
-                                              ROOT.TString(activ_ID) )                  
+            thispdf['SpecActiv']    = thisrow[ 'Specific Activity [mBq/kg]' ].iloc[0]
+            thispdf['SpecActivErr'] = thisrow[ 'Error [mBq/kg]' ].iloc[0]
+            thispdf['RawActiv']     = thisrow[ 'Activity [Bq]' ].iloc[0]
+            thispdf['RawActivErr']  = thisrow[ 'Error [Bq]' ].iloc[0]
+            thispdf['Activity ID']     = thisrow[ 'Source' ].iloc[0]
 
             # Setting SS counts
             df = self.dfCountsSS['>700 keV (700, 3500)']['3.648']
-            thisrow = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
-            self.components[pdf].SetExpectedCounts( thisrow['C.V.'].iloc[0],\
-                                                    thisrow['Error'].iloc[0],\
-                                                    thisrow['Upper Limit'].iloc[0],\
-                                                    'SS' )
-
-            # Setting MS counts
+            thisrowSS = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
             df = self.dfCountsMS['>700 keV (700, 3500)']['3.648']
-            thisrow = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
-            self.components[pdf].SetExpectedCounts( thisrow['C.V.'].iloc[0],\
-                                                    thisrow['Error'].iloc[0],\
-                                                    thisrow['Upper Limit'].iloc[0],\
-                                                    'MS' )
+            thisrowMS = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
+
+            thispdf['Expected Counts'] = thisrowSS['C.V.'].iloc[0] + thisrowMS['C.V.'].iloc[0]
+            thispdf['Expected Counts Err'] = np.sqrt( thispdf['Expected Counts'] ) #thisrowSS['Error'].iloc[0] + thisrowMS['Error'].iloc[0]
+            thispdf['Expected Counts UL'] = thisrowSS['Upper Limit'].iloc[0] + thisrowMS['Upper Limit'].iloc[0]
+
            
             # Setting SS hit efficiencies
             # First, set the n and k variables
             df = self.dfHitEffSS['>700 keV (700, 3500)']['3.648']
-            thisrow = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
-            eff_n = thisrow['No. of Disint.'].iloc[0]
-            eff_k = thisrow['C.V.'].iloc[0]
-            self.components[pdf].SetHitEfficiency( eff_n, eff_k, 'SS')
-
-            # Next, set the hit efficiencies in each enenrgy ROI
-            for energy_range in self.dfHitEffSS.keys():
-              if eff_k == 0:
-                for i in range(0,4):
-                  self.components[pdf].SetHitEfficiencyROI(i,1,1,1,1,1,1,1,1,'SS')
-              else:
-                ROI_idx = 0
-                if 'FWHM' in energy_range:
-                   ROI_idx = 0
-                if '1-sigma' in energy_range:
-                   ROI_idx = 1
-                if '2-sigma' in energy_range:
-                   ROI_idx = 2
-                if '3-sigma' in energy_range:
-                   ROI_idx = 3
-#                print 'Energy range: %s, ROI: %s' % (energy_range, ROI_idx)
-                self.components[pdf].SetHitEfficiencyROI( ROI_idx,\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['3.648'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['3.0'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['2.0'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['1.0'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['3.5'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['2.5'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['1.5'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffSS[energy_range]['0.5'], eff_k),\
-                                      'SS' )
-                                       
-            # Setting MS hit efficiencies
-            # First, set the n and k variables
+            thisrowSS = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
             df = self.dfHitEffMS['>700 keV (700, 3500)']['3.648']
-            thisrow = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
-            eff_n = thisrow['No. of Disint.'].iloc[0]
-            eff_k = thisrow['C.V.'].iloc[0]
-            self.components[pdf].SetHitEfficiency( eff_n, eff_k, 'MS')
+            thisrowMS = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
+            thispdf['TotalHitEff_N'] = thisrowSS['No. of Disint.'].iloc[0]
+            thispdf['TotalHitEff_K'] = thisrowSS['C.V.'].iloc[0] + thisrowMS['C.V.'].iloc[0]
 
-            # Next, set the hit efficiencies in each enenrgy ROI
-            for energy_range in self.dfHitEffMS.keys():
-              if eff_k == 0:
-                for i in range(0,4):
-                  self.components[pdf].SetHitEfficiencyROI(i,1,1,1,1,1,1,1,1,'SS')
-              else:
-                ROI_idx = 0
-                if 'FWHM' in energy_range:
-                   ROI_idx = 0
-                if '1-sigma' in energy_range:
-                   ROI_idx = 1
-                if '2-sigma' in energy_range:
-                   ROI_idx = 2
-                if '3-sigma' in energy_range:
-                   ROI_idx = 3
-                self.components[pdf].SetHitEfficiencyROI( ROI_idx,\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['3.648'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['3.0'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['2.0'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['1.0'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['3.5'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['2.5'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['1.5'], eff_k),\
-                                      self.GetHitEfficiencyVal(component, isotope, self.dfHitEffMS[energy_range]['0.5'], eff_k),\
-                                      'MS' )
+            # Set the group name.
+            for group in self.groups:
+                if thispdf['PDF'] in self.groups[group]:
+                   thispdf['Group'] = group
+                   break 
+
+            if self.DEBUG:
+              print('Halflife: {}\tSpecActiv: {}\tSpecActivErr: {}\tRawActiv: {}\tAct.ID: {}'.format( \
+                    thispdf['Halflife'],\
+                    thispdf['SpecActiv'],\
+                    thispdf['SpecActivErr'],\
+                    thispdf['RawActiv'],\
+                    thispdf['Activity ID']))
+              print('Expected Cts: {}\tExpected Cts Err: {}\tTotalHitEff: {}'.format( \
+                                        thispdf['Expected Counts'],\
+                                        thispdf['Expected Counts Err'],\
+                                        thispdf['TotalHitEff_K']))
+
+
+
+            if self.components.empty:
+               self.components = pd.DataFrame(columns=thispdf.index.values)
+            self.components.loc[index] = thispdf
 
 
             
@@ -284,203 +346,7 @@ class ExcelTableReader:
         # Convert the raw index into the pd.read_excel index given to the relevant column
         col_index = int( jstart ) / int( n_vals_per_fid_vol )
         return col_index
-
-    ############################################################################
-    # 
-    #
-    ############################################################################
-    def GetHitEfficiencyVal( self, component, isotope, df, eff_k ):
-        thisrow = df.loc[ df['Component']==component ].loc[ df['Isotope']==isotope ]
-        return thisrow['C.V.'].iloc[0] * 1./eff_k
-
-        
-
-######################################################
-############### ROOT TREE WRITER #####################
-######################################################
-class RootTreeWriter():
-    # This class carries info about ROOT tree
-    # Adds group information
-    # Modify '__init__' appropriately for desired tree
-
-    def __init__(self,outTableName,pdfFilePath):
-        self.filename = outTableName #'../tables/Summary_v68_2016-06-21_0nu.root' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.root' #'test_new_tree.root'
-
-        self.pdf_filename_pattern ='../histos/Sens_%s.root'
-        self.pdf_file_path = pdfFilePath;
-    #'/data/data033/exo/software/nEXO_Sensitivity/quick/v5/histos/PNNL/571mm_third/nEXO_Histos_%s.root' # 'individual_histos/nEXO_Histos_%s.root'
-        
-        self.file = ROOT.TFile.Open(self.filename,'recreate')
-        self.tree = ROOT.TTree('ExcelTableValues','Values from Excel Summary Table')
-        
-        self.table = ROOT.ExcelTableValues()
-        
-        self.tree.Branch('table',self.table)
-
-        self.groups = {}
-
-        self.groups['Far'] = [ "U238_OuterCryostatResin",\
-                               "U238_OuterCryostatFiber",\
-                               "U238_OuterCryostatSupportResin",\
-                               "U238_OuterCryostatSupportFiber",\
-                               "U238_InnerCryostatResin",\
-                               "U238_InnerCryostatFiber",\
-                               "U238_InnerCryostatSupportResin",\
-                               "U238_InnerCryostatSupportFiber",\
-                               "U238_InnerCryostatLiner",\
-                               "Th232_OuterCryostatResin",\
-                               "Th232_OuterCryostatFiber",\
-                               "Th232_OuterCryostatSupportResin",\
-                               "Th232_OuterCryostatSupportFiber",\
-                               "Th232_InnerCryostatResin",\
-                               "Th232_InnerCryostatFiber",\
-                               "Th232_InnerCryostatSupportResin",\
-                               "Th232_InnerCryostatSupportFiber",\
-                               "Th232_InnerCryostatLiner",\
-                               "Co60_OuterCryostatResin",\
-                               "Co60_OuterCryostatFiber",\
-                               "Co60_OuterCryostatSupportResin",\
-                               "Co60_OuterCryostatSupportFiber",\
-                               "Co60_InnerCryostatResin",\
-                               "Co60_InnerCryostatFiber",\
-                               "Co60_InnerCryostatSupportResin",\
-                               "Co60_InnerCryostatSupportFiber",\
-                               "Co60_InnerCryostatLiner",\
-                               "K40_OuterCryostatResin",\
-                               "K40_OuterCryostatFiber",\
-                               "K40_OuterCryostatSupportResin",\
-                               "K40_OuterCryostatSupportFiber",\
-                               "K40_InnerCryostatResin",\
-                               "K40_InnerCryostatFiber",\
-                               "K40_InnerCryostatSupportResin",\
-                               "K40_InnerCryostatSupportFiber",\
-                               "K40_InnerCryostatLiner" ]
-
-        group_vessel = ["HFE",\
-                        "TPCVessel",\
-                        "TPCSupportCone",\
-                        "HVTubes",\
-                        "HVCables",\
-                        "HVFeedthrough",\
-                        "HVFeedthroughCore",\
-                        "CalibrationGuideTube1",\
-                        "CalibrationGuideTube2" ]
-
-        self.groups['VesselU-238'] = ['U238_%s'%(group_comp) for group_comp in group_vessel]
-        self.groups['VesselTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_vessel]
-        
-        group_internal = [ "Cathode",\
-                           "Bulge",\
-                           "FieldRings",\
-                           "SupportRodsandSpacers",\
-                           "SiPMStaves",\
-                           "SiPMElectronics",\
-                           "SiPMModuleInterposer",\
-                           "SiPMCables",\
-                           "SiPMs",\
-                           #"ChargeTilesCables",\
-                           #"ChargeTilesElectronics",\
-                           "ChargeModuleSupport",\
-                           "ChargeModuleBacking",\
-                           "HVPlunger" ]
-
-        self.groups['InternalU-238'] = ['U238_%s'%(group_comp) for group_comp in group_internal]
-        self.groups['InternalTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_internal]
-        
-        group_tpc_k40 = ["SupportRodsandSpacers","SiPMModuleInterposer","ChargeTilesBacking"]
-        self.groups['FullTpcK-40'] = ['K40_%s'%(group_comp) for group_comp in group_tpc_k40]
-        
-        group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
-        self.groups['FullTpcCo-60'] = ['Co60_%s'%(group_comp) for group_comp in group_tpc_co60]
-        
-        self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
-        self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
-        self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
-        self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
-        self.groups['FullLXeBb2n'] = ["bb2n_FullLXe"]
-        self.groups['FullLXeBb0n'] = ["bb0n_FullLXe"]
-    
-        self.groups['GhostComponents'] = ['K40_%s'%(group_comp) for group_comp in group_internal]
-        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal])
-        self.groups['GhostComponents'].extend(['K40_%s'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['U238_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['Th232_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['K40_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['Co60_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['Ag110m_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['U238_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['Th232_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['K40_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['Co60_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['Ag110m_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['B8nu_FullLXe'])
-        self.groups['GhostComponents'].extend(['Al26_SupportRodsandSpacers'])
-        self.groups['GhostComponents'].extend(['Cs137_FieldRings'])    
-        self.groups['GhostComponents'].extend(['U238_ChargeModuleCables'])
-        self.groups['GhostComponents'].extend(['Th232_ChargeModuleCables'])
-        self.groups['GhostComponents'].extend(['Th232_ChargeModuleElectronics'])
-        self.groups['GhostComponents'].extend(['U238_ChargeModuleElectronics'])
-
-    def FindGroup(self, pdf):
-
-        for name in self.groups:
-            group = self.groups[name]
-            for component in group:
-                if pdf == component:
-                    return name
-
-        print('***** CANNOT FIND GROUP FOR %s *****' % (pdf))
-        return None
-
-    def Fill(self, values):
-        print('Filling tree...')
-
-        values.SetGroup(self.FindGroup(values.fPdf))
-        #values.SetFileName(self.pdf_filename_pattern % values.fPdf)
-        values.SetFileName( self.GeneratePDFFilename(values) )
-        #if values.fIsotope == 'bb0n':
-        #    values.fFileName = values.fFileName.replace('resol0.005','resol0.010')
-        
-        self.table.Copy(values)
-        self.table.Print()
-
-        self.tree.Fill()
-
-    def Write(self):
-        print('Writing tree into file...')
-        self.file.cd()
-        self.tree.Write()
-
-    def CloseFile(self):
-        print('Closing file...', self.file.GetName())
-        self.file.Close()
-  
-    def GeneratePDFFilename(self, values):
-        mc_id = values.fMC_ID
-        files = os.listdir(self.pdf_file_path)
-        for f in files:
-            if values.fIsotope.replace('-','') in f and mc_id in f:
-              #print(self.pdf_file_path + '/' + f)
-              return self.pdf_file_path + '/' + f
-        
-
-######################################################
-############# TABLE TO TREE CONVERTER ################
-######################################################
-class Excel2RootConverter():
-    # This class converts the table into tree
-
-    def __init__(self, excelTable, rootTree):
-        self.table = excelTable
-        self.tree = rootTree
-
-    def Run(self):
-        print('Converting table to tree...')
-        #for pdf in self.table.components:
-        #    self.tree.Fill(self.table.components[pdf])
-        #self.tree.Write()
-        #self.tree.CloseFile()
+ 
 
 ######################################################
 ####################  MAIN  ##########################
@@ -499,18 +365,17 @@ if __name__ == "__main__":
     else:
         print('\n\nERROR: ConvertExcel2Root_pandas.py requires 3 arguments');
         print('Usage:')
-        print('\tpython ConvertExcel2Root_pandas.py <inputExcelTableName> <outputRootTableName> </path/to/pdf/rootfiles/>')
+        print('\tpython ConvertExcel2Root_pandas.py <inputExcelTableName> <outputHDF5FileName> </path/to/pdf/rootfiles/>')
         sys.exit('\n')
        
 
     start_time = time.time()    
 
     excelTable = ExcelTableReader(inTableName) #excelTable.Print()
-    
-    #rootTree = RootTreeWriter(outTableName,pathToPDFs)
+    excelTable.ConvertExcel2DataFrame()
 
-    #table2tree = Excel2RootConverter(excelTable,rootTree)
-    #table2tree.Run()
+    print( excelTable.components )
+    excelTable.components.to_hdf(outTableName,key='Components')
 
     end_time = time.time()
     print('Elapsed time = {} seconds ({} minutes).'.format( end_time-start_time, (end_time-start_time)/60. ) )
