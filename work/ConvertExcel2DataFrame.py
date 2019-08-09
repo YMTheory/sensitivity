@@ -9,6 +9,7 @@
 
 import sys
 import pandas as pd
+import histlite as hl
 import numpy as np
 import NameDict
 import time
@@ -22,11 +23,13 @@ class ExcelTableReader:
     # This class carries all table info
     # Modify '__init__' appropriately for table in use  
 
-    def __init__(self,inTableName):
+    def __init__(self,inTableName,pathToPDFs):
 
         self.DEBUG=False
 
         self.filename = inTableName
+
+        self.df_pdfs = pd.read_hdf( pathToPDFs, key='SimulationPDFs' )
 
         self.quantile = 1.64
 
@@ -169,12 +172,16 @@ class ExcelTableReader:
 
             component = row['Component']
             isotope   = row['Isotope']
-            thispdf['PDF'] = '%s_%s' % (isotope.replace('-',''),self.name_dict[component])
+            thispdf['PDFName'] = '%s_%s' % (isotope.replace('-',''),self.name_dict[component])
             thispdf['Component'] = row['Component']
             thispdf['Isotope'] = row['Isotope']
             thispdf['MC ID'] = row['Monte Carlo']
             print('Component: %s\t Isotope: %s\t MC_ID: %s' % (thispdf['Component'], thispdf['Isotope'], thispdf['MC ID']))
 
+            thispdf['Histogram'] = self.df_pdfs['PDF'].loc[ \
+                                     (self.df_pdfs['Filename'].str.contains(thispdf['MC ID'])) & \
+                                     (self.df_pdfs['Filename'].str.contains(thispdf['Isotope'].replace('-',''))) \
+                                                          ].values[0]
 
             # Set halflives
             df = self.dfHalflife
@@ -211,7 +218,7 @@ class ExcelTableReader:
 
             # Set the group name.
             for group in self.groups:
-                if thispdf['PDF'] in self.groups[group]:
+                if thispdf['PDFName'] in self.groups[group]:
                    thispdf['Group'] = group
                    break 
 
@@ -363,15 +370,15 @@ if __name__ == "__main__":
         if not os.path.exists(pathToPDFs):
            sys.exit('\nERROR: path to PDF files does not exist\n')
     else:
-        print('\n\nERROR: ConvertExcel2Root_pandas.py requires 3 arguments');
+        print('\n\nERROR: ConvertExcel2DataFrame.py requires 3 arguments');
         print('Usage:')
-        print('\tpython ConvertExcel2Root_pandas.py <inputExcelTableName> <outputHDF5FileName> </path/to/pdf/rootfiles/>')
+        print('\tpython ConvertExcel2DataFrame.py </path/to/inputExcelTable> <outputHDF5FileName> </path/to/hdf5PdfsFile>')
         sys.exit('\n')
        
 
     start_time = time.time()    
 
-    excelTable = ExcelTableReader(inTableName) #excelTable.Print()
+    excelTable = ExcelTableReader(inTableName,pathToPDFs) #excelTable.Print()
     excelTable.ConvertExcel2DataFrame()
 
     print( excelTable.components )
