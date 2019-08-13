@@ -36,6 +36,7 @@ class ExcelTableReader:
         #self.suffixes = ['SS','MS']
 
         self.specActivSheet = 'SpecificActivities'
+        self.detectorSpecsSheet = 'DetectorSpecifications'
         self.countsSheet = '%s_ExpectedCounts'
         self.hitEffSheet = 'MC_RawCounts_%s_Integrals'
         self.halflifeSheet = 'Halflives'                
@@ -116,34 +117,36 @@ class ExcelTableReader:
         group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
         self.groups['FullTpcCo-60'] = ['Co60_%s'%(group_comp) for group_comp in group_tpc_co60]
         
-        self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
-        self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
-        self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
-        self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
+#        self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
+#        self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
+        self.groups['Rn-222'] = ["Rn222_ActiveLXe","Rn222_InactiveLXe","Rn222_CathodeRadon"]
+#        self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
+#        self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
+        self.groups['Xe-137'] = ["Xe137_InactiveLXe","Xe137_ActiveLXe"]
         self.groups['FullLXeBb2n'] = ["bb2n_FullLXe"]
         self.groups['FullLXeBb0n'] = ["bb0n_FullLXe"]
     
-        self.groups['GhostComponents'] = ['K40_%s'%(group_comp) for group_comp in group_internal]
-        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal])
-        self.groups['GhostComponents'].extend(['K40_%s'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_vessel])
-        self.groups['GhostComponents'].extend(['U238_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['Th232_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['K40_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['Co60_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['Ag110m_SolderAnode']) 
-        self.groups['GhostComponents'].extend(['U238_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['Th232_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['K40_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['Co60_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['Ag110m_SolderSiPM']) 
-        self.groups['GhostComponents'].extend(['B8nu_FullLXe'])
-        self.groups['GhostComponents'].extend(['Al26_SupportRodsandSpacers'])
-        self.groups['GhostComponents'].extend(['Cs137_FieldRings'])    
-        self.groups['GhostComponents'].extend(['U238_ChargeModuleCables'])
-        self.groups['GhostComponents'].extend(['Th232_ChargeModuleCables'])
-        self.groups['GhostComponents'].extend(['Th232_ChargeModuleElectronics'])
-        self.groups['GhostComponents'].extend(['U238_ChargeModuleElectronics'])
+        self.groups['Off'] = ['K40_%s'%(group_comp) for group_comp in group_internal]
+        self.groups['Off'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal])
+        self.groups['Off'].extend(['K40_%s'%(group_comp) for group_comp in group_vessel])
+        self.groups['Off'].extend(['Co60_%s'%(group_comp) for group_comp in group_vessel])
+        self.groups['Off'].extend(['U238_SolderAnode']) 
+        self.groups['Off'].extend(['Th232_SolderAnode']) 
+        self.groups['Off'].extend(['K40_SolderAnode']) 
+        self.groups['Off'].extend(['Co60_SolderAnode']) 
+        self.groups['Off'].extend(['Ag110m_SolderAnode']) 
+        self.groups['Off'].extend(['U238_SolderSiPM']) 
+        self.groups['Off'].extend(['Th232_SolderSiPM']) 
+        self.groups['Off'].extend(['K40_SolderSiPM']) 
+        self.groups['Off'].extend(['Co60_SolderSiPM']) 
+        self.groups['Off'].extend(['Ag110m_SolderSiPM']) 
+        self.groups['Off'].extend(['B8nu_FullLXe'])
+        self.groups['Off'].extend(['Al26_SupportRodsandSpacers'])
+        self.groups['Off'].extend(['Cs137_FieldRings'])    
+        self.groups['Off'].extend(['U238_ChargeModuleCables'])
+        self.groups['Off'].extend(['Th232_ChargeModuleCables'])
+        self.groups['Off'].extend(['Th232_ChargeModuleElectronics'])
+        self.groups['Off'].extend(['U238_ChargeModuleElectronics'])
         
         # END OF CONSTRUCTOR
 
@@ -155,6 +158,7 @@ class ExcelTableReader:
 
         print('Loading sheets...')
         self.dfSpecActiv = self.ReadBasicSheet( self.specActivSheet )
+        self.dfDetSpecs = self.ReadBasicSheet( self.detectorSpecsSheet )
         #self.dfHalflife = self.ReadBasicSheet( self.halflifeSheet )
         self.dfHalflife = pd.read_excel( self.filename, sheet_name=self.halflifeSheet, header=None )
         self.dfHalflife.columns = ['Isotopes','Halflife (yrs)']
@@ -182,6 +186,13 @@ class ExcelTableReader:
                                      (self.df_pdfs['Filename'].str.contains(thispdf['MC ID'])) & \
                                      (self.df_pdfs['Filename'].str.contains(thispdf['Isotope'].replace('-',''))) \
                                                           ].values[0]
+            thispdf['HistogramAxisNames'] = self.df_pdfs['PDFAxisNames'].loc[ \
+                                     (self.df_pdfs['Filename'].str.contains(thispdf['MC ID'])) & \
+                                     (self.df_pdfs['Filename'].str.contains(thispdf['Isotope'].replace('-',''))) \
+                                                          ].values[0]
+
+            # Set total mass of this component in the detector
+            thispdf['Total Mass or Area'] = self.dfDetSpecs['Total Mass or Area'].loc[ self.dfDetSpecs['Component']==component ].values[0]
 
             # Set halflives
             df = self.dfHalflife

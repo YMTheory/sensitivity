@@ -39,12 +39,12 @@ for file in os.listdir(pathToROOTPDFs):
     hh = hl.Hist( [ [0,1,2],\
                     h_StandoffVsEnergySS_Smear[1][0][0],\
                     h_StandoffVsEnergySS_Smear[1][0][1] ],\
-                  [ h_StandoffVsEnergySS_Smear[0],\
-                    h_StandoffVsEnergyMS_Smear[0] ] )
+                  [ h_StandoffVsEnergySS_Smear[0].astype(float),\
+                    h_StandoffVsEnergyMS_Smear[0].astype(float) ] )
     hh = hh.rebin(1,h_StandoffVsEnergySS_Smear[1][0][0][0::10])
     hh = hh.rebin(2,h_StandoffVsEnergySS_Smear[1][0][1][0::26])
     
-    thisrow = {'Filename':file, 'PDF':hh}
+    thisrow = {'Filename':file, 'PDF':hh, 'PDFAxisNames':['SS/MS','Energy (keV)','Standoff (mm)']}
     rowslist.append(thisrow)
     
 df_pdf = pd.DataFrame(rowslist)
