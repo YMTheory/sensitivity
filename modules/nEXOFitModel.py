@@ -29,23 +29,18 @@ class nEXOFitModel:
            this_variable_dict['Value'] = row['TotalExpectedCounts']
            self.variable_list.append( this_variable_dict )
 
-   def GenerateModelDistribution( self ):
+   def GenerateModelDistribution( self, fast=False ):
        if len(self.components)==0:
            print('ERROR: no components are loaded into the fitted model.')
            return 
 
        # Loop over components, weight them, and sum them together.
-       for i in range(0,len(self.components)):
-           if i==0:
-              self.full_distribution = self.components[i] * self.variable_list[i]['Value']
-           else:
-              self.full_distribution = self.full_distribution +\
-                                       self.components[i] * self.variable_list[i]['Value']
-       # I realize for loops are frowned upon in python, but
-       # this allows me to keep track of the
-       # variables' indices (which is necessary to keep track of
-       # which variable is which in the numpy parameter array
-       # passed to the fitter)
+       distributions = [
+           (self.components[i].values if fast else self.components[i])
+            * self.variable_list[i]['Value']
+           for i in range(len(self.components))
+       ]
+       self.full_distribution = np.sum(distributions, axis=0)
        return self.full_distribution
 
    def GenerateDataset( self ):

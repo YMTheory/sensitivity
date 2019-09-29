@@ -31,15 +31,17 @@ class nEXOFitLikelihood:
 
    def ComputeNegLogLikelihood( self, var_values ):
        #
+       fast = False
        self.model_obj.UpdateVariables( var_values )
-       self.model = self.model_obj.GenerateModelDistribution()
+       self.model = self.model_obj.GenerateModelDistribution(fast=fast)
+       if not fast:
+          self.model = self.model.values
        self.variable_list = self.model_obj.variable_list
       
        # Here we do a binned negative log-likelihood, assuming
        # each bin is an independent, poisson-distributed variable
-       mask = (self.model.values > 0.)
-       datmask = (self.dataset.values > 0.)
-       self.nll = np.sum( self.model.values[mask]  - \
-                  self.dataset.values[mask] * np.log( self.model.values[mask] ) ) -\
+       mask = (self.model > 0.)
+       self.nll = np.sum( self.model[mask]  - \
+                  self.dataset.values[mask] * np.log( self.model[mask] ) ) -\
                   self.nll_offset 
        return self.nll
