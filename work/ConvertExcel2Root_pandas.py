@@ -13,7 +13,6 @@ import pandas as pd
 import NameDict
 import time
 import os
-import openpyxl
 
 ROOT.gSystem.Load('../lib/libnEXOSensitivity.so')
 
@@ -26,11 +25,6 @@ class ExcelTableReader:
 
     def __init__(self,inTableName):
         self.filename = inTableName #'../tables/Summary_v68_2016-06-21_0nu.xlsx' #'../tables/Summary_v62_2016-06-04_0nu_tpc_elec.xlsx'
-        #writer = pd.ExcelWriter(inTableName,engine='openpyxl')
-        #writer.save()
-        wb = openpyxl.load_workbook( inTableName )
-        wb.template = True
-        wb.save( inTableName )
 
         self.quantile = 1.64
 
@@ -91,7 +85,9 @@ class ExcelTableReader:
 
             # Setting SS counts
             df = self.dfCountsSS['>700 keV (700, 3500)']['3.648']
+            #print(df.head())
             thisrow = (df.loc[ df['Component']==component ]).loc[ df['Isotope']==isotope ]
+            #print(thisrow)
             self.components[pdf].SetExpectedCounts( thisrow['C.V.'].iloc[0],\
                                                     thisrow['Error'].iloc[0],\
                                                     thisrow['Upper Limit'].iloc[0],\
@@ -199,7 +195,7 @@ class ExcelTableReader:
 
         # The data in the sheet can be read in directly by skipping the header.
 
-        df = pd.read_excel( self.filename, sheet_name = inSheetName, header = header_rows ) 
+        df = pd.read_excel( self.filename, sheet_name = inSheetName, header = header_rows )
         # The header needs some massaging due to the way the 
         # Excel file is currently formatted.
         dfheader_tmp = pd.read_excel( self.filename, sheet_name = inSheetName, skipfooter = df.shape[0]+1 )
@@ -245,6 +241,7 @@ class ExcelTableReader:
               for column in global_columns:   # Add in the global columns 
                   df_tmp[column] = df[column]
               for column in local_columns:    # Add in the local columns
+                  #print(energy_range)
                   col_index = self.GetColIndex( energy_range,\
                                                 fiducial_vol,\
                                                 n_vals_per_fid_vol,\
@@ -269,6 +266,7 @@ class ExcelTableReader:
         iend   = istart + n_vals_per_fid_vol * n_fid_vol_per_energy_bin 
         df_subset = dfheader.iloc[istart:iend]
 
+        #print('Fiducial volume: {}'.format(fiducial_volume))
         # Using the above, get start index for relevant data values
         jstart = df_subset.loc[ df_subset['Fiducial mass [tonne]'] == fiducial_volume ].index.values[0]
 
