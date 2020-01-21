@@ -8,20 +8,23 @@ class nEXOFitModel:
        
        # Here I'll use lists to ensure that the indices are
        # aligned properly.  
-       self.components = []
+       self.pdfs = []
        self.variable_list = []
        self.full_distribution = None
 
-   def AddHistogramsFromDataframe( self, input_df ):
+   def AddPDFsFromDataframe( self, input_df, append=False ):
 
-       self.df_components = input_df
+       self.df_pdfs = input_df
+       if not append:
+          self.pdfs = []
+          self.variable_list = []
 
        for index, row in input_df.iterrows():
            if (row['Group']=='Total Sum')|\
               (row['Group']=='Off')|\
               (row['Group']=='Far'):
                   continue
-           self.components.append( row['Histogram'] )
+           self.pdfs.append( row['Histogram'] )
 
            this_variable_dict = {}
            this_variable_dict['Name'] = 'Num_{}'.format( row['Group'] ) 
@@ -29,15 +32,15 @@ class nEXOFitModel:
            self.variable_list.append( this_variable_dict )
 
    def GenerateModelDistribution( self, fast=False ):
-       if len(self.components)==0:
-           print('ERROR: no components are loaded into the fitted model.')
+       if len(self.pdfs)==0:
+           print('ERROR: no pdfs are loaded into the fitted model.')
            return 
 
-       # Loop over components, weight them, and sum them together.
+       # Loop over pdfs, weight them, and sum them together.
        distributions = [
-           (self.components[i].values if fast else self.components[i])
+           (self.pdfs[i].values if fast else self.pdfs[i])
             * self.variable_list[i]['Value']
-           for i in range(len(self.components))
+           for i in range(len(self.pdfs))
        ]
        self.full_distribution = np.sum(distributions, axis=0)
        return self.full_distribution

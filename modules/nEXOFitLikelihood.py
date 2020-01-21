@@ -23,12 +23,10 @@ class nEXOFitLikelihood:
        self.dataset = input_dataset
 
    def AddPDFDataframeToModel( self, df_pdfs ):
-       self.model_obj.AddHistogramsFromDataframe( df_pdfs )
+       self.model_obj.AddPDFsFromDataframe( df_pdfs )
        self.model = self.model_obj.GenerateModelDistribution()
        self.variable_list = self.model_obj.variable_list
        self.initial_values = copy.deepcopy(self.variable_list)
-
-       return
 
    def ComputeNegLogLikelihood( self, var_values ):
        #
@@ -46,3 +44,8 @@ class nEXOFitLikelihood:
                   self.dataset.values[mask] * np.log( self.model[mask] ) ) -\
                   self.nll_offset 
        return self.nll
+
+   def PrintVariableList( self ):
+       print('{:<25} {}'.format('Variable name:','Value:'))
+       for var in self.variable_list:
+           print('{:<25} {:4.4}'.format(var['Name'],var['Value']))

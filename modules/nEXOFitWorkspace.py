@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import sys
 import yaml
+import time
 #import iminuit
 
 import nEXOExcelTableReader
@@ -62,7 +63,7 @@ class nEXOFitWorkspace:
    ##########################################################################
    def LoadComponentsTableFromFile( self, input_filename ):
 
-      print('\nLoading input data from materials database spreadsheet....')
+      print('\nLoading input data froma previously-generated components table....')
 
       if not (self.df_components.empty):
          print('\nWARNING: There is already an input dataframe loaded. It ' +\
@@ -104,24 +105,47 @@ class nEXOFitWorkspace:
    # Creates the components table from the Excel spreadsheet.
    ##########################################################################
    def CreateComponentsTableFromXLS( self, excelFile, histogramsFile ):
+
+      # Check and see if we're overwriting something here.
+      if not (self.df_components.empty):
+         print('\nWARNING: There is already an input dataframe loaded. It ' +\
+               'will be overwritten.')
  
       start_time = time.time()      
 
-      excelTable = nEXOExcelTableReader.nEXOExcelTableReader( excelFile, \
+      excelTableReader = nEXOExcelTableReader.nEXOExcelTableReader( excelFile, \
                                                               histogramsFile, \
                                                               config = self.config)
       try: 
-         excelTable.ConvertExcel2DataFrame()
+         excelTableReader.ConvertExcel2DataFrame()
       except KeyError:
          sys.exit()
    
-      #print( excelTable.components )
+      self.df_components = excelTableReader.components
+
+      # Print out some useful info.
+      print('\nLoaded dataframe with {} components.'.format(len(self.df_components)))
+      print('Contains the following quantities of interest:')
+      for column_name in self.df_components.columns:
+          print('\t{}'.format(column_name))
+      if 'HistogramAxisNames' in self.df_components.columns:     
+         self.histogram_axis_names = self.df_components['HistogramAxisNames'].iloc[0]
+         print('\nFit variables:\n' +\
+               '\t{}'.format(self.histogram_axis_names))
+      else:
+         print('WARNING: We don\'t have axis names for the histograms. ' +\
+               'Please ensure they are set in the config file, or we might run ' +\
+               'into problems.')
+
+      # Store the components table in a file in case you want to
+      # go back and look at it later.
       nameTag = excelTableReader.GetExcelNameTag( excelFile )
       outTableName = 'ComponentsTable_' + nameTag + '.h5'
-      excelTable.components.to_hdf(outTableName,key='Components')
+      print('\n\nWriting table to file {}\n'.format(outTableName))
+      excelTableReader.components.to_hdf( outTableName, key='Components' )
 
       end_time = time.time()
-      print('Elapsed time = {} seconds ({} minutes).'.format( \
+      print('Elapsed time = {:3.3} seconds ({:3.3} minutes).'.format( \
                               end_time-start_time, \
                              (end_time-start_time)/60. ) )
       return
@@ -142,8 +166,8 @@ class nEXOFitWorkspace:
                                                     'Histogram',\
                                                     'TotalExpectedCounts'])
 
-       # Loop over rows in df_input, add histograms to the appropriate group.
-       for index,row in self.df_input.iterrows():
+       # Loop over rows in df_components, add histograms to the appropriate group.
+       for index,row in self.df_components.iterrows():
 
          if row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts

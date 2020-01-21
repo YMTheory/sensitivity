@@ -81,7 +81,8 @@ class nEXOExcelTableReader:
             thispdf['Component'] = row['Component']
             thispdf['Isotope'] = row['Isotope']
             thispdf['MC ID'] = row['Monte Carlo']
-            print('Component: %s\t Isotope: %s\t MC_ID: %s' % (thispdf['Component'], thispdf['Isotope'], thispdf['MC ID']))
+            if self.DEBUG:
+               print('Component: %s\t Isotope: %s\t MC_ID: %s' % (thispdf['Component'], thispdf['Isotope'], thispdf['MC ID']))
 
             thispdf['Histogram'] = self.df_pdfs['Histogram'].loc[ \
                                      (self.df_pdfs['Filename'].str.contains(thispdf['MC ID'])) & \
