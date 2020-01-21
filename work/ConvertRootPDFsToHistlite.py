@@ -25,15 +25,15 @@ num_rootfiles = len(os.listdir(pathToROOTPDFs))
 rowslist = []
 num_processed = 0
 
-for file in os.listdir(pathToROOTPDFs):
+for filename in os.listdir(pathToROOTPDFs):
     num_processed+=1
-    if '.root' not in file:
+    if '.root' not in filename:
         continue
-    print('Loading {} at {:.4} seconds...\t({}/{})'.format(file,\
+    print('Loading {} at {:.4} seconds...\t({}/{})'.format(filename,\
                                                         time.time()-start_time,\
                                                         num_processed,\
                                                         num_rootfiles))
-    thisfile = uproot.open( (pathToROOTPDFs + file) )
+    thisfile = uproot.open( (pathToROOTPDFs + filename) )
     h_StandoffVsEnergySS_Smear = thisfile['h_StandoffVsEnergySS_Smear;1'].numpy()
     h_StandoffVsEnergyMS_Smear = thisfile['h_StandoffVsEnergyMS_Smear;1'].numpy()
     hh = hl.Hist( [ [0,1,2],\
@@ -44,11 +44,11 @@ for file in os.listdir(pathToROOTPDFs):
     hh = hh.rebin(1,h_StandoffVsEnergySS_Smear[1][0][0][0::10])
     hh = hh.rebin(2,h_StandoffVsEnergySS_Smear[1][0][1][0::26])
     
-    thisrow = {'Filename':file, 'PDF':hh, 'PDFAxisNames':['SS/MS','Energy (keV)','Standoff (mm)']}
+    thisrow = {'Filename':filename, 'Histogram':hh, 'HistogramAxisNames':['SS/MS','Energy (keV)','Standoff (mm)']}
     rowslist.append(thisrow)
     
 df_pdf = pd.DataFrame(rowslist)
-df_pdf.to_hdf(outputFile,key='SimulationPDFs')
+df_pdf.to_hdf(outputFile,key='SimulationHistograms')
 
 end_time = time.time()
 
