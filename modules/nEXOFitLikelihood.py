@@ -2,6 +2,7 @@ import numpy as np
 import histlite as hl
 import pandas as pd
 import nEXOFitModel
+import copy
 
 class nEXOFitLikelihood:
 
@@ -25,7 +26,7 @@ class nEXOFitLikelihood:
        self.model_obj.AddHistogramsFromDataframe( df_pdfs )
        self.model = self.model_obj.GenerateModelDistribution()
        self.variable_list = self.model_obj.variable_list
-       self.initial_values = self.variable_list
+       self.initial_values = copy.deepcopy(self.variable_list)
 
        return
 
