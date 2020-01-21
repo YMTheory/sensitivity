@@ -2,7 +2,6 @@ import histlite as hl
 import pandas as pd
 import numpy as np
 
-
 class nEXOFitModel:
 
    def __init__( self ):

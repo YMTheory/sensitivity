@@ -33,7 +33,7 @@ for filename in os.listdir(pathToROOTPDFs):
                                                         time.time()-start_time,\
                                                         num_processed,\
                                                         num_rootfiles))
-    thisfile = uproot.open( (pathToROOTPDFs + filename) )
+    thisfile = uproot.open( (pathToROOTPDFs + '/' + filename) )
     h_StandoffVsEnergySS_Smear = thisfile['h_StandoffVsEnergySS_Smear;1'].numpy()
     h_StandoffVsEnergyMS_Smear = thisfile['h_StandoffVsEnergyMS_Smear;1'].numpy()
     hh = hl.Hist( [ [0,1,2],\

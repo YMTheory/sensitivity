@@ -16,6 +16,13 @@ HistogramAxisNames: ['SS/MS','Energy (keV)','Standoff (mm)']
 CustomSpecActivities:
   bb0n_FullLXe:      0.0000000001 # mBq/kg
 
+# Set a custom scaling factor for a specific component,
+# which scales the activity calculated from the Materials Database.
+# Useful for e.g. Xe137 depth studies
+CustomScalingFactors:
+  Xe137_ActiveLXe:    1.
+  Xe137_InactiveLXe:  1.
+
 # Each component needs to be assigned to a group to create
 # composite PDFs in the sensitivity code. 
 GroupAssignments:
@@ -57,22 +64,22 @@ GroupAssignments:
   K40_InnerCryostatLiner:              "Far"
   U238_HFE:                            "Vessel_U238"
   U238_TPCVessel:                      "Vessel_U238"
-  U238_TPSSupportCone:                 "Vessel_U238"
+  U238_TPCSupportCone:                 "Vessel_U238"
   U238_HVTubes:                        "Vessel_U238"
   U238_HVCables:                       "Vessel_U238"
   U238_HVFeedthrough:                  "Vessel_U238"
   U238_HVFeedthroughCore:              "Vessel_U238"
-  U238_HVCalibrationGuideTube1:        "Vessel_U238"
-  U238_HVCalibrationGuideTube2:        "Vessel_U238"
+  U238_CalibrationGuideTube1:          "Vessel_U238"
+  U238_CalibrationGuideTube2:          "Vessel_U238"
   Th232_HFE:                           "Vessel_Th232"
   Th232_TPCVessel:                     "Vessel_Th232"
-  Th232_TPSSupportCone:                "Vessel_Th232"
+  Th232_TPCSupportCone:                "Vessel_Th232"
   Th232_HVTubes:                       "Vessel_Th232"
   Th232_HVCables:                      "Vessel_Th232"
   Th232_HVFeedthrough:                 "Vessel_Th232"
   Th232_HVFeedthroughCore:             "Vessel_Th232"
-  Th232_HVCalibrationGuideTube1:       "Vessel_Th232"
-  Th232_HVCalibrationGuideTube2:       "Vessel_Th232"
+  Th232_CalibrationGuideTube1:         "Vessel_Th232"
+  Th232_CalibrationGuideTube2:         "Vessel_Th232"
   U238_Cathode:                        "Internals_U238"
   U238_Bulge:                          "Internals_U238"
   U238_FieldRings:                     "Internals_U238"
