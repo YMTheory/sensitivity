@@ -242,11 +242,11 @@ class ExcelTableReader:
                   df_tmp[column] = df[column]
               for column in local_columns:    # Add in the local columns
                   #print(energy_range)
-                  col_index = self.GetColIndex( energy_range,\
+                  col_index = int( self.GetColIndex( energy_range,\
                                                 fiducial_vol,\
                                                 n_vals_per_fid_vol,\
                                                 n_fid_vol_per_en_bin,\
-                                                dfheader )
+                                                dfheader ) )
                   if int(col_index) > 0:
                     df_tmp[column] = df['%s.%s' % (column,col_index)]
                   elif int(col_index) == 0:
@@ -266,8 +266,9 @@ class ExcelTableReader:
         iend   = istart + n_vals_per_fid_vol * n_fid_vol_per_energy_bin 
         df_subset = dfheader.iloc[istart:iend]
 
-        #print('Fiducial volume: {}'.format(fiducial_volume))
         # Using the above, get start index for relevant data values
+        if len( df_subset.loc[ df_subset['Fiducial mass [tonne]'] == fiducial_volume ].index.values ) == 0:
+            return -1
         jstart = df_subset.loc[ df_subset['Fiducial mass [tonne]'] == fiducial_volume ].index.values[0]
 
         # Convert the raw index into the pd.read_excel index given to the relevant column
