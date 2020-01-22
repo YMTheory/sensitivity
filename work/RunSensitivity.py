@@ -41,7 +41,7 @@ if __name__ == "__main__":
     parser.add_option("--turn-off-groups", nargs=1,type=str,default='') # turn these groups off the fit (set zero expectation counts and do not include in fit)
     
     options,args = parser.parse_args()   
-    print 'Using options:', options
+    print('Using options:', options)
 
     realPath = os.path.realpath(options.output_dir)
     realPathWork = realPath + '/working'
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     groupsOff = options.turn_off_groups.split(',')
     if groupsOff[0] != '':
         for groupOff in groupsOff:
-            print 'Turning group off the fit', groupOff
+            print('Turning group off the fit', groupOff)
             sens.TurnGroupOff(groupOff)
 
     sens.GenAndFitData(options.number_runs,options.years,options.signal_counts,options.random_rate)
