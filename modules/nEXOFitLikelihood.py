@@ -49,3 +49,11 @@ class nEXOFitLikelihood:
        print('{:<25} {}'.format('Variable name:','Value:'))
        for var in self.variable_list:
            print('{:<25} {:4.4}'.format(var['Name'],var['Value']))
+
+   def GetVariableIndex( self, var_name ):
+       index = 0
+       for i in range(0,len(self.variable_list)):
+           if var_name in self.variable_list[i]['Name']:
+              index = i
+              break
+       return index

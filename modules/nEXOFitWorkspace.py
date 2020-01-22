@@ -214,7 +214,7 @@ class nEXOFitWorkspace:
 
          # TOFIX: Need better handling of negative totals, and need to figure out why 'Far' gives
          # me weird stuff. For now, I'm ignoring these.
-         if (row['TotalExpectedCounts']>0.)&(row['Group']!='Off')&(row['Group']!='Far'):
+         if (row['TotalExpectedCounts']>0.)&(row['Group']!='Off'): #&(row['Group']!='Far'):
              if len(total_sum_row)==0:
                  total_sum_row = {'Group' : 'Total Sum',\
                                   'Histogram' : row['Histogram'],\
