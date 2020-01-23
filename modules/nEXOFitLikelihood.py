@@ -13,14 +13,19 @@ class nEXOFitLikelihood:
        # we assume we're performing a binned maximum likelihood fit.
        self.pdfs = {}
        self.dataset = None
+       self.model = None
        self.variable_list = []
        self.initial_values = []
        self.model_obj = nEXOFitModel.nEXOFitModel()
        self.nll = np.nan
-       self.nll_offset = -604307041.       
+       self.nll_offset = 0. # -604307041. # This is a legacy number. Offset should be
+                                     # recomputed each time you generate a new dataset. 
 
    def AddDataset( self, input_dataset ):
        self.dataset = input_dataset
+       if self.model is not None:
+          self.nll_offset = 0.
+          self.SetOffset()
 
    def AddPDFDataframeToModel( self, df_pdfs ):
        self.model_obj.AddPDFsFromDataframe( df_pdfs )
@@ -57,3 +62,14 @@ class nEXOFitLikelihood:
               index = i
               break
        return index
+
+   def SetOffset( self ):
+       if self.initial_values == []:
+          print('ERROR: Attempting to compute the offset, but \n' +\
+                '       there are no initial values available.\n' +\
+                '       Please add a model before proceeding.')
+          return
+       else:
+          initial_vals_array = np.array([var['Value'] for var in self.initial_values])
+          self.nll_offset = self.ComputeNegLogLikelihood( initial_vals_array )
+       return
