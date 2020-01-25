@@ -1130,11 +1130,14 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         //Make the constraints
         RooArgSet constraints;
         
-        RooMultiVarGaussian* fracConstPdf = GetFracConstraint(fracError, true);
-        constraints.add(*fracConstPdf);
+        if( !fNoFracFlag ) { // If we *are* including the ss/ms fractions in the fit add a constraint on them.
+            RooMultiVarGaussian* fracConstPdf = GetFracConstraint(fracError, true);
+            constraints.add(*fracConstPdf);
+        }
         //if(not fBaTag)
         //{
-        RooGaussian* rn222Const = GetRn222Constraint(rateError, true);
+        //RooGaussian* rn222Const = GetRn222Constraint(rateError, true);
+        RooGaussian* rn222Const = GetRn222Constraint(rateError, false);
         if (rn222Const)
             constraints.add(*rn222Const);
         //}
