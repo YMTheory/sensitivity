@@ -50,6 +50,7 @@ nEXOSensitivity::nEXOSensitivity(int seed, const char* treeFileName) : fExcelTre
     RooMsgService::instance().setGlobalKillBelow(RooFit::FATAL);
     
     fWithEff = false; //true;	//If true include the efficiency variable in the fit
+    fNoFracFlag = false; // if true, fix all the ss/ms fractions in the fits.
     fInterpOrder = 0; //Interpolation order of the RooHistPdfs
     
     //fMeanSignalEff = 0.800;//900;	//mean efficiency for bb0n taken from MC
@@ -1161,8 +1162,13 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                 //continue;
             } else {
                 double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
-                fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                if( fNoFracFlag ) {
+                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                    fWsp->var(Form("frac_%s", name.Data()))->setConstant(true);
+                }  else {
+                    meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01); // Only fluctuate it if we're not fixing it in the fit.
+                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                }
             }
 
         }
@@ -1184,13 +1190,10 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         m.setPrintLevel(fPrintLevel);
         m.optimizeConst(true);
         m.setErrorLevel(fErrorLevel);
-        printf("Running migrad...\n");
         m.migrad();
-        printf("Run migrad...\n");
         m.minos(*fWsp->var(Form("num_%s", fSignalName.Data())));
         //Get the best fit results for the bkgd + signal fit
         fitResult->num_signal = fWsp->var(Form("num_%s", fSignalName.Data()))->getVal();
-        printf("Num signal: %f\n",fitResult->num_signal);
         //        fitResult->num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         //        fitResult->num_signal_eLo = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorLo();
         fitResult->fitres_sig = m.save();
@@ -1199,13 +1202,9 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             std::cout << "Fit signal results: \n";
             fitResult->fitres_sig->Print();
         }
-        printf("Getting quantities from fitResult\n");
-        fflush(stdout);
         fitResult->nll_sig = fitResult->fitres_sig->minNll();
         fitResult->stat_sig = fitResult->fitres_sig->status();
         fitResult->covQual_sig = fitResult->fitres_sig->covQual();
-        printf("got quaantities from fitResult\n");
-        fflush(stdout);
 
 
 
@@ -1220,8 +1219,13 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
                 
                     double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                    meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
-                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                    if( fNoFracFlag ) {
+                        fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                        fWsp->var(Form("frac_%s", name.Data()))->setConstant(true);
+                    } else {
+                        meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01); // Only fluctuate it if we're not fixing it in the fit.
+                        fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                    }
                 
                 }//for i
 
@@ -1239,17 +1243,10 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
         
                 fitResult->nll_sig = fitResult->fitres_sig->minNll();
                 fitResult->stat_sig = fitResult->fitres_sig->status();
-                fitResult->covQual_sig = fitResult->fitres_sig->covQual();
-            
-            
-//                  std::cout << "~~~~~~~ Main Fitting loop: Take 2 - Fit signal results: \n";
-//                  fitResult->fitres_sig->Print();
-//                  std::cout <<"~~~~~~~ Main Fitting loop: Take 2 -  fitResult->nll_sig = "<<fitResult->nll_sig<<"\n";
-//                  std::cout <<"~~~~~~~ Main Fitting loop: Take 2 -  fitResult->stat_sig = "<<fitResult->stat_sig<<"\n";
-//                  std::cout <<"~~~~~~~ Main Fitting loop: Take 2 -  fitResult->covQual_sig = "<<fitResult->covQual_sig<<"\n";
 
             }//bad fit, try again
         }// triple loop
+
         // FIXME: this variable should be saved in the fit result TTree
         Double_t minuit_num_signal_eHi = fWsp->var(Form("num_%s", fSignalName.Data()))->getErrorHi();
         // hijack this variable to store the minos error
@@ -1270,13 +1267,19 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                     double meanFrac = fWsp->var("mean_frac_Internal_Co60")->getVal();
                     meanFrac = fRandom.Gaus(meanFrac, meanFrac * fracError);
                     fWsp->var("mean_frac_Internal_Co60")->setVal(meanFrac);
+                    fWsp->var("mean_frac_Internal_Cp60")->setConstant(true);
                     co60Flag = true;
                     //} else if (name.Contains("Co60")) {
                     //continue;
                 } else {
                     double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                    meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
-                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                    if( fNoFracFlag ) {
+                        fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                        fWsp->var(Form("frac_%s", name.Data()))->setConstant(true);
+                    }  else {
+                        meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01); // Only fluctuate it if we're not fixing it in the fit.
+                        fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                    }
                 }
             }
 //            printf("End loop over pdfs\n");
@@ -1296,7 +1299,6 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             }
             
             //Do the bkgd only fit
-            printf("Doing BG only fit.\n"); 
             m.setPrintLevel(fPrintLevel);
             m.optimizeConst(true);
             m.migrad();
@@ -1315,12 +1317,10 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
             
             //Remove constant status of floating pars
             fWsp->var(Form("num_%s", fSignalName.Data()))->setConstant(false);
-            fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
+            if( !fNoFracFlag )
+               fWsp->var(Form("frac_%s", fSignalName.Data()))->setConstant(false);
             if (withEff) fWsp->var(Form("eff_%s", fSignalName.Data()))->setConstant(false);
-        }
-        else{
-            printf("if not fRunTruthValFit\n"); 
-            fflush(stdout);
+        } else  {
             ///////
             /// This is where we find the upper limit by finding the intersection
             /// between the magic number (critical lambda) spline
@@ -1393,8 +1393,13 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                             //continue;
                         } else {
                             double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                             meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.001);
-                            fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                            if( fNoFracFlag ) {
+                                fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                fWsp->var(Form("frac_%s", name.Data()))->setConstant(true);
+                            }  else {
+                                meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01); // Only fluctuate it if we're not fixing it in the fit.
+                                fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                            }
                         }
                     }
                     
@@ -1445,8 +1450,13 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                                 fWsp->var(Form("num_%s", name.Data()))->setVal(meanNum);
 
                                 double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                                meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.001);//--conv test
-                                fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                if( fNoFracFlag ) {
+                                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                    fWsp->var(Form("frac_%s", name.Data()))->setConstant(true);
+                                }  else {
+                                    meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01); // Only fluctuate it if we're not fixing it in the fit.
+                                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                }
                             }//for i
                 
                             //Minimize again
@@ -1598,8 +1608,13 @@ void nEXOSensitivity::GenAndFitData(Int_t nRuns, Double_t yrs, Double_t signalCo
                             //continue;
                         } else {
                             double meanFrac = fWsp->var(Form("mean_frac_%s", name.Data()))->getVal();
-                            meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01);
-                            fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                if( fNoFracFlag ) {
+                                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                    fWsp->var(Form("frac_%s", name.Data()))->setConstant(true);
+                                }  else {
+                                    meanFrac = fRandom.Gaus(meanFrac, meanFrac * 0.01); // Only fluctuate it if we're not fixing it in the fit.
+                                    fWsp->var(Form("frac_%s", name.Data()))->setVal(meanFrac);
+                                }
                         }
                     }
                     

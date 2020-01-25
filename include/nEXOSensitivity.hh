@@ -297,6 +297,8 @@ public:
   void AddUserMeanCounts(TString group, Double_t value){
     fUserMeanCounts.insert(std::make_pair(group.Data(),value));
   };
+
+  void SetNoFracFlag( bool noFracFlag ){ fNoFracFlag = noFracFlag; }
   
   void MakeFittingHistogramFile();
   void BuildWorkspace(Double_t yrs = 5.0, Double_t signalCounts = 0.0);
@@ -444,6 +446,7 @@ protected:
   Double_t fRnRateError;
   TString fSignalName;
   Double_t fFidVol;
+  Bool_t fNoFracFlag;
 
   Int_t fNcpu; 							//number of cpus to parallelize over
   std::vector<TString> fFitPdfNames;	//a vector list of the fitting pdf names

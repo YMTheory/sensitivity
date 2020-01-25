@@ -18,6 +18,7 @@ if __name__ == "__main__":
     parser.add_option("--binning", nargs=6,type=float) # choose energy and SD binning, format: n-energy-bins, energy-min, energy-max, n-sd-bins, sd-min, sd-max
 
     parser.add_option("--ba-tag", action="store_true",default=False) # run in Ba-tag scenario (only bb2n background)
+    parser.add_option("--no-fracs", action="store_true",default=False) # set the ss/ms fractions to be constant in the fit.
     parser.add_option("--scale-bkgds", nargs=2,type=float) # scale all background counts, 2nd argument whether scale bb2n or not
 
     parser.add_option("-n","--number-runs", nargs=1,type=int,default=1) # number of toy fits to be produced
@@ -67,7 +68,8 @@ if __name__ == "__main__":
     if options.binning:
         sens.SetBinning(int(options.binning[0]),float(options.binning[1]),float(options.binning[2]),int(options.binning[3]),float(options.binning[4]),float(options.binning[5]))
 
-    sens.SetBaTag(options.ba_tag)
+    sens.SetBaTag( options.ba_tag ) 
+    sens.SetNoFracFlag( options.no_fracs )
     if options.scale_bkgds:
         sens.ScaleMeanBackgrounds(options.scale_bkgds[0],bool(options.scale_bkgds[1]))
 
