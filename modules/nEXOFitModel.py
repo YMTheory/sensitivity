@@ -21,8 +21,8 @@ class nEXOFitModel:
 
        for index, row in input_df.iterrows():
            if (row['Group']=='Total Sum')|\
-              (row['Group']=='Off')|\
-              (row['Group']=='Far'):
+              (row['Group']=='Off'):
+              #(row['Group']=='Far'):
                   continue
            self.pdfs.append( row['Histogram'] )
 

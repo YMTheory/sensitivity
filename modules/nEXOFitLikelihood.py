@@ -25,7 +25,7 @@ class nEXOFitLikelihood:
        self.dataset = input_dataset
        if self.model is not None:
           self.nll_offset = 0.
-          self.SetOffset()
+          self.SetOffset() 
 
    def AddPDFDataframeToModel( self, df_pdfs ):
        self.model_obj.AddPDFsFromDataframe( df_pdfs )
