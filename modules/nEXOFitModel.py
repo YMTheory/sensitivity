@@ -65,4 +65,4 @@ class nEXOFitModel:
                 'Variables will not be updated.\n')     
 
        for i in range(0,len(variable_numpy_array)):
-          self.variable_list[i]['Value'] = variable_numpy_array[i]
+          self.variable_list[i]['Value'] = np.copy(variable_numpy_array[i])
