@@ -77,7 +77,11 @@ m = Minuit.from_array_func( NegLogLikelihood, \
 				name=variable_names, \
 				errordef = 0.5,\
 				print_level = 1)
-m.get_param_states()
+print('Getting param states:')
+try:
+   print(m.get_param_states())
+except ValueError(e):
+   print(e)
 
 
 num_datasets = 2500
@@ -121,7 +125,11 @@ for j in range(0,num_datasets):
 					name=variable_names, \
 					errordef = 0.5 )
 	m.migrad()
-	print(m.get_param_states())
+        print('Param states after best fit:')
+        try:
+           print(m.get_param_states())
+        except ValueError(e):
+           print(e)
 	nll_best = m.fval
 	if not m.get_fmin()['is_valid']:
 		best_fit_converged = False
@@ -149,7 +157,11 @@ for j in range(0,num_datasets):
 			name=variable_names, \
 			errordef = 0.5 )
 	m.migrad()
-	print(m.get_param_states())
+        print('Param states after fixed-signal fit:')
+        try:
+           print(m.get_param_states())
+        except ValueError(e):
+           print(e)
 	this_lambda = 2*(m.fval - nll_best)
 	if not m.get_fmin()['is_valid']:
 		fixedSig_fit_converged = False
