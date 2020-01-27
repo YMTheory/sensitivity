@@ -31,6 +31,9 @@ class nEXOFitLikelihood:
        self.model_obj.AddPDFsFromDataframe( df_pdfs )
        self.model = self.model_obj.GenerateModelDistribution()
        self.variable_list = self.model_obj.variable_list
+       for var_row in self.variable_list:
+           var_row['IsFixed'] = False
+           var_row['MinuitError'] = 0.05*var_row['Value']
        self.initial_values = copy.deepcopy(self.variable_list)
 
    def ComputeNegLogLikelihood( self, var_values ):
@@ -51,9 +54,9 @@ class nEXOFitLikelihood:
        return self.nll
 
    def PrintVariableList( self ):
-       print('{:<25} {}'.format('Variable name:','Value:'))
+       print('{:<22} {:<12} {:<9} {:<12}'.format('Variable name:','Value:','IsFixed:','MinuitError:'))
        for var in self.variable_list:
-           print('{:<25} {:4.4}'.format(var['Name'],var['Value']))
+           print('{:<22} {:<12.5} {:<9} {:<12}'.format(var['Name'],var['Value'],str(var['IsFixed']),var['MinuitError']))
 
    def GetVariableIndex( self, var_name ):
        index = 0
@@ -73,3 +76,32 @@ class nEXOFitLikelihood:
           initial_vals_array = np.array([var['Value'] for var in self.initial_values])
           self.nll_offset = self.ComputeNegLogLikelihood( initial_vals_array )
        return
+
+   def SetAllVariablesFloating( self ):
+       for i in range(len(self.variable_list)):
+           self.variable_list[i]['IsFixed'] = False
+
+   def SetVariableFixStatus( self, var_name, isFixedInput ):
+       var_idx = self.GetVariableIndex( var_name )
+       (self.variable_list[var_idx])['IsFixed'] = isFixedInput
+
+   def SetFractionalMinuitError( self, var_name, new_minuit_error ):
+       # Here, the input should be a fraction (say, 0.05) and we'll
+       # scale that to the value of the variable.
+       var_idx = self.GetVariableIndex( var_name )
+       (self.variable_list[var_idx])['MinuitError'] =  \
+              (self.variable_list[var_idx])['Value'] * new_minuit_error
+
+   def GetVariableFixTuple( self ):
+       # iMinuit requires a tuple of booleans to tell it which parameters
+       # should be fixed in the fit.
+       return tuple( var['IsFixed'] for var in self.variable_list )
+
+   def GetVariableNamesTuple( self ):
+       # iMinuit requires a tuple containing the names of each variable
+       return tuple( var['Name'] for var in self.variable_list )
+
+   def GetMinuitErrorTuple( self ):
+       # iMinuit requires a tuple containing the "error", which
+       # is a parameter that I think defines the step size.
+       return tuple( var['MinuitError'] for var in self.variable_list )
