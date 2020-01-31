@@ -55,26 +55,51 @@ likelihood.model_obj.UpdateVariables(initial_values)
 likelihood.model_obj.GenerateModelDistribution()
 likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
 
-variable_values = np.ones(len(likelihood.variable_list))
-for i in range(0,len(variable_values)):
-    variable_values[i] = likelihood.variable_list[i]['Value']
+CONSTRAINTS = True
+PAR_LIMITS = True
+FIX_CO60 = True
+
+if CONSTRAINTS:
+	# Set Rn222 constraint
+	rn222_idx = likelihood.GetVariableIndex('Rn222')
+	likelihood.SetGaussianConstraintFractional(likelihood.variable_list[rn222_idx]['Name'],\
+	                                           likelihood.variable_list[rn222_idx]['Value'],\
+	                                           0.1)
+
+if PAR_LIMITS:
+	# Next, set limits so that none of the PDFs go negative in the fit.
+	for var in likelihood.variable_list:
+	    if 'Bb0n' in var['Name']:
+	        likelihood.SetVariableLimits( var['Name'], \
+	                                  lower_limit = 0., \
+	                                  upper_limit = 100.)
+	    else: 
+	        likelihood.SetVariableLimits( var['Name'], \
+	                                  lower_limit = 0., \
+	                                  upper_limit = var['Value']*10.)
+
+if FIX_CO60:
+	# Fix the Co60 parameter, since this PDF is really underconstrained.
+	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+
+
+
+# Increase the step size for the Bb0n variable
+likelihood.SetFractionalMinuitError('Num_FullLXeBb0n', 0.01/0.0001)
+
 
 
 def NegLogLikelihood(parameter_values):
     return likelihood.ComputeNegLogLikelihood(parameter_values)
 
-variable_names = tuple(var['Name'] for var in likelihood.initial_values)
-error_tuple = tuple( 0.02*var['Value'] for var in likelihood.initial_values )
-par_fix_list = [ False for i in range(len(likelihood.initial_values)) ]
-par_fix_tuple = tuple( x for x in par_fix_list )
-
 
 # Create Minimizer.
 m = Minuit.from_array_func( NegLogLikelihood, \
 				initial_values, \
-				error=error_tuple, \
-				fix=par_fix_tuple, \
-				name=variable_names, \
+				error = likelihood.GetMinuitErrorTuple(), \
+				fix   = likelihood.GetVariableFixTuple(), \
+				name  = likelihood.GetVariableNamesTuple(), \
+				limit = likelihood.GetVariableLimitsTuple(), \
 				errordef = 0.5,\
 				print_level = 1)
 print('Getting param states:')
@@ -84,7 +109,7 @@ except ValueError as e:
 	print('ValueError: {}'.format(e))
 
 
-num_datasets = 2500
+num_datasets = 100
 
 #lambdas = np.zeros((num_datasets,num_hypotheses))
 #converged = np.ones(num_datasets,dtype=bool)
@@ -109,20 +134,19 @@ for j in range(0,num_datasets):
 	likelihood.model_obj.GenerateModelDistribution()
 	likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
 
+	likelihood.SetAllVariablesFloating()
+	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+
 	print('\n\nRunning dataset {}....\n'.format(j))
 	likelihood.PrintVariableList()
 
 	print('\nBest fit:\n')
-	variable_names = tuple(var['Name'] for var in likelihood.initial_values)
-	error_tuple = tuple( 0.02*var['Value'] for var in likelihood.initial_values )
-	par_fix_list = [ False for i in range(len(likelihood.initial_values)) ]
-	par_fix_tuple = tuple( x for x in par_fix_list )
-
 	m = Minuit.from_array_func( NegLogLikelihood, \
 					initial_values, \
-					error=error_tuple, \
-					fix=par_fix_tuple, \
-					name=variable_names, \
+					error = likelihood.GetMinuitErrorTuple(), \
+					fix   = likelihood.GetVariableFixTuple(), \
+					name  = likelihood.GetVariableNamesTuple(), \
+					limit = likelihood.GetVariableLimitsTuple(), \
 					errordef = 0.5 )
 	m.migrad()
 	print('Param states after best fit:')
@@ -140,21 +164,14 @@ for j in range(0,num_datasets):
 
 	print('\n\nFit with signal value fixed at {:3.3} cts:\n'.format(input_num_signal))
 
-	signal_idx = likelihood.GetVariableIndex( 'Bb0n' )   
-    
-	initial_values[signal_idx] = input_num_signal
-	variable_names = tuple(var['Name'] for var in likelihood.initial_values)
-	error_tuple = tuple( 0.02*var['Value'] for var in likelihood.initial_values )
-	par_fix_list = [ False for i in range(len(likelihood.initial_values)) ]
-	par_fix_list[signal_idx] = True
-	par_fix_tuple = tuple( x for x in par_fix_list )
-    
+	likelihood.SetVariableFixStatus('Num_FullLXeBb0n',True)
 
 	m = Minuit.from_array_func( NegLogLikelihood, \
 			initial_values, \
-			error=error_tuple, \
-			fix=par_fix_tuple, \
-			name=variable_names, \
+			error = likelihood.GetMinuitErrorTuple(), \
+			fix   = likelihood.GetVariableFixTuple(), \
+			name  = likelihood.GetVariableNamesTuple(), \
+			limit = likelihood.GetVariableLimitsTuple(), \
 			errordef = 0.5 )
 	m.migrad()
 	print('Param states after fixed-signal fit:')
