@@ -3,6 +3,7 @@ import histlite as hl
 import pandas as pd
 import nEXOFitModel
 import copy
+import sys
 
 class nEXOFitLikelihood:
 
@@ -95,11 +96,122 @@ class nEXOFitLikelihood:
 
    ##############################################################################################
    def GetVariableIndex( self, var_name ):
-       index = 0
+       index = -10000
        for i in range(0,len(self.variable_list)):
            if var_name in self.variable_list[i]['Name']:
               index = i
               break
+       if index == -10000:
+           #print('\n\nERROR: No variable in the likelihood.variable_list contains the name {}.\n'.format(var_name))
+           #print('       Please double-check that the variable names in the ComponentsTable match')
+           #print('       the ones you\'re trying to access\n\n')
+           err_message =  'No variable in the likelihood.variable_list contains the name {}.\n\n'.format(var_name)
+           err_message += '\tPlease double-check that the variable names in the ComponentsTable match\n'
+           err_message += '\tthe ones you\'re trying to access\n\n'
+           raise ValueError(err_message)
+
+       return index
+
+   ##############################################################################################
+   def SetInitialOffset( self ):
+       if self.initial_values == []:
+          print('ERROR: Attempting to compute the offset, but \n' +\
+                '       there are no initial values available.\n' +\
+                '       Please add a model before proceeding.')
+          return
+       else:
+          initial_vals_array = np.array([var['Value'] for var in self.initial_values])
+          self.nll_extra_offset = 0.
+          self.nll_offset = self.ComputeNegLogLikelihood( initial_vals_array )
+       return
+
+   ##############################################################################################
+   def SetExtraOffset( self, offset ):
+       self.nll_extra_offset = offset
+
+   ##############################################################################################
+   def SetAllVariablesFloating( self ):
+       for i in range(len(self.variable_list)):
+           self.variable_list[i]['IsFixed'] = False
+
+   ##############################################################################################
+   def SetVariableFixStatus( self, var_name, isFixedInput ):
+       var_idx = self.GetVariableIndex( var_name )
+       (self.variable_list[var_idx])['IsFixed'] = isFixedInput
+
+   ##############################################################################################
+   def SetFractionalMinuitError( self, var_name, new_minuit_error ):
+       # Here, the input should be a fraction (say, 0.05) and we'll
+       # scale that to the value of the variable.
+       var_idx = self.GetVariableIndex( var_name )
+       (self.variable_list[var_idx])['MinuitError'] =  \
+              (self.variable_list[var_idx])['Value'] * new_minuit_error
+
+   ##############################################################################################
+   def GetVariableFixTuple( self ):
+       # iMinuit requires a tuple of booleans to tell it which parameters
+       # should be fixed in the fit.
+       return tuple( var['IsFixed'] for var in self.variable_list )
+
+   ##############################################################################################
+   def GetVariableNamesTuple( self ):
+       # iMinuit requires a tuple containing the names of each variable
+       return tuple( var['Name'] for var in self.variable_list )
+
+   ##############################################################################################
+   def GetVariableLimitsTuple( self ):
+       return tuple( var['Limits'] for var in self.variable_list )
+
+   ##############################################################################################
+   def GetMinuitErrorTuple( self ):
+       # iMinuit requires a tuple containing the "error", which
+       # is a parameter that I think defines the step size.
+       return tuple( var['MinuitError'] for var in self.variable_list )
+
+   ##############################################################################################
+   def SetGaussianConstraintAbsolute( self, var_name, constraint_value, constraint_width ):
+       var_idx = self.GetVariableIndex( var_name )
+       if not self.variable_list[var_idx]['IsConstrained']:
+          self.variable_list[var_idx]['IsConstrained'] = True
+          self.constraints.append( {'Name': self.variable_list[var_idx]['Name'], \
+                                    'Index': var_idx, \
+                                    'Value': constraint_value, \
+                                    'Width': constraint_width } )
+       else:
+          for constraint in self.constraints:
+              if var_name in constraint['Name']:
+                 constraint['Value'] = constraint_value
+                 constraint['Width'] = constraint_width
+                 break
+              else:
+                 continue                 
+
+
+   ##############################################################################################
+   def SetGaussianConstraintFractional( self, var_name, constraint_value, constraint_width_fractional ):
+       var_idx = self.GetVariableIndex( var_name )
+       if not self.variable_list[var_idx]['IsConstrained']:
+          self.variable_list[var_idx]['IsConstrained'] = True
+          self.constraints.append( {'Name': self.variable_list[var_idx]['Name'], \
+                                    'Index': var_idx, \
+                                    'Value': constraint_value, \
+                                    'Width': constraint_width_fractional * constraint_value } )
+       else:
+          for constraint in self.constraints:
+              if var_name in constraint['Name']:
+                 constraint['Value'] = constraint_value
+                 constraint['Width'] = constraint_width_fractional *  constraint_value
+                 break
+              else:
+                 continue                 
+
+   ##############################################################################################
+   def ClearConstraints( self ):
+       self.constraints = []
+       for var in self.variable_list:
+           var['IsConstrained'] = False
+           raise ValueError(message)
+
        return index
 
    ##############################################################################################

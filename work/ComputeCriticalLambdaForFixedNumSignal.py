@@ -57,14 +57,7 @@ likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
 
 CONSTRAINTS = True
 PAR_LIMITS = True
-FIX_CO60 = True
 
-if CONSTRAINTS:
-	# Set Rn222 constraint
-	rn222_idx = likelihood.GetVariableIndex('Rn222')
-	likelihood.SetGaussianConstraintFractional(likelihood.variable_list[rn222_idx]['Name'],\
-	                                           likelihood.variable_list[rn222_idx]['Value'],\
-	                                           0.1)
 
 if PAR_LIMITS:
 	# Next, set limits so that none of the PDFs go negative in the fit.
@@ -77,11 +70,6 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
 	                                  upper_limit = var['Value']*10.)
-
-if FIX_CO60:
-	# Fix the Co60 parameter, since this PDF is really underconstrained.
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
-
 
 
 # Increase the step size for the Bb0n variable
@@ -109,13 +97,8 @@ except ValueError as e:
 	print('ValueError: {}'.format(e))
 
 
-num_datasets = 100
+num_datasets = 2500
 
-#lambdas = np.zeros((num_datasets,num_hypotheses))
-#converged = np.ones(num_datasets,dtype=bool)
-#crossings = np.ones(num_datasets)
-
-output_cols = ['num_signal','lambda','best_fit_converged','fixedSig_fit_converged','dataset']
 output_row = dict()
 output_df_list = []
 
@@ -136,9 +119,23 @@ for j in range(0,num_datasets):
 
 	likelihood.SetAllVariablesFloating()
 	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	
+	if CONSTRAINTS:
+		rn222_idx = likelihood.GetVariableIndex('Rn222')
+		# Fluctuate Rn222 constraint
+		rn222_constraint_val = (np.random.randn()*0.1 + 1)*initial_values[rn222_idx]
+		# Set Rn222 constraint
+		likelihood.SetGaussianConstraintAbsolute(likelihood.variable_list[rn222_idx]['Name'],\
+							 rn222_constraint_val, \
+	                	                         0.1 * initial_values[rn222_idx])
 
 	print('\n\nRunning dataset {}....\n'.format(j))
 	likelihood.PrintVariableList()
+
+	print('\nConstraints:')
+	for constraint in likelihood.constraints:
+		print('\t{}'.format(constraint))
+	print('\n')
 
 	print('\nBest fit:\n')
 	m = Minuit.from_array_func( NegLogLikelihood, \
@@ -190,7 +187,7 @@ for j in range(0,num_datasets):
 	output_row['lambda'] = this_lambda
 	output_row['best_fit_converged'] = best_fit_converged
 	output_row['fixedSig_fit_converged'] = fixedSig_fit_converged
-	output_row['dataset'] = likelihood.dataset
+	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)	
 	
