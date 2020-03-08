@@ -5,6 +5,8 @@ import nEXOFitModel
 import copy
 import sys
 
+from iminuit import Minuit
+
 class nEXOFitLikelihood:
 
    def __init__( self ):
@@ -24,6 +26,7 @@ class nEXOFitLikelihood:
        self.nll_extra_offset = 0. # This is used to ensure that the minimum is close to zero
                                   # on the second iteration of the fit.
        self.constraints = []
+       self.fitter = None
 
    ##############################################################################################
    def AddDataset( self, input_dataset ):
@@ -68,6 +71,43 @@ class nEXOFitLikelihood:
                        ( np.sqrt(2) * constraint['Width']**2 )
 
        return self.nll
+
+   ##############################################################################################
+   def CreateAndRunMinuitFit( self, initial_values=None, print_level=0 ):
+
+       if initial_values is None:
+          initial_values = self.GetVariableValues()             
+
+       self.fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
+                                   np.copy(initial_values),\
+                                   error = self.GetMinuitErrorTuple(), \
+                                   fix   = self.GetVariableFixTuple(), \
+                                   name  = self.GetVariableNamesTuple(), \
+                                   limit = self.GetVariableLimitsTuple(), \
+                                   errordef = 0.5,\
+                                   print_level = print_level)
+       self.fitter.migrad()
+       num_iterations = 1
+       while not (self.fitter.get_fmin()['is_valid']):
+                  #and self.fitter.get_fmin()['has_accurate_covar']):
+                 if num_iterations > 9:
+                    break
+                 if print_level > 0:
+                    print('Fit iteration {}'.format(num_iterations+1))
+                 #self.SetExtraOffset( self.fitter.fval )
+                 second_pass_input = self.GetVariableValues() + \
+                                     np.random.randn(len(initial_values))* np.sqrt( self.GetVariableValues() )
+                 self.fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
+                                        np.copy(second_pass_input),\
+                                        error = self.GetMinuitErrorTuple(), \
+                                        fix   = self.GetVariableFixTuple(), \
+                                        name  = self.GetVariableNamesTuple(), \
+                                        limit = self.GetVariableLimitsTuple(), \
+                                        errordef = 0.5,\
+                                        print_level = print_level)
+                 self.fitter.migrad()
+                 num_iterations += 1
+       return num_iterations 
 
    ##############################################################################################
    def GetVariableValues( self ):
@@ -125,9 +165,6 @@ class nEXOFitLikelihood:
           self.nll_offset = self.ComputeNegLogLikelihood( initial_vals_array )
        return
 
-   ##############################################################################################
-   def SetExtraOffset( self, offset ):
-       self.nll_extra_offset = offset
 
    ##############################################################################################
    def SetAllVariablesFloating( self ):
