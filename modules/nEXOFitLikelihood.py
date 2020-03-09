@@ -42,7 +42,8 @@ class nEXOFitLikelihood:
        self.variable_list = self.model_obj.variable_list
        for var_row in self.variable_list:
            var_row['IsFixed'] = False
-           var_row['MinuitError'] = 0.05*var_row['Value']
+           var_row['FitError'] = None
+           var_row['MinuitInputError'] = 0.05*var_row['Value']
            var_row['IsConstrained'] = False
            var_row['Limits'] = (None, None)
        self.constraints = []
@@ -80,7 +81,7 @@ class nEXOFitLikelihood:
 
        self.fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
                                    np.copy(initial_values),\
-                                   error = self.GetMinuitErrorTuple(), \
+                                   error = self.GetMinuitInputErrorTuple(), \
                                    fix   = self.GetVariableFixTuple(), \
                                    name  = self.GetVariableNamesTuple(), \
                                    limit = self.GetVariableLimitsTuple(), \
@@ -88,18 +89,26 @@ class nEXOFitLikelihood:
                                    print_level = print_level)
        self.fitter.migrad()
        num_iterations = 1
-       while not (self.fitter.get_fmin()['is_valid']):
-                  #and self.fitter.get_fmin()['has_accurate_covar']):
+       while not (self.fitter.get_fmin()['is_valid']\
+             and self.fitter.get_fmin()['has_accurate_covar']):    
                  if num_iterations > 9:
                     break
                  if print_level > 0:
                     print('Fit iteration {}'.format(num_iterations+1))
-                 #self.SetExtraOffset( self.fitter.fval )
-                 second_pass_input = self.GetVariableValues() + \
+
+                 #########################################################
+                 # Fluctuate the inputs on the second pass, but make sure the
+                 # 'fixed' variables stay the same
+                 fluctuated_input_values = self.GetVariableValues() + \
                                      np.random.randn(len(initial_values))* np.sqrt( self.GetVariableValues() )
+                 for i in range(0,len(self.variable_list)):
+                          if self.variable_list[i]['IsFixed']:
+                             fluctuated_input_values[i] = initial_values[i]
+                 ##########################################################
+          
                  self.fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
-                                        np.copy(second_pass_input),\
-                                        error = self.GetMinuitErrorTuple(), \
+                                        np.copy(fluctuated_input_values),\
+                                        error = self.GetMinuitInputErrorTuple(), \
                                         fix   = self.GetVariableFixTuple(), \
                                         name  = self.GetVariableNamesTuple(), \
                                         limit = self.GetVariableLimitsTuple(), \
@@ -107,7 +116,16 @@ class nEXOFitLikelihood:
                                         print_level = print_level)
                  self.fitter.migrad()
                  num_iterations += 1
+
+       fit_errors = self.fitter.errors
+       for var in self.variable_list:
+           var['FitError'] = fit_errors[ var['Name'] ]
+           
+
        return num_iterations 
+
+   ##############################################################################################
+
 
    ##############################################################################################
    def GetVariableValues( self ):
@@ -124,13 +142,14 @@ class nEXOFitLikelihood:
 
    ##############################################################################################
    def PrintVariableList( self ):
-       print('{:<21} {:<12} {:<9} {:<13} {:<14} {:<13}'.format('Variable name:','Value:',\
-                                                        'IsFixed:','MinuitError:','IsConstrained:','Limits:'))
+       print('{:<21} {:<12} {:<9} {:<10} {:<13} {:<14} {:<13}'.format('Variable name:','Value:',\
+                                                        'IsFixed:','FitError','MinuitInputError:','IsConstrained:','Limits:'))
        for var in self.variable_list:
-           print('{:<21} {:<12.4} {:<9} {:<13.4} {:<14} ({:4},{:4})'.format(var['Name'], \
+           print('{:<21} {:<12.4} {:<9} {:<10.4} {:<13.4} {:<14} ({:4},{:4})'.format(var['Name'], \
                                                                       var['Value'],\
                                                                   str(var['IsFixed']),\
-                                                                      var['MinuitError'],\
+                                                                  str(var['FitError']),\
+                                                                      var['MinuitInputError'],\
                                                                   str(var['IsConstrained']),\
                                                                   str(var['Limits'][0]),str(var['Limits'][1]) ))
 
@@ -177,11 +196,11 @@ class nEXOFitLikelihood:
        (self.variable_list[var_idx])['IsFixed'] = isFixedInput
 
    ##############################################################################################
-   def SetFractionalMinuitError( self, var_name, new_minuit_error ):
+   def SetFractionalMinuitInputError( self, var_name, new_minuit_error ):
        # Here, the input should be a fraction (say, 0.05) and we'll
        # scale that to the value of the variable.
        var_idx = self.GetVariableIndex( var_name )
-       (self.variable_list[var_idx])['MinuitError'] =  \
+       (self.variable_list[var_idx])['MinuitInputError'] =  \
               (self.variable_list[var_idx])['Value'] * new_minuit_error
 
    ##############################################################################################
@@ -200,10 +219,10 @@ class nEXOFitLikelihood:
        return tuple( var['Limits'] for var in self.variable_list )
 
    ##############################################################################################
-   def GetMinuitErrorTuple( self ):
+   def GetMinuitInputErrorTuple( self ):
        # iMinuit requires a tuple containing the "error", which
        # is a parameter that I think defines the step size.
-       return tuple( var['MinuitError'] for var in self.variable_list )
+       return tuple( var['MinuitInputError'] for var in self.variable_list )
 
    ##############################################################################################
    def SetGaussianConstraintAbsolute( self, var_name, constraint_value, constraint_width ):
@@ -279,11 +298,11 @@ class nEXOFitLikelihood:
        (self.variable_list[var_idx])['IsFixed'] = isFixedInput
 
    ##############################################################################################
-   def SetFractionalMinuitError( self, var_name, new_minuit_error ):
+   def SetFractionalMinuitInputError( self, var_name, new_minuit_error ):
        # Here, the input should be a fraction (say, 0.05) and we'll
        # scale that to the value of the variable.
        var_idx = self.GetVariableIndex( var_name )
-       (self.variable_list[var_idx])['MinuitError'] =  \
+       (self.variable_list[var_idx])['MinuitInputError'] =  \
               (self.variable_list[var_idx])['Value'] * new_minuit_error
 
    ##############################################################################################
@@ -302,10 +321,10 @@ class nEXOFitLikelihood:
        return tuple( var['Limits'] for var in self.variable_list )
 
    ##############################################################################################
-   def GetMinuitErrorTuple( self ):
+   def GetMinuitInputErrorTuple( self ):
        # iMinuit requires a tuple containing the "error", which
        # is a parameter that I think defines the step size.
-       return tuple( var['MinuitError'] for var in self.variable_list )
+       return tuple( var['MinuitInputError'] for var in self.variable_list )
 
    ##############################################################################################
    def SetGaussianConstraintAbsolute( self, var_name, constraint_value, constraint_width ):
