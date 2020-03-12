@@ -5,6 +5,9 @@ import nEXOFitModel
 import copy
 import sys
 
+import matplotlib.pyplot as plt
+from cycler import cycler
+
 from iminuit import Minuit
 
 class nEXOFitLikelihood:
@@ -143,7 +146,7 @@ class nEXOFitLikelihood:
    ##############################################################################################
    def PrintVariableList( self ):
        print('{:<21} {:<12} {:<9} {:<10} {:<13} {:<14} {:<13}'.format('Variable name:','Value:',\
-                                                        'IsFixed:','FitError','MinuitInputError:','IsConstrained:','Limits:'))
+                                                        'IsFixed:','FitError','InputError:','IsConstrained:','Limits:'))
        for var in self.variable_list:
            print('{:<21} {:<12.4} {:<9} {:<10.4} {:<13.4} {:<14} ({:4},{:4})'.format(var['Name'], \
                                                                       var['Value'],\
@@ -368,3 +371,89 @@ class nEXOFitLikelihood:
        self.constraints = []
        for var in self.variable_list:
            var['IsConstrained'] = False
+
+
+   ##############################################################################################
+   def PlotModelDistributions( self, output_filename='test_plot.png', plot_data=False, save=True, show=False ):
+
+       # Set up the plotting parameters
+       plt.rcParams.update({'font.size': 14})
+       custom_cycler = cycler( color = [ (1.,0.5,0.),\
+                                         (0.,0.,1.,0.5),\
+                                         (0.,0.8,0.),\
+                                         (1.,0.,0.),\
+                                         (0.5,1.,0.5),\
+                                         (0.,0.8,0.8),\
+                                         (0.1,0.6,0.5),\
+                                         (1.,0.,1.),\
+                                         (0.,0.,0.,0.2),\
+                                         (0.4,0.4,0.4),\
+                                         (0.5,0.,0.5) ] )
+       plt.rc('axes', prop_cycle=custom_cycler)
+
+       self.fig, self.ax = plt.subplots (2, 2, figsize=(12, 10))
+
+       # Initialize the summed histogram      
+       h_sum = hl.hist( [np.array([0.]),np.array([0.]),np.array([0.])] , \
+                         bins=self.model_obj.pdfs[0].bins)
+
+       # Loop over pdfs and each to plot
+       for i in range(len(self.variable_list)):
+           var = self.variable_list[i]
+           if 'Num' in var['Name']:
+
+              weight = var['Value']
+              pdf = self.model_obj.pdfs[i]
+              component_name = ''.join( var['Name'].split('_')[1:] )
+              print('Plotting {}'.format(component_name))
+
+              h_sum += ( weight * pdf )
+
+              hl.plot1d( self.ax[0,0], (weight * pdf)[0:1].project([1]).log10(), label=component_name )
+              hl.plot1d( self.ax[0,1], (weight * pdf)[1:].project([1]).log10() )
+              hl.plot1d( self.ax[1,1], (weight * pdf)[1:].project([2]).log10() )
+              hl.plot1d( self.ax[1,0], (weight * pdf)[0:1].project([2]).log10() )
+
+       hl.plot1d(self.ax[0,0],h_sum[0:1].project([1]).log10(),color='b',label='Total Sum')
+       hl.plot1d(self.ax[0,1],h_sum[1:].project([1]).log10(),color='b')
+       hl.plot1d(self.ax[1,1],h_sum[1:].project([2]).log10(),color='b')
+       hl.plot1d(self.ax[1,0],h_sum[0:1].project([2]).log10(),color='b') 
+
+       if plot_data:
+          hl.plot1d( self.ax[0,0], (self.dataset[0:1]).project([1]).log10(),crosses=True,\
+                     label='Toy Data Sample',color='k')
+          hl.plot1d( self.ax[0,1], (self.dataset[1:]).project([1]).log10(),crosses=True,color='k')
+          hl.plot1d( self.ax[1,1], (self.dataset[1:]).project([2]).log10(),crosses=True,color='k')
+          hl.plot1d( self.ax[1,0], (self.dataset[0:1]).project([2]).log10(),crosses=True,color='k')
+
+       self.fig.legend(ncol=4,facecolor=(1.,1.,1.),framealpha=1.,loc='upper center')
+       self.ax[0,0].set_ylim(-2.,7.)
+       self.ax[0,0].set_xlim(700.,3500.)
+       self.ax[0,0].set_ylabel('Log10(counts)')
+       self.ax[0,0].set_xlabel('Energy (keV)')
+       self.ax[0,1].set_ylim(-2.,7.)
+       self.ax[0,1].set_xlim(700.,3500.)
+       self.ax[0,1].set_ylabel('Log10(counts)')
+       self.ax[0,1].set_xlabel('Energy (keV)')
+       self.ax[1,1].set_ylim(-2.,7.)
+       self.ax[1,1].set_xlim(0.,640.)
+       self.ax[1,1].set_ylabel('Log10(counts)')
+       self.ax[1,1].set_xlabel('Standoff (mm)')
+       self.ax[1,0].set_ylim(-2.,7.)
+       self.ax[1,0].set_xlim(0.,640.)
+       self.ax[1,0].set_ylabel('Log10(counts)')
+       self.ax[1,0].set_xlabel('Standoff (mm)')
+
+       if save:
+          plt.savefig(output_filename,dpi=200,bbox_inches='tight')
+
+       if show:
+          plt.show()
+
+       return
+
+
+
+
+
+ 

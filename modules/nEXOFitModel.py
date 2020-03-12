@@ -2,8 +2,12 @@ import histlite as hl
 import pandas as pd
 import numpy as np
 
+from matplotlib import pyplot as plt
+
+
 class nEXOFitModel:
 
+   #########################################################################
    def __init__( self ):
        
        # Here I'll use lists to ensure that the indices are
@@ -12,6 +16,8 @@ class nEXOFitModel:
        self.variable_list = []
        self.full_distribution = None
 
+
+   #########################################################################
    def AddPDFsFromDataframe( self, input_df, append=False ):
 
        self.df_pdfs = input_df
@@ -31,6 +37,8 @@ class nEXOFitModel:
            this_variable_dict['Value'] = row['TotalExpectedCounts']
            self.variable_list.append( this_variable_dict )
 
+
+   #########################################################################
    def GenerateModelDistribution( self, fast=False ):
        if len(self.pdfs)==0:
            print('ERROR: no pdfs are loaded into the fitted model.')
@@ -45,6 +53,8 @@ class nEXOFitModel:
        self.full_distribution = np.sum(distributions, axis=0)
        return self.full_distribution
 
+
+   #########################################################################
    def GenerateDataset( self ):
        if self.full_distribution==None:
           self.GenerateModelDistribution()
@@ -57,6 +67,8 @@ class nEXOFitModel:
                                  np.sqrt(fake_data_values) )
        return self.dataset
 
+
+   #########################################################################
    def UpdateVariables( self, variable_numpy_array ):
 
        if not (len(variable_numpy_array)==len(self.variable_list)):
@@ -65,4 +77,7 @@ class nEXOFitModel:
                 'Variables will not be updated.\n')     
 
        for i in range(0,len(variable_numpy_array)):
+
           self.variable_list[i]['Value'] = np.copy(variable_numpy_array[i])
+
+
