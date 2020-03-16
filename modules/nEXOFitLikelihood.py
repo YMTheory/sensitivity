@@ -91,6 +91,7 @@ class nEXOFitLikelihood:
                                    errordef = 0.5,\
                                    print_level = print_level)
        self.fitter.migrad()
+       #self.PrintVariableList()
        num_iterations = 1
        while not (self.fitter.get_fmin()['is_valid']\
              and self.fitter.get_fmin()['has_accurate_covar']):    
@@ -119,13 +120,16 @@ class nEXOFitLikelihood:
                                         print_level = print_level)
                  self.fitter.migrad()
                  num_iterations += 1
+                 #self.PrintVariableList()
 
        fit_errors = self.fitter.errors
        for var in self.variable_list:
            var['FitError'] = fit_errors[ var['Name'] ]
            
 
-       return num_iterations 
+       return self.fitter.get_fmin()['is_valid'],\
+              self.fitter.get_fmin()['has_accurate_covar'],\
+              num_iterations 
 
    ##############################################################################################
 
@@ -135,7 +139,7 @@ class nEXOFitLikelihood:
        # Returns a numpy array with the variable values
        array = np.zeros(len(self.variable_list))
        for i in range(0,len(self.variable_list)):
-           array[i] = self.variable_list[i]['Value']
+           array[i] = np.copy(self.variable_list[i]['Value'])
        return array
 
    ##############################################################################################

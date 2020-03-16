@@ -4,6 +4,7 @@ import os
 sys.path.append('../modules')
 
 
+######################################################################
 # Check arguments and load inputs
 if len(sys.argv) == 4:
 	iteration_num = int(sys.argv[1])
@@ -14,14 +15,19 @@ if len(sys.argv) == 4:
 else:
 	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 3 arguments')
 	print('Usage:')
-	print('\tpython ConvertExcel2Root_pandas.py <iteration_num> <input_num_signal> </path/to/output/directory/>')
+	print('\tpython ComputeCriticalLambdaForNumSignal.py ' + \
+		'<iteration_num> <input_num_signal> </path/to/output/directory/>')
 	sys.exit('\n')
+######################################################################
+
+
 
 # Import useful libraries for analysis
 import pandas as pd
 import histlite as hl
 import numpy as np
 from matplotlib import pyplot as plt
+import copy
 
 # Import the nEXO sensitivity classes
 import nEXOFitWorkspace
@@ -41,16 +47,11 @@ workspace.CreateGroupedPDFs()
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
 
-initial_values = np.ones(len(likelihood.variable_list))
+# Get the initial values; set the BB0n num_signal to the user-provided input
+initial_values = likelihood.GetVariableValues()
+initial_values[ likelihood.GetVariableIndex('Bb0n') ] = input_num_signal
 
-for i in range(len(likelihood.variable_list)):
-	if 'Bb0n' in likelihood.variable_list[i]['Name']:
-		# Set signal num_counts to whatever the input value is
-		initial_values[i] = input_num_signal
-	else:
-		# Set background num_counts to the expected values from the groupPDFs.
-		initial_values[i] = (likelihood.variable_list[i]['Value'])
-
+# Initialize the model
 likelihood.model_obj.UpdateVariables(initial_values)
 likelihood.model_obj.GenerateModelDistribution()
 likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
@@ -58,13 +59,12 @@ likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
 CONSTRAINTS = True
 PAR_LIMITS = True
 
-
 if PAR_LIMITS:
 	# Next, set limits so that none of the PDFs go negative in the fit.
 	for var in likelihood.variable_list:
 	    if 'Bb0n' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
+	                                  lower_limit = -100., \
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
@@ -73,39 +73,18 @@ if PAR_LIMITS:
 
 
 # Increase the step size for the Bb0n variable
-likelihood.SetFractionalMinuitError('Num_FullLXeBb0n', 0.01/0.0001)
+likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 
-
-
-def NegLogLikelihood(parameter_values):
-    return likelihood.ComputeNegLogLikelihood(parameter_values)
-
-
-# Create Minimizer.
-m = Minuit.from_array_func( NegLogLikelihood, \
-				initial_values, \
-				error = likelihood.GetMinuitErrorTuple(), \
-				fix   = likelihood.GetVariableFixTuple(), \
-				name  = likelihood.GetVariableNamesTuple(), \
-				limit = likelihood.GetVariableLimitsTuple(), \
-				errordef = 0.5,\
-				print_level = 1)
-print('Getting param states:')
-try:
-	print(m.get_param_states())
-except ValueError as e:
-	print('ValueError: {}'.format(e))
-
-
-num_datasets = 5000
+# Set the number of datasets to generate
+num_datasets = 2000
 
 output_row = dict()
 output_df_list = []
 
 import time
 
-start = time.time()
-last_time = start
+start_time = time.time()
+last_time = start_time
 
 for j in range(0,num_datasets):
 	#print('Running dataset {}'.format(j))
@@ -113,9 +92,22 @@ for j in range(0,num_datasets):
 	fixedSig_fit_converged = True
 	this_lambda = -1.
 	output_row = dict()
+	best_fit_parameters = None
+	best_fit_errors = None
+	fixed_fit_parameters = None
+	fixed_fit_errors = None
+
 	likelihood.model_obj.UpdateVariables(initial_values)
 	likelihood.model_obj.GenerateModelDistribution()
 	likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
+
+	# Save input values as dict
+	input_parameters = dict()
+	for var in likelihood.variable_list:
+		if 'Bb0n' in var['Name']:
+			input_parameters[ var['Name'] ] = input_num_signal
+		else:
+			input_parameters[ var['Name'] ] = float(var['Value'])
 
 	likelihood.SetAllVariablesFloating()
 	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
@@ -138,55 +130,34 @@ for j in range(0,num_datasets):
 	print('\n')
 
 	print('\nBest fit:\n')
-	m = Minuit.from_array_func( NegLogLikelihood, \
-					initial_values, \
-					error = likelihood.GetMinuitErrorTuple(), \
-					fix   = likelihood.GetVariableFixTuple(), \
-					name  = likelihood.GetVariableNamesTuple(), \
-					limit = likelihood.GetVariableLimitsTuple(), \
-					errordef = 0.5 )
-	m.migrad()
-	print('Param states after best fit:')
-	try:
-		print(m.get_param_states())
-	except ValueError as e:
-		print('ValueError: {}'.format(e))
-	nll_best = m.fval
-	if not m.get_fmin()['is_valid']:
-		best_fit_converged = False
-		print('Best fit did not converge.')
-	else:
-		print('Best fit converged!')
- 
+	best_fit_converged, best_fit_covar_flag, best_fit_iterations = \
+			likelihood.CreateAndRunMinuitFit( initial_values, print_level=1 )
+	likelihood.PrintVariableList()
+	best_fit_parameters = dict( likelihood.fitter.values ) 
+	best_fit_errors = dict( likelihood.fitter.errors )
 
+	nll_best = likelihood.fitter.fval
+	 
 	print('\n\nFit with signal value fixed at {:3.3} cts:\n'.format(input_num_signal))
 
 	likelihood.SetVariableFixStatus('Num_FullLXeBb0n',True)
 
-	m = Minuit.from_array_func( NegLogLikelihood, \
-			initial_values, \
-			error = likelihood.GetMinuitErrorTuple(), \
-			fix   = likelihood.GetVariableFixTuple(), \
-			name  = likelihood.GetVariableNamesTuple(), \
-			limit = likelihood.GetVariableLimitsTuple(), \
-			errordef = 0.5 )
-	m.migrad()
-	print('Param states after fixed-signal fit:')
-	try:
-		print(m.get_param_states())
-	except ValueError as e:
-		print('ValueError: {}')
-	this_lambda = 2*(m.fval - nll_best)
-	if not m.get_fmin()['is_valid']:
-		fixedSig_fit_converged = False
-		print('Fixed fit did not converge.')
-	else:
-		print('Fixed fit converged!')
+	fixed_fit_converged, fixed_fit_covar_flag, fixed_fit_iterations = \
+			likelihood.CreateAndRunMinuitFit( initial_values, print_level=1 )
+	fixed_fit_parameters = dict( likelihood.fitter.values )
+	fixed_fit_errors = dict( likelihood.fitter.errors ) 
 
 	output_row['num_signal'] = input_num_signal
 	output_row['lambda'] = this_lambda
 	output_row['best_fit_converged'] = best_fit_converged
-	output_row['fixedSig_fit_converged'] = fixedSig_fit_converged
+	output_row['best_fit_covar'] = best_fit_covar_flag
+	output_row['fixed_fit_converged'] = fixed_fit_converged
+	output_row['fixed_fit_covar'] = fixed_fit_covar_flag
+	output_row['best_fit_parameters'] = best_fit_parameters
+	output_row['best_fit_errors'] = best_fit_errors
+	output_row['fixed_fit_parameters'] = fixed_fit_parameters
+	output_row['fixed_fit_errors'] = fixed_fit_errors
+	output_row['input_parameters'] = input_parameters
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)	
@@ -199,4 +170,4 @@ output_df = pd.DataFrame(output_df_list)
 print('Saving file to output directory: {}'.format(output_dir))
 output_df.to_hdf('{}/critical_lambda_calculation_num_sig_{:3.3}_file_{}.h5'.format(output_dir,input_num_signal,iteration_num),key='df')
 
-print('Elapsed: {:4.4}s'.format(time.time()-start))
+print('Elapsed: {:4.4}s'.format(time.time()-start_time))

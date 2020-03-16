@@ -180,15 +180,11 @@ for j in range(0,num_datasets):
 	# Find the global best fit first
 	print('\n\nBefore fit starts:')
 	likelihood.PrintVariableList()
-	best_fit_iterations = likelihood.CreateAndRunMinuitFit( initial_guess, print_level=1 )
+	best_fit_converged, best_fit_covar_flag, best_fit_iterations = \
+			likelihood.CreateAndRunMinuitFit( initial_guess, print_level=1 )
 	print('After fit ends:')
 	likelihood.PrintVariableList()
 	nll_best = likelihood.fitter.fval
-	if not likelihood.fitter.get_fmin()['is_valid']:
-		best_fit_converged = False
-		print('Best fit did not converge.')
-	else:
-		print('Best fit converged!')
 	
 
 	# Next, fix the signal parameter to specific hypotheses
@@ -204,18 +200,13 @@ for j in range(0,num_datasets):
 		#print('\n\nBefore fit starts:')
 		#likelihood.PrintVariableList()
 
-		num_iterations[i] = likelihood.CreateAndRunMinuitFit( initial_values, print_level=1 )
+		this_converged_flag, this_covar_flag, num_iterations[i] = \
+				likelihood.CreateAndRunMinuitFit( initial_values, print_level=1 )
 
 		lambdas[i] = 2*(likelihood.fitter.fval - nll_best)
 
-		if not likelihood.fitter.get_fmin()['is_valid']:
-			fixed_fit_converged = np.append(fixed_fit_converged,np.array([False]))
-		else:
-			fixed_fit_converged = np.append(fixed_fit_converged,np.array([True]))
-		if not likelihood.fitter.get_fmin()['has_accurate_covar']:
-			fixed_fit_covar = np.append(fixed_fit_covar,np.array([False]))
-		else:
-			fixed_fit_covar = np.append(fixed_fit_covar,np.array([True]))
+		fixed_fit_converged = np.append(fixed_fit_converged, this_converged_flag)
+		fixed_fit_covar = np.append(fixed_fit_covar, this_covar_flag)
 
 
 		print('After fit ends:')
@@ -251,6 +242,7 @@ for j in range(0,num_datasets):
 	output_row['num_signal'] = xvals
 	output_row['lambda'] = lambdas
 	output_row['best_fit_converged'] = best_fit_converged
+	output_row['best_fit_covar'] = best_fit_covar
 	output_row['fixed_fit_converged'] = fixed_fit_converged
 	output_row['fixed_fit_acc_covar'] = fixed_fit_covar
 	output_row['90CL_crossing'] = crossing
