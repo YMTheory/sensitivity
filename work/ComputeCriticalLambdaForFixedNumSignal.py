@@ -46,25 +46,28 @@ workspace.CreateGroupedPDFs()
 # Create the likelihood object
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
+likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
+eff_err = 0.05
 
 # Get the initial values; set the BB0n num_signal to the user-provided input
 initial_values = likelihood.GetVariableValues()
 initial_values[ likelihood.GetVariableIndex('Bb0n') ] = input_num_signal
 
 # Initialize the model
-likelihood.model_obj.UpdateVariables(initial_values)
-likelihood.model_obj.GenerateModelDistribution()
-likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
+likelihood.model.UpdateVariables(initial_values)
+likelihood.model.GenerateModelDistribution()
+likelihood.AddDataset( likelihood.model.GenerateDataset() )
+
 
 CONSTRAINTS = True
 PAR_LIMITS = True
 
 if PAR_LIMITS:
 	# Next, set limits so that none of the PDFs go negative in the fit.
-	for var in likelihood.variable_list:
+	for var in likelihood.model.variable_list:
 	    if 'Bb0n' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = -100., \
+	                                  lower_limit = 0., \
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
@@ -87,7 +90,7 @@ start_time = time.time()
 last_time = start_time
 
 for j in range(0,num_datasets):
-	#print('Running dataset {}'.format(j))
+
 	best_fit_converged = True
 	fixedSig_fit_converged = True
 	this_lambda = -1.
@@ -97,13 +100,13 @@ for j in range(0,num_datasets):
 	fixed_fit_parameters = None
 	fixed_fit_errors = None
 
-	likelihood.model_obj.UpdateVariables(initial_values)
-	likelihood.model_obj.GenerateModelDistribution()
-	likelihood.AddDataset( likelihood.model_obj.GenerateDataset() )
+	likelihood.model.UpdateVariables(initial_values)
+	likelihood.model.GenerateModelDistribution()
+	likelihood.AddDataset( likelihood.model.GenerateDataset() )
 
 	# Save input values as dict
 	input_parameters = dict()
-	for var in likelihood.variable_list:
+	for var in likelihood.model.variable_list:
 		if 'Bb0n' in var['Name']:
 			input_parameters[ var['Name'] ] = input_num_signal
 		else:
@@ -117,15 +120,20 @@ for j in range(0,num_datasets):
 		# Fluctuate Rn222 constraint
 		rn222_constraint_val = (np.random.randn()*0.1 + 1)*initial_values[rn222_idx]
 		# Set Rn222 constraint
-		likelihood.SetGaussianConstraintAbsolute(likelihood.variable_list[rn222_idx]['Name'],\
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],\
 							 rn222_constraint_val, \
 	                	                         0.1 * initial_values[rn222_idx])
+		eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
+		eff_constraint_val = (np.random.randn()*eff_err + 1)* initial_values[eff_idx]
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],\
+							eff_constraint_val,\
+							eff_err * initial_values[eff_idx])
 
 	print('\n\nRunning dataset {}....\n'.format(j))
 	likelihood.PrintVariableList()
 
 	print('\nConstraints:')
-	for constraint in likelihood.constraints:
+	for constraint in likelihood.model.constraints:
 		print('\t{}'.format(constraint))
 	print('\n')
 
@@ -147,6 +155,11 @@ for j in range(0,num_datasets):
 	fixed_fit_parameters = dict( likelihood.fitter.values )
 	fixed_fit_errors = dict( likelihood.fitter.errors ) 
 
+	# Note, the 2 is positive here becuase fval is the *negative* log-likelihood
+	# Lambda is defined as -2 * ln( L_fixed / L_best )
+	this_lambda = 2.*(likelihood.fitter.fval - nll_best)
+
+
 	output_row['num_signal'] = input_num_signal
 	output_row['lambda'] = this_lambda
 	output_row['best_fit_converged'] = best_fit_converged
@@ -161,6 +174,8 @@ for j in range(0,num_datasets):
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)	
+	print('Variable values at end of loop:')
+	likelihood.PrintVariableList()
 	
 	print('Dataset {} finished at {:4.4}s'.format(j,time.time()-last_time))
 	last_time = time.time()

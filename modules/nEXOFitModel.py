@@ -1,6 +1,7 @@
 import histlite as hl
 import pandas as pd
 import numpy as np
+import copy
 
 from matplotlib import pyplot as plt
 
@@ -15,7 +16,9 @@ class nEXOFitModel:
        self.pdfs = []
        self.variable_list = []
        self.full_distribution = None
-
+       self.constraints = []
+       self.signal_efficiency_flag = False
+       self.initial_variable_list = []
 
    #########################################################################
    def AddPDFsFromDataframe( self, input_df, append=False ):
@@ -36,6 +39,14 @@ class nEXOFitModel:
            this_variable_dict['Name'] = 'Num_{}'.format( row['Group'] ) 
            this_variable_dict['Value'] = row['TotalExpectedCounts']
            self.variable_list.append( this_variable_dict )
+       for var in self.variable_list:
+           var['IsFixed'] = False
+           var['FitError'] = None
+           var['MinuitInputError'] = np.sqrt(var['Value'])
+           var['IsConstrained'] = False
+           var['Limits'] = (None,None)
+
+       self.initial_variable_list = copy.deepcopy( self.variable_list )
 
 
    #########################################################################
@@ -50,9 +61,68 @@ class nEXOFitModel:
             * self.variable_list[i]['Value']
            for i in range(len(self.pdfs))
        ]
+
+       # If we're running with the efficiency parameter, use it to scale the signal
+       if self.signal_efficiency_flag:
+          sig_idx = self.GetVariableIndexByName( 'Bb0n' )
+          sig_eff_idx = self.GetVariableIndexByName('Signal_Efficiency')
+          distributions[sig_idx] = distributions[sig_idx] * self.variable_list[sig_eff_idx]['Value']
+
        self.full_distribution = np.sum(distributions, axis=0)
        return self.full_distribution
 
+
+   #########################################################################
+   def IncludeSignalEfficiencyVariableInFit( self, include_flag=True ):
+
+       self.signal_efficiency_flag = include_flag
+
+       # GetVariableIndex returns 1000 if the variable is not found 
+       # in the variable_list
+       try: 
+          self.GetVariableIndexByName('Signal_Efficiency')
+          # If we need to turn off the signal efficiency parameter, 
+          # delete it from the variable list
+          if not self.signal_efficiency_flag:
+             sig_eff_idx = self.GetVariableIndexByName('Signal_Efficiency')
+             del self.variable_list[ sig_eff_idx ]
+       except ValueError:
+          # If we need to turn on the signal efficiency parameter,
+          # add it to the variable list.
+          if self.signal_efficiency_flag:
+             this_variable_dict = {}
+             this_variable_dict['Name'] = 'Signal_Efficiency'
+             this_variable_dict['Value'] = 1.
+             this_variable_dict['IsFixed'] = False
+             this_variable_dict['IsConstrained'] = False
+             this_variable_dict['Limits'] = None
+             this_variable_dict['MinuitInputError'] = 0.01
+             this_variable_dict['FitError'] = None
+             self.variable_list.append(this_variable_dict)
+             self.initial_variable_list.append(this_variable_dict)
+
+   #########################################################################
+   def GetVariableIndexByName( self, name ):
+       index = -10000
+       counter = 0
+       for i in range(0,len(self.variable_list)):
+           if name in self.variable_list[i]['Name']:
+              index = i
+              counter += 1
+       if index == -10000:
+           #print('\n\nERROR: No variable in the likelihood.variable_list contains the name {}.\n'.format(var_name))
+           #print('       Please double-check that the variable names in the ComponentsTable match')
+           #print('       the ones you\'re trying to access\n\n')
+           err_message =  'No variable in the likelihood.variable_list contains the name {}.\n\n'.format(name)
+           err_message += '\tPlease double-check that the variable names in the ComponentsTable match\n'
+           err_message += '\tthe ones you\'re trying to access\n\n'
+           raise ValueError(err_message)
+
+       if counter > 1:
+          print('WARNING in nEXOFitModel.GetVariableIndexByName():')
+          print('\tFound more than one variable matching the string {}'.format(name))
+
+       return index
 
    #########################################################################
    def GenerateDataset( self ):
