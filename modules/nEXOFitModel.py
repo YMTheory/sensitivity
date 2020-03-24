@@ -95,7 +95,7 @@ class nEXOFitModel:
              this_variable_dict['Value'] = 1.
              this_variable_dict['IsFixed'] = False
              this_variable_dict['IsConstrained'] = False
-             this_variable_dict['Limits'] = None
+             this_variable_dict['Limits'] = (None,None)
              this_variable_dict['MinuitInputError'] = 0.01
              this_variable_dict['FitError'] = None
              self.variable_list.append(this_variable_dict)

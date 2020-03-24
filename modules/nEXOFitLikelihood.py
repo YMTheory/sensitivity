@@ -20,6 +20,7 @@ class nEXOFitLikelihood:
        self.pdfs = {}
        self.dataset = None
        self.model_distribution = None
+       self.best_fit_result = None
        #self.variable_list = []
        self.initial_values = []
        self.model = nEXOFitModel.nEXOFitModel()
@@ -36,7 +37,8 @@ class nEXOFitLikelihood:
        self.dataset = input_dataset
        if self.model_distribution is not None:
           self.nll_offset = 0.
-          self.SetInitialOffset() 
+          self.SetInitialOffset()
+       self.best_fit_result = None
 
    ##############################################################################################
    def AddPDFDataframeToModel( self, df_pdfs ):
@@ -123,6 +125,77 @@ class nEXOFitLikelihood:
        return self.fitter.get_fmin()['is_valid'],\
               self.fitter.get_fmin()['has_accurate_covar'],\
               num_iterations 
+
+   ##############################################################################################
+   def ComputeLambda( self, initial_values=None, signal_name='Bb0n', print_level=0,\
+                      signal_expectation=None, fixed_fit_signal_value=None):
+
+       signal_idx = self.GetVariableIndex( signal_name )
+
+       initial_values_best = np.copy(initial_values)
+       initial_values_fixed = np.copy(initial_values)
+
+       if initial_values is not None:
+
+          if signal_expectation is not None:
+             initial_values_best[signal_idx] = signal_expectation
+
+          if fixed_fit_signal_value is not None:
+             initial_values_fixed[signal_idx] = fixed_fit_signal_value
+
+       # Compute the best fit for if you haven't already (the variable
+       # best_fit_result is reset each time a new dataset is added).
+       if self.best_fit_result is None:
+          print('\nRunning best fit...\n')
+          best_fit_converged, best_fit_covar, best_fit_iterations = \
+                           self.CreateAndRunMinuitFit( initial_values_best, print_level=1 )
+          best_fit_parameters = dict( self.fitter.values ) 
+          best_fit_errors = dict( self.fitter.errors )
+  
+          self.best_fit_result = dict() 
+          self.best_fit_result['best_fit_converged'] = best_fit_converged
+          self.best_fit_result['best_fit_covar'] = best_fit_covar
+          self.best_fit_result['best_fit_iterations'] = best_fit_iterations
+          self.best_fit_result['best_fit_parameters'] = best_fit_parameters
+          self.best_fit_result['best_fit_errors'] = best_fit_errors
+          self.best_fit_result['nll'] = self.fitter.fval
+
+          if print_level == 1:
+             self.PrintVariableList()
+   
+       print('\n\nFit with {} fixed at {:3.3} cts...\n'.format( self.model.variable_list[signal_idx]['Name'], \
+                                                                initial_values_fixed[signal_idx] ) )
+
+       # Fix the signal variable
+       self.SetVariableFixStatus( signal_name, True)
+
+       fixed_fit_converged, fixed_fit_covar, fixed_fit_iterations = \
+                        self.CreateAndRunMinuitFit( initial_values_fixed, print_level=1 )
+       fixed_fit_parameters = dict( self.fitter.values )
+       fixed_fit_errors = dict( self.fitter.errors ) 
+
+       # Note, the 2 is positive here becuase fval is the *negative* log-likelihood
+       # Lambda is defined as -2 * ln( L_fixed / L_best )
+       this_lambda = 2.*(self.fitter.fval - self.best_fit_result['nll'])
+
+       # Unfix the signal variable
+       self.SetVariableFixStatus( signal_name, False)
+
+       lambda_result = dict()
+
+       lambda_result['lambda']               = this_lambda
+       lambda_result['best_fit_converged']   = self.best_fit_result['best_fit_converged']
+       lambda_result['best_fit_covar']       = self.best_fit_result['best_fit_covar']
+       lambda_result['best_fit_iterations']  = self.best_fit_result['best_fit_iterations']
+       lambda_result['best_fit_parameters']  = self.best_fit_result['best_fit_parameters']
+       lambda_result['best_fit_errors']      = self.best_fit_result['best_fit_errors']
+       lambda_result['fixed_fit_converged']  = fixed_fit_converged 
+       lambda_result['fixed_fit_covar']      = fixed_fit_covar
+       lambda_result['fixed_fit_iterations'] = fixed_fit_iterations 
+       lambda_result['fixed_fit_parameters'] = fixed_fit_parameters
+       lambda_result['fixed_fit_errors']     = fixed_fit_errors 
+
+       return lambda_result
 
    ##############################################################################################
 

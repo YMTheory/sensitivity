@@ -46,8 +46,10 @@ workspace.CreateGroupedPDFs()
 # Create the likelihood object
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
+
+# Include the signal efficiency variable in the fit
 likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
-eff_err = 0.05
+eff_err = 0.1
 
 # Get the initial values; set the BB0n num_signal to the user-provided input
 initial_values = likelihood.GetVariableValues()
@@ -136,41 +138,25 @@ for j in range(0,num_datasets):
 	for constraint in likelihood.model.constraints:
 		print('\t{}'.format(constraint))
 	print('\n')
+	
+	###########################################################################
+	# All the exciting stuff happens here!
+	lambda_fit_result = likelihood.ComputeLambda( initial_values, print_level=1 )
+	###########################################################################
 
-	print('\nBest fit:\n')
-	best_fit_converged, best_fit_covar_flag, best_fit_iterations = \
-			likelihood.CreateAndRunMinuitFit( initial_values, print_level=1 )
-	likelihood.PrintVariableList()
-	best_fit_parameters = dict( likelihood.fitter.values ) 
-	best_fit_errors = dict( likelihood.fitter.errors )
-
-	nll_best = likelihood.fitter.fval
-	 
-	print('\n\nFit with signal value fixed at {:3.3} cts:\n'.format(input_num_signal))
-
-	likelihood.SetVariableFixStatus('Num_FullLXeBb0n',True)
-
-	fixed_fit_converged, fixed_fit_covar_flag, fixed_fit_iterations = \
-			likelihood.CreateAndRunMinuitFit( initial_values, print_level=1 )
-	fixed_fit_parameters = dict( likelihood.fitter.values )
-	fixed_fit_errors = dict( likelihood.fitter.errors ) 
-
-	# Note, the 2 is positive here becuase fval is the *negative* log-likelihood
-	# Lambda is defined as -2 * ln( L_fixed / L_best )
-	this_lambda = 2.*(likelihood.fitter.fval - nll_best)
-
-
-	output_row['num_signal'] = input_num_signal
-	output_row['lambda'] = this_lambda
-	output_row['best_fit_converged'] = best_fit_converged
-	output_row['best_fit_covar'] = best_fit_covar_flag
-	output_row['fixed_fit_converged'] = fixed_fit_converged
-	output_row['fixed_fit_covar'] = fixed_fit_covar_flag
-	output_row['best_fit_parameters'] = best_fit_parameters
-	output_row['best_fit_errors'] = best_fit_errors
-	output_row['fixed_fit_parameters'] = fixed_fit_parameters
-	output_row['fixed_fit_errors'] = fixed_fit_errors
-	output_row['input_parameters'] = input_parameters
+	output_row['num_signal']           = input_num_signal
+	output_row['lambda']               = lambda_fit_result['lambda']
+	output_row['best_fit_converged']   = lambda_fit_result['best_fit_converged']
+	output_row['best_fit_covar']       = lambda_fit_result['best_fit_covar']
+	output_row['best_fit_iterations']  = lambda_fit_result['best_fit_iterations']
+	output_row['fixed_fit_converged']  = lambda_fit_result['fixed_fit_converged']
+	output_row['fixed_fit_covar']      = lambda_fit_result['fixed_fit_covar']
+	output_row['fixed_fit_iterations'] = lambda_fit_result['fixed_fit_iterations']
+	output_row['best_fit_parameters']  = lambda_fit_result['best_fit_parameters']
+	output_row['best_fit_errors']      = lambda_fit_result['best_fit_errors']
+	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
+	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
+	output_row['input_parameters']     = input_parameters
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)	
