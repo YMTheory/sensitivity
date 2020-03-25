@@ -29,6 +29,7 @@ class nEXOFitLikelihood:
                                      # recomputed each time you generate a new dataset. 
        self.nll_extra_offset = 0. # This is used to ensure that the minimum is close to zero
                                   # on the second iteration of the fit.
+       self.penalize_negative_bins = False
        #self.constraints = []
        self.fitter = None
 
@@ -41,6 +42,10 @@ class nEXOFitLikelihood:
        self.best_fit_result = None
 
    ##############################################################################################
+   def PenalizeNegativeBins( self, value=True ):
+       self.penalize_negative_bins = value
+
+   ##############################################################################################
    def AddPDFDataframeToModel( self, df_pdfs ):
        self.model.AddPDFsFromDataframe( df_pdfs )
        self.model_distribution = self.model.GenerateModelDistribution()
@@ -48,7 +53,7 @@ class nEXOFitLikelihood:
    ##############################################################################################
    def ComputeNegLogLikelihood( self, var_values ):
      
-       fast = False
+       fast = True
        self.model.UpdateVariables( var_values )
        self.model_distribution = self.model.GenerateModelDistribution(fast=fast)
        if not fast:
@@ -62,6 +67,12 @@ class nEXOFitLikelihood:
                   self.dataset.values[mask] * np.log( self.model_distribution[mask] ) ) -\
                   self.nll_offset - self.nll_extra_offset 
 
+       if self.penalize_negative_bins:
+          # In case we have negative bins, need to penalize the likelihood somehow. For now,
+          # I'll just add the sum back to the likelihood...? At least this way the farther 
+          # negative it goes, the stronger the penalty.
+          mask = (self.model_distribution < 0.)
+          self.nll += (-5.)*np.sum(self.model_distribution[mask])
 
        # Here we apply the constraints (if any) to the variables.
        for constraint in self.model.constraints:
@@ -99,7 +110,7 @@ class nEXOFitLikelihood:
                  # 'fixed' variables stay the same
                  fluctuated_input_values = self.GetVariableValues() + \
                                      np.random.randn(len(initial_values)) * \
-                                     np.sqrt( self.GetVariableValues() )
+                                     np.sqrt( self.GetVariableValuesNonNegative() )
                  for i in range(0,len(self.model.variable_list)):
                           if self.model.variable_list[i]['IsFixed']:
                              fluctuated_input_values[i] = initial_values[i]
@@ -128,7 +139,9 @@ class nEXOFitLikelihood:
 
    ##############################################################################################
    def ComputeLambda( self, initial_values=None, signal_name='Bb0n', print_level=0,\
-                      signal_expectation=None, fixed_fit_signal_value=None):
+                      signal_expectation=None, fixed_fit_signal_value=None, repeat_best_fit=False):
+
+       
 
        signal_idx = self.GetVariableIndex( signal_name )
 
@@ -145,10 +158,14 @@ class nEXOFitLikelihood:
 
        # Compute the best fit for if you haven't already (the variable
        # best_fit_result is reset each time a new dataset is added).
-       if self.best_fit_result is None:
+       if self.best_fit_result is None or repeat_best_fit:
+
+          self.SetVariableFixStatus( signal_name, False)
           print('\nRunning best fit...\n')
+          ################################################################################
+          # The action happens here!
           best_fit_converged, best_fit_covar, best_fit_iterations = \
-                           self.CreateAndRunMinuitFit( initial_values_best, print_level=1 )
+                           self.CreateAndRunMinuitFit( initial_values_best, print_level=print_level )
           best_fit_parameters = dict( self.fitter.values ) 
           best_fit_errors = dict( self.fitter.errors )
   
@@ -169,8 +186,10 @@ class nEXOFitLikelihood:
        # Fix the signal variable
        self.SetVariableFixStatus( signal_name, True)
 
+       ################################################################################
+       # The action happens here!
        fixed_fit_converged, fixed_fit_covar, fixed_fit_iterations = \
-                        self.CreateAndRunMinuitFit( initial_values_fixed, print_level=1 )
+                        self.CreateAndRunMinuitFit( initial_values_fixed, print_level=print_level )
        fixed_fit_parameters = dict( self.fitter.values )
        fixed_fit_errors = dict( self.fitter.errors ) 
 
@@ -199,6 +218,122 @@ class nEXOFitLikelihood:
 
    ##############################################################################################
 
+   ##############################################################################################
+   def ComputeLambdaForPositiveSignal( self, initial_values=None, signal_name='Bb0n',\
+                    print_level=0, signal_expectation=None, fixed_fit_signal_value=None, repeat_best_fit=False):
+       '''
+       Here we calculate the test statistic for the case where the signal is assumed
+       to be positive. This means that, if the best fit number of signal counts is
+       negative, we regard this as unphysical, and evalute the likelihood ratio with
+       the signal fixed to 0 in the denominator (rather than the global best fit). 
+ 
+       This corresponds to Eq. 11 in Cowan et al., "Asymptotic formulae for likelihood-based 
+       tests of new physics" (arXiv:1007.1727)
+       '''
+
+       signal_idx = self.GetVariableIndex( signal_name )
+
+       initial_values_best = np.copy(initial_values)
+       initial_values_fixed = np.copy(initial_values)
+
+       if initial_values is not None:
+
+          if signal_expectation is not None:
+             initial_values_best[signal_idx] = signal_expectation
+
+          if fixed_fit_signal_value is not None:
+             initial_values_fixed[signal_idx] = fixed_fit_signal_value
+
+       # Compute the best fit for if you haven't already (the variable
+       # best_fit_result is reset to None each time a new dataset is added).
+       if self.best_fit_result is None or repeat_best_fit:
+            self.SetVariableFixStatus( signal_name, False)
+            print('\nRunning best fit...\n')
+            best_fit_converged, best_fit_covar, best_fit_iterations = \
+                             self.CreateAndRunMinuitFit( initial_values_best, print_level=1 )
+            best_fit_parameters = dict( self.fitter.values ) 
+            best_fit_errors = dict( self.fitter.errors )
+  
+            self.best_fit_result = dict() 
+            self.best_fit_result['best_fit_converged'] = best_fit_converged
+            self.best_fit_result['best_fit_covar'] = best_fit_covar
+            self.best_fit_result['best_fit_iterations'] = best_fit_iterations
+            self.best_fit_result['best_fit_parameters'] = best_fit_parameters
+            self.best_fit_result['best_fit_errors'] = best_fit_errors
+            self.best_fit_result['nll'] = self.fitter.fval
+            best_fit_signal_num = [val for key, val in best_fit_parameters.items() if signal_name in key]
+            self.best_fit_result['best_fit_signal_counts'] = best_fit_signal_num[0] 
+            print('Best fit result NLL: {:4.4}'.format(self.fitter.fval))
+
+            if print_level == 1:
+               self.PrintVariableList()
+
+            # If the best fit number of signal events is less than 0, re-evaluate lambda
+            # with the signal fixed at 0. 
+            if len(best_fit_signal_num) > 1:
+                 print('WARNING: more than one variable matches the signal name ({})'.format(signal_name))
+                 print('THIS WILL CAUSE PROBLEMS\n')
+                 raise ValueError
+            if self.best_fit_result['best_fit_signal_counts'] < 0.:
+                 print('Best fit signal value is less than 0! Fixing value to 0 and re-running fit...')
+                 self.SetVariableFixStatus( signal_name, True )
+                 initial_values_best[signal_idx] = 0.
+                 zero_fit_converged, zero_fit_covar, zero_fit_iterations = \
+                                  self.CreateAndRunMinuitFit( initial_values_best, print_level=1 )
+                 zero_fit_parameters = dict( self.fitter.values ) 
+                 zero_fit_errors = dict( self.fitter.errors )
+                 self.zero_fit_result = dict() 
+                 self.zero_fit_result['zero_fit_converged'] = zero_fit_converged
+                 self.zero_fit_result['zero_fit_covar'] = zero_fit_covar
+                 self.zero_fit_result['zero_fit_iterations'] = zero_fit_iterations
+                 self.zero_fit_result['zero_fit_parameters'] = zero_fit_parameters
+                 self.zero_fit_result['zero_fit_errors'] = zero_fit_errors
+                 self.zero_fit_result['nll'] = self.fitter.fval
+                 print('Zero fit result NLL: {:4.4}'.format(self.fitter.fval))       
+                 if print_level == 1:
+                    self.PrintVariableList()
+
+                 self.SetVariableFixStatus( signal_name, False)
+   
+       print('\n\nFit with {} fixed at {:3.3} cts...\n'.format( self.model.variable_list[signal_idx]['Name'], \
+                                                                initial_values_fixed[signal_idx] ) )
+
+       # Fix the signal variable
+       self.SetVariableFixStatus( signal_name, True)
+
+       fixed_fit_converged, fixed_fit_covar, fixed_fit_iterations = \
+                        self.CreateAndRunMinuitFit( initial_values_fixed, print_level=1 )
+       fixed_fit_parameters = dict( self.fitter.values )
+       fixed_fit_errors = dict( self.fitter.errors ) 
+
+       # Note, the 2 is positive here becuase fval is the *negative* log-likelihood
+       # Lambda is defined as -2 * ln( L_fixed / L_best )
+       if self.best_fit_result['best_fit_signal_counts'] < 0.:
+          print('Zero fit result NLL: {:4.4}'.format(self.zero_fit_result['nll']))
+          this_lambda = 2.*(self.fitter.fval - self.zero_fit_result['nll'])
+       else:
+          this_lambda = 2.*(self.fitter.fval - self.best_fit_result['nll'])
+
+       # Unfix the signal variable
+       self.SetVariableFixStatus( signal_name, False)
+
+       lambda_result = dict()
+
+       lambda_result['lambda']               = this_lambda
+       lambda_result['best_fit_converged']   = self.best_fit_result['best_fit_converged']
+       lambda_result['best_fit_covar']       = self.best_fit_result['best_fit_covar']
+       lambda_result['best_fit_iterations']  = self.best_fit_result['best_fit_iterations']
+       lambda_result['best_fit_parameters']  = self.best_fit_result['best_fit_parameters']
+       lambda_result['best_fit_errors']      = self.best_fit_result['best_fit_errors']
+       lambda_result['fixed_fit_converged']  = fixed_fit_converged 
+       lambda_result['fixed_fit_covar']      = fixed_fit_covar
+       lambda_result['fixed_fit_iterations'] = fixed_fit_iterations 
+       lambda_result['fixed_fit_parameters'] = fixed_fit_parameters
+       lambda_result['fixed_fit_errors']     = fixed_fit_errors 
+
+       return lambda_result
+
+   ##############################################################################################
 
    ##############################################################################################
    def GetVariableValues( self ):
@@ -207,6 +342,18 @@ class nEXOFitLikelihood:
        for i in range(0,len(self.model.variable_list)):
            array[i] = np.copy(self.model.variable_list[i]['Value'])
        return array
+
+   ##############################################################################################
+   def GetVariableValuesNonNegative( self ):
+       # Returns a numpy array with the variable values
+       array = np.zeros(len(self.model.variable_list))
+       for i in range(0,len(self.model.variable_list)):
+           if self.model.variable_list[i]['Value'] < 0.:
+              continue
+           else:
+              array[i] = np.copy(self.model.variable_list[i]['Value'])
+       return array
+
 
    ##############################################################################################
    def SetVariableLimits( self, var_name, upper_limit=None, lower_limit=None):
@@ -232,15 +379,15 @@ class nEXOFitLikelihood:
 
    ##############################################################################################
    def SetInitialOffset( self ):
-       if self.model.initial_variable_list == []:
+       if self.model.variable_list == []:
           print('ERROR: Attempting to compute the offset, but \n' +\
                 '       there are no initial values available.\n' +\
                 '       Please add a model before proceeding.')
           return
        else:
-          initial_vals_array = np.array([var['Value'] for var in self.model.initial_variable_list])
+          input_vals_array = np.array([var['Value'] for var in self.model.variable_list])
           self.nll_extra_offset = 0.
-          self.nll_offset = self.ComputeNegLogLikelihood( initial_vals_array )
+          self.nll_offset = self.ComputeNegLogLikelihood( input_vals_array )
        return
 
 
@@ -363,40 +510,50 @@ class nEXOFitLikelihood:
 
               h_sum += ( weight * pdf )
 
-              hl.plot1d( self.ax[0,0], (weight * pdf)[0:1].project([1]).log10(), label=component_name )
-              hl.plot1d( self.ax[0,1], (weight * pdf)[1:].project([1]).log10() )
-              hl.plot1d( self.ax[1,1], (weight * pdf)[1:].project([2]).log10() )
-              hl.plot1d( self.ax[1,0], (weight * pdf)[0:1].project([2]).log10() )
+              hl.plot1d( self.ax[0,0], (weight * pdf)[0:1].project([1]), label=component_name )
+              hl.plot1d( self.ax[0,1], (weight * pdf)[1:].project([1]) )
+              hl.plot1d( self.ax[1,1], (weight * pdf)[1:].project([2]) )
+              hl.plot1d( self.ax[1,0], (weight * pdf)[0:1].project([2]) )
 
-       hl.plot1d(self.ax[0,0],h_sum[0:1].project([1]).log10(),color='b',label='Total Sum')
-       hl.plot1d(self.ax[0,1],h_sum[1:].project([1]).log10(),color='b')
-       hl.plot1d(self.ax[1,1],h_sum[1:].project([2]).log10(),color='b')
-       hl.plot1d(self.ax[1,0],h_sum[0:1].project([2]).log10(),color='b') 
+              if 'Bb0n' in component_name:
+                 hl.fill_between( self.ax[0,0], 0, (weight * pdf)[0:1].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[0,1], 0, (weight * pdf)[1:].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[1,1], 0, (weight * pdf)[1:].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[1,0], 0, (weight * pdf)[0:1].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
+
+       hl.plot1d(self.ax[0,0],h_sum[0:1].project([1]),color='b',label='Total Sum')
+       hl.plot1d(self.ax[0,1],h_sum[1:].project([1]),color='b')
+       hl.plot1d(self.ax[1,1],h_sum[1:].project([2]),color='b')
+       hl.plot1d(self.ax[1,0],h_sum[0:1].project([2]),color='b') 
 
        if plot_data:
-          hl.plot1d( self.ax[0,0], (self.dataset[0:1]).project([1]).log10(),crosses=True,\
+          hl.plot1d( self.ax[0,0], (self.dataset[0:1]).project([1]),crosses=True,\
                      label='Toy Data Sample',color='k')
-          hl.plot1d( self.ax[0,1], (self.dataset[1:]).project([1]).log10(),crosses=True,color='k')
-          hl.plot1d( self.ax[1,1], (self.dataset[1:]).project([2]).log10(),crosses=True,color='k')
-          hl.plot1d( self.ax[1,0], (self.dataset[0:1]).project([2]).log10(),crosses=True,color='k')
+          hl.plot1d( self.ax[0,1], (self.dataset[1:]).project([1]),crosses=True,color='k')
+          hl.plot1d( self.ax[1,1], (self.dataset[1:]).project([2]),crosses=True,color='k')
+          hl.plot1d( self.ax[1,0], (self.dataset[0:1]).project([2]),crosses=True,color='k')
 
        self.fig.legend(ncol=4,facecolor=(1.,1.,1.),framealpha=1.,loc='upper center')
-       self.ax[0,0].set_ylim(-2.,7.)
+       self.ax[0,0].set_ylim(1e-2,1e7)
        self.ax[0,0].set_xlim(700.,3500.)
-       self.ax[0,0].set_ylabel('Log10(counts)')
+       self.ax[0,0].set_ylabel('Counts')
        self.ax[0,0].set_xlabel('Energy (keV)')
-       self.ax[0,1].set_ylim(-2.,7.)
+       self.ax[0,0].set_yscale('log')
+       self.ax[0,1].set_ylim(1e-2,1e7)
        self.ax[0,1].set_xlim(700.,3500.)
-       self.ax[0,1].set_ylabel('Log10(counts)')
+       self.ax[0,1].set_ylabel('Counts')
        self.ax[0,1].set_xlabel('Energy (keV)')
-       self.ax[1,1].set_ylim(-2.,7.)
+       self.ax[0,1].set_yscale('log')
+       self.ax[1,1].set_ylim(1e-2,1e7)
        self.ax[1,1].set_xlim(0.,640.)
-       self.ax[1,1].set_ylabel('Log10(counts)')
+       self.ax[1,1].set_ylabel('Counts')
        self.ax[1,1].set_xlabel('Standoff (mm)')
-       self.ax[1,0].set_ylim(-2.,7.)
+       self.ax[1,1].set_yscale('log')
+       self.ax[1,0].set_ylim(1e-2,1e7)
        self.ax[1,0].set_xlim(0.,640.)
-       self.ax[1,0].set_ylabel('Log10(counts)')
+       self.ax[1,0].set_ylabel('Counts')
        self.ax[1,0].set_xlabel('Standoff (mm)')
+       self.ax[1,0].set_yscale('log')
 
        if save:
           plt.savefig(output_filename,dpi=200,bbox_inches='tight')

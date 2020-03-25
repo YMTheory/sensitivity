@@ -18,7 +18,9 @@ class nEXOFitModel:
        self.full_distribution = None
        self.constraints = []
        self.signal_efficiency_flag = False
+       self.background_shape_var_flag = False
        self.initial_variable_list = []
+       self.signal_name = None
 
    #########################################################################
    def AddPDFsFromDataframe( self, input_df, append=False ):
@@ -68,6 +70,16 @@ class nEXOFitModel:
           sig_eff_idx = self.GetVariableIndexByName('Signal_Efficiency')
           distributions[sig_idx] = distributions[sig_idx] * self.variable_list[sig_eff_idx]['Value']
 
+       if self.background_shape_var_flag:
+          sig_idx = self.GetVariableIndexByName( 'Bb0n' )
+          bkg_shape_idx = self.GetVariableIndexByName('Background_Shape_Error')
+          if fast:
+             distributions[sig_idx] = distributions[sig_idx] + \
+                                      self.variable_list[bkg_shape_idx]['Value'] * self.pdfs[sig_idx].values
+          else:
+             distributions[sig_idx] = distributions[sig_idx] + \
+                                      self.variable_list[bkg_shape_idx]['Value'] * self.pdfs[sig_idx]
+
        self.full_distribution = np.sum(distributions, axis=0)
        return self.full_distribution
 
@@ -93,6 +105,35 @@ class nEXOFitModel:
              this_variable_dict = {}
              this_variable_dict['Name'] = 'Signal_Efficiency'
              this_variable_dict['Value'] = 1.
+             this_variable_dict['IsFixed'] = False
+             this_variable_dict['IsConstrained'] = False
+             this_variable_dict['Limits'] = (None,None)
+             this_variable_dict['MinuitInputError'] = 0.01
+             this_variable_dict['FitError'] = None
+             self.variable_list.append(this_variable_dict)
+             self.initial_variable_list.append(this_variable_dict)
+
+   #########################################################################
+   def IncludeBackgroundShapeVariableInFit( self, include_flag=True ):
+
+       self.background_shape_var_flag = include_flag
+
+       # GetVariableIndex returns 1000 if the variable is not found 
+       # in the variable_list
+       try: 
+          self.GetVariableIndexByName('Background_Shape_Error')
+          # If we need to turn off the signal efficiency parameter, 
+          # delete it from the variable list
+          if not self.background_shape_var_flag:
+             sig_eff_idx = self.GetVariableIndexByName('Background_Shape_Error')
+             del self.variable_list[ sig_eff_idx ]
+       except ValueError:
+          # If we need to turn on the signal efficiency parameter,
+          # add it to the variable list.
+          if self.background_shape_var_flag:
+             this_variable_dict = {}
+             this_variable_dict['Name'] = 'Background_Shape_Error'
+             this_variable_dict['Value'] = 0.
              this_variable_dict['IsFixed'] = False
              this_variable_dict['IsConstrained'] = False
              this_variable_dict['Limits'] = (None,None)
