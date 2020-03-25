@@ -7,11 +7,11 @@ if len(sys.argv) != 5:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<iteration_num> <efficiency_parameter> <critical_lambda_file> <output_directory>\n\n')
+		'<iteration_num> <bkg_shape_err_parameter> <critical_lambda_file> <output_directory>\n\n')
 	sys.exit()
 
 iteration_num = int(sys.argv[1])
-eff_err = float(sys.argv[2])
+bkg_shape_err = float(sys.argv[2])
 critical_lambda_file = sys.argv[3]
 output_dir = sys.argv[4]
 #####################################################################
@@ -88,11 +88,13 @@ workspace.CreateGroupedPDFs()
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
 
-INCLUDE_EFFICIENCY_ERROR = True
+INCLUDE_EFFICIENCY_ERROR = False
+INCLUDE_BACKGROUND_SHAPE_ERROR = True
 
 if INCLUDE_EFFICIENCY_ERROR:
 	likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
-
+if INCLUDE_BACKGROUND_SHAPE_ERROR:
+	likelihood.model.IncludeBackgroundShapeVariableInFit(True)
 
 
 initial_guess = likelihood.GetVariableValues()
@@ -110,7 +112,11 @@ if PAR_LIMITS:
 	for var in likelihood.model.variable_list:
 	    if 'Bb0n' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
+	                                  lower_limit = -15., \
+	                                  upper_limit = 100.)
+	    elif 'Background_Shape_Error' in var['Name']:
+	        likelihood.SetVariableLimits( var['Name'], \
+	                                  lower_limit = -100., \
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
@@ -176,7 +182,13 @@ for j in range(0,num_datasets):
                 eff_constraint_val = (np.random.randn()*eff_err + 1)* initial_guess[eff_idx]
                 likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],\
                                                         eff_constraint_val,\
-                                                        eff_err * initial_guess[eff_idx])
+                                                        eff_err)
+	if INCLUDE_BACKGROUND_SHAPE_ERROR:
+		bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
+		bkg_shape_constraint_val = np.random.randn()*bkg_shape_err
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'],\
+							bkg_shape_constraint_val,\
+							bkg_shape_err)
 
 
 	print('\n\nRunning dataset {}...\n'.format(j))
@@ -191,17 +203,19 @@ for j in range(0,num_datasets):
 	for i in (range(0,num_hypotheses)):
 
 		# Fix the 0nu parameter to a specific hypothesis
+		signal_hypothesis = float(i)*2.+0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
-		initial_values[signal_idx] = float(i)*2.+0.000001
-		xvals[i] = float(i)*2.+0.000001
+		initial_values[signal_idx] = signal_hypothesis
+		xvals[i] = signal_hypothesis
 
 	        ###########################################################################
 		# All the exciting stuff happens here!
-		lambda_fit_result = likelihood.ComputeLambda( initial_values=initial_values,\
-								print_level=1,\
+		lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal( initial_values=initial_values,\
+								signal_name='Bb0n',\
 								signal_expectation=0.,\
-								fixed_fit_signal_value=float(i)*2.+0.000001)
+								print_level=1,\
+								fixed_fit_signal_value=signal_hypothesis)
 	        ###########################################################################
 								
 							
