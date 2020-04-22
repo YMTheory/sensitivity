@@ -1,22 +1,23 @@
 # Import sys, then tell python where to find the nEXO-specific classes
 import sys
 import os
-sys.path.append('../modules')
+sys.path.append('../../modules')
 
 
 ######################################################################
 # Check arguments and load inputs
-if len(sys.argv) == 4:
+if len(sys.argv) == 5:
 	iteration_num = int(sys.argv[1])
 	input_num_signal = float(sys.argv[2])
-	output_dir = sys.argv[3]
+	num_datasets = int(sys.argv[3])
+	output_dir = sys.argv[4]
 	if not os.path.exists(output_dir):
 		sys.exit('\nERROR: path to output_dir does not exist\n')
 else:
-	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 3 arguments')
+	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 4 arguments')
 	print('Usage:')
 	print('\tpython ComputeCriticalLambdaForNumSignal.py ' + \
-		'<iteration_num> <input_num_signal> </path/to/output/directory/>')
+		'<iteration_num> <input_num_signal> <num_datasets_to_generate> </path/to/output/directory/>')
 	sys.exit('\n')
 ######################################################################
 
@@ -39,8 +40,8 @@ from iminuit import Minuit
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace()
-workspace.LoadComponentsTableFromFile('../tables/ComponentsTable_D-005_v25_2020-01-21.h5')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace(config='../config/TUTORIAL_config.yaml')
+workspace.LoadComponentsTableFromFile('../../tables/ComponentsTable_D-005_v25_2020-01-21.h5')
 workspace.CreateGroupedPDFs()
 
 # Create the likelihood object
@@ -79,9 +80,6 @@ if PAR_LIMITS:
 
 # Increase the step size for the Bb0n variable
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
-
-# Set the number of datasets to generate
-num_datasets = 2000
 
 output_row = dict()
 output_df_list = []
@@ -141,7 +139,11 @@ for j in range(0,num_datasets):
 	
 	###########################################################################
 	# All the exciting stuff happens here!
-	lambda_fit_result = likelihood.ComputeLambda( initial_values, print_level=1 )
+	lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal(\
+							initial_values=initial_values,\
+							signal_name='Bb0n',\
+							signal_expectation=input_num_signal,\
+							print_level=1 )
 	###########################################################################
 
 	output_row['num_signal']           = input_num_signal

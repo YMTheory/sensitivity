@@ -250,7 +250,7 @@ class nEXOFitLikelihood:
             self.SetVariableFixStatus( signal_name, False)
             print('\nRunning best fit...\n')
             best_fit_converged, best_fit_covar, best_fit_iterations = \
-                             self.CreateAndRunMinuitFit( initial_values_best, print_level=1 )
+                             self.CreateAndRunMinuitFit( initial_values_best, print_level=print_level )
             best_fit_parameters = dict( self.fitter.values ) 
             best_fit_errors = dict( self.fitter.errors )
   
@@ -279,7 +279,7 @@ class nEXOFitLikelihood:
                  self.SetVariableFixStatus( signal_name, True )
                  initial_values_best[signal_idx] = 0.
                  zero_fit_converged, zero_fit_covar, zero_fit_iterations = \
-                                  self.CreateAndRunMinuitFit( initial_values_best, print_level=1 )
+                                  self.CreateAndRunMinuitFit( initial_values_best, print_level=print_level )
                  zero_fit_parameters = dict( self.fitter.values ) 
                  zero_fit_errors = dict( self.fitter.errors )
                  self.zero_fit_result = dict() 
@@ -302,7 +302,7 @@ class nEXOFitLikelihood:
        self.SetVariableFixStatus( signal_name, True)
 
        fixed_fit_converged, fixed_fit_covar, fixed_fit_iterations = \
-                        self.CreateAndRunMinuitFit( initial_values_fixed, print_level=1 )
+                        self.CreateAndRunMinuitFit( initial_values_fixed, print_level=print_level )
        fixed_fit_parameters = dict( self.fitter.values )
        fixed_fit_errors = dict( self.fitter.errors ) 
 

@@ -1,19 +1,21 @@
 # Import sys, then tell python where to find the nEXO-specific classes
 import sys
-sys.path.append('../modules')
+sys.path.append('../../modules')
+
 ######################################################################
 # Load the arguments:
-if len(sys.argv) != 5:
+if len(sys.argv) != 6:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<iteration_num> <bkg_shape_err_parameter> <critical_lambda_file> <output_directory>\n\n')
+		'<iteration_num> <bkg_shape_err_parameter> <num_datasets_to_generate> <critical_lambda_file> <output_directory>\n\n')
 	sys.exit()
 
 iteration_num = int(sys.argv[1])
 bkg_shape_err = float(sys.argv[2])
-critical_lambda_file = sys.argv[3]
-output_dir = sys.argv[4]
+num_datasets = int(sys.argv[3])
+critical_lambda_file = sys.argv[4]
+output_dir = sys.argv[5]
 #####################################################################
 
 ##########################################################################
@@ -78,9 +80,16 @@ critical_lambda_data = np.genfromtxt(critical_lambda_file)
 spline_xn = np.array([1., 5., 7., 10., 20., 30, 48.5]) # defines the locations of the knots
 SplineFunc = LSQUnivariateSpline(critical_lambda_data[:,0],critical_lambda_data[:,1],t = spline_xn,k=3)
 
+# Set some switches
+INCLUDE_EFFICIENCY_ERROR = False
+INCLUDE_BACKGROUND_SHAPE_ERROR = True
+PAR_LIMITS = True
+DEBUG_PLOTTING = False
+
+
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace()
-workspace.LoadComponentsTableFromFile('../tables/ComponentsTable_D-005_v25_2020-01-21.h5')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('../config/TUTORIAL_config.yaml')
+workspace.LoadComponentsTableFromFile('../../tables/ComponentsTable_D-005_v25_2020-01-21.h5')
 workspace.CreateGroupedPDFs()
 
 
@@ -88,8 +97,6 @@ workspace.CreateGroupedPDFs()
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
 
-INCLUDE_EFFICIENCY_ERROR = False
-INCLUDE_BACKGROUND_SHAPE_ERROR = True
 
 if INCLUDE_EFFICIENCY_ERROR:
 	likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
@@ -104,11 +111,9 @@ likelihood.model.GenerateModelDistribution()
 likelihood.AddDataset( likelihood.model.GenerateDataset() )
 
 
-PAR_LIMITS = True
-DEBUG_PLOTTING = False
-
+# Set limits so that none of the PDFs go negative in the fit.
+# (except the signal PDF)
 if PAR_LIMITS:
-	# Next, set limits so that none of the PDFs go negative in the fit.
 	for var in likelihood.model.variable_list:
 	    if 'Bb0n' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
@@ -129,15 +134,12 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 ##########################################################################
 # Here's where the calculation loop begins.
 
-num_datasets = 100
 num_hypotheses = 20
-xvals = np.array([]) #np.linspace(0.,40.*(1.-num_hypotheses),num_hypotheses)
+xvals = np.array([])
 
 lambdas = np.zeros(num_hypotheses)
 num_iterations = np.zeros(num_hypotheses)
 best_fit_converged = True
-#fixed_fit_converged = np.ones(num_hypotheses,dtype=bool)
-#fixed_fit_covar = np.ones(num_hypotheses, dtype=bool)
 crossing = -1
 output_df_list = []
 
@@ -164,7 +166,7 @@ for j in range(0,num_datasets):
 	
 	likelihood.SetAllVariablesFloating()
 
-        # Fix the Co60 parameters
+        # Fix the Co60 parameter
 	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
 	RN_CONSTRAINTS=True
@@ -211,7 +213,8 @@ for j in range(0,num_datasets):
 
 	        ###########################################################################
 		# All the exciting stuff happens here!
-		lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal( initial_values=initial_values,\
+		lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal(\
+								initial_values=initial_values,\
 								signal_name='Bb0n',\
 								signal_expectation=0.,\
 								print_level=1,\
@@ -259,7 +262,7 @@ for j in range(0,num_datasets):
 	output_row['fixed_fit_acc_covar'] = fixed_fit_covar
 	output_row['90CL_crossing'] = crossing
 	output_row['num_iterations'] = num_iterations
-	# The "best_fit" quantitieis in lambda_fit_result should be the same for
+	# The "best_fit" quantities in lambda_fit_result should be the same for
 	# every lambda calculation, so it's okay if we use the most recent one
 	output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
 	output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
