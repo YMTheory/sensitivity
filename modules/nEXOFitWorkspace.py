@@ -4,6 +4,8 @@ import numpy as np
 import sys
 import yaml
 import time
+import uproot
+import os
 #import iminuit
 
 import nEXOExcelTableReader
@@ -149,6 +151,75 @@ class nEXOFitWorkspace:
                               end_time-start_time, \
                              (end_time-start_time)/60. ) )
       return
+
+
+   ##########################################################################
+   # Creates the binned PDFs from the TTrees produced by the Reconstruction.
+   # Stores the histograms as histlite objects, then writes these to an HDF5
+   # file.
+   ##########################################################################
+   def CreateHistogramsFromRawTrees( self, path_to_trees, output_hdf5_filename ):
+
+      start_time = time.time()      
+
+      num_rootfiles = len(os.listdir(path_to_trees)) 
+
+      rows_list = []
+      num_processed = 0
+      
+      for filename in os.listdir(path_to_trees):
+          num_processed += 1
+          if '.root' not in filename:
+             continue
+          print('Loading {} at {:.4} seconds...\t({}/{})'.format(filename,\
+                                                        time.time()-start_time,\
+                                                        num_processed,\
+                                                        num_rootfiles))
+          thisfile = uproot.open( (path_to_trees + '/' + filename) )
+
+          try:
+             input_tree = thisfile['tree']
+          except KeyError:
+             print('\n\n************ ERROR: PROBLEM WITH FILE FORMAT ****************')
+             print('The TTree in the file is not named \'tree\'.')
+             print('Double-check that you\'re using the files with the reduced,')
+             print('flattened trees.')
+             print('\n*********************** EXITING *******************************\n')
+             sys.exit('')
+
+          try:
+             input_df = input_tree.arrays( [axis['VariableName'] for axis in self.config['FitAxes']], \
+                                           outputtype=pd.DataFrame )
+          except KeyError as e:
+             print('\n\n************** ERROR: PROBLEM WITH AXIS NAMES **************')
+             print('The input TTree does not contain all of the variables listed')
+             print('in the FitAxes. See error message below for details:\n')
+             print(e)
+             print('\n*********************** EXITING *******************************\n')
+             sys.exit('') 
+
+          binspecs_list = [ np.linspace( axis['Min'],\
+                                         axis['Max'],\
+                                         axis['NumBins']+1 )\
+                            for axis in self.config['FitAxes'] ]
+          
+          data_list = [ input_df[ axis['VariableName'] ] for axis in self.config['FitAxes'] ]
+          hh = hl.hist( tuple(data_list), bins=tuple(binspecs_list) )
+          thisrow = { 'Filename': filename,\
+                      'Histogram': hh,\
+                      'HistogramAxisNames': [ axis['Title'] for axis in self.config['FitAxes'] ] }
+          rows_list.append(thisrow)
+
+      df_pdf = pd.DataFrame(rows_list)
+      df_pdf.to_hdf( output_hdf5_filename, key='SimulationHistograms' )
+
+      end_time = time.time()
+      print('Elapsed time = {} seconds ({} minutes).'.format( end_time-start_time, \
+                                                              (end_time-start_time)/60. ))
+   
+
+
+
  
    ##########################################################################
    # Creates grouped PDFs from the information contained in the input
