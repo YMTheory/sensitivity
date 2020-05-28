@@ -1,5 +1,5 @@
 ################################################################################
-# Example card for sensitivity calculation
+# Example configuration file for sensitivity calculation
 # Contact: Brian Lenardo
 ################################################################################
 
@@ -28,10 +28,10 @@ FitAxes:
     Max: 3500.
     NumBins: 250
   - Title: 'Standoff (mm)'
-    VariableName: 'tandoff'
+    VariableName: 'Standoff'
     Min: 0.
     Max: 650.
-    NumBins: 2
+    NumBins: 25
 
 
 # Input the type of histogram. Currently, the only supported option
@@ -201,10 +201,3 @@ GroupAssignments:
   B8nu_FullLXe:                        "Off"
   Al26_SupportRodsandSpacers:          "Off"
   Cs137_FieldRings:                    "Off"
-
-
-
-
-
-
-
