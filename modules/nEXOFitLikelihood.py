@@ -362,10 +362,10 @@ class nEXOFitLikelihood:
 
    ##############################################################################################
    def PrintVariableList( self ):
-       print('{:<21} {:<12} {:<9} {:<10} {:<13} {:<14} {:<13}'.format('Variable name:','Value:',\
+       print('{:<23} {:<12} {:<9} {:<10} {:<13} {:<14} {:<13}'.format('Variable name:','Value:',\
                                                         'IsFixed:','FitError','InputError:','IsConstrained:','Limits:'))
        for var in self.model.variable_list:
-           print('{:<21} {:<12.4} {:<9} {:<10.4} {:<13.4} {:<14} ({:4},{:4})'.format(var['Name'], \
+           print('{:<23} {:<12.4} {:<9} {:<10.4} {:<13.4} {:<14} ({:4},{:4})'.format(var['Name'], \
                                                                       var['Value'],\
                                                                   str(var['IsFixed']),\
                                                                   str(var['FitError']),\

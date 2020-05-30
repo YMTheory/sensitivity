@@ -54,6 +54,8 @@ class nEXOFitWorkspace:
       self.signal_counts=0.0001
       self.livetime = 10. * 365. * 24. * 60. * 60.
       self.histogram_axis_names = None
+      self.roi_indices = None
+      self.roi_edges = None
 
       config_file = open(config,'r')
       self.config = yaml.load( config_file, Loader=yaml.SafeLoader )
@@ -304,7 +306,99 @@ class nEXOFitWorkspace:
        return 
    ######################## End of CreateGroupPDFs() ########################
 
+
+   ##########################################################################
+   # Defines the ROI. The ROI boundaries are given as a dict, where the
+   # keys are the axis names and the values are a tuple or list defining
+   # the boundary values. For example, if my fit axes are SS/MS, Energy, 
+   # and standoff, I could give it:
+   #      input_dict = { 'SS/MS':  [ 0., 1.] ,
+   #                     'Energy': [ 2428.89, 2486.77 ] ,
+   #                     'Standoff' [ 120., 650. ] }
+   ##########################################################################
+   def DefineROI( self, input_roi_dict ):
+      
+       # First, make sure the right axes are being called.
+       for axis in input_roi_dict.keys():
+           if not axis in self.histogram_axis_names:
+              print('ERROR: {} does not match any of the fit axes.')
+              print('       Choices are:')
+              for name in self.histogram_axis_names:
+                  print('                 {}'.format(name))
+              print('Failed to set the ROI.')
+              return
+         
+       # Next, find the bin edges that are closest to these points.
+       pdf_bins = self.df_group_pdfs['Histogram'].iloc[0].bins
+
+       self.roi_indices = dict()
+       self.roi_edges = dict()
+       
+       for i in range(len(pdf_bins)):
+
+           axis_name = self.histogram_axis_names[i]
+           axis_bins = pdf_bins[i]
+
+           match_edges_lower_limit = np.where( axis_bins >= input_roi_dict[axis_name][0] )
+           match_edges_upper_limit = np.where( axis_bins <= input_roi_dict[axis_name][1] )
    
+           match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+           match_indices = match_edges[:-1]
+ 
+           self.roi_edges[axis_name] = np.array( axis_bins[match_edges] )
+           self.roi_indices[axis_name] = np.array( match_indices )
+           print('{}:'.format(axis_name))
+           print('\tInput ROI boundaries:  {:>8.5}, {:>8.5}'.format(\
+                  float(input_roi_dict[axis_name][0]), float(input_roi_dict[axis_name][1]) ) )
+           print('\tActual ROI boundaries: {:>8.5}, {:>8.5}'.format(\
+                  float(self.roi_edges[axis_name][0]), float(self.roi_edges[axis_name][-1]) ) )
+
+
+   #################### End of DefineROI() ##################################        
+
+
+   
+   ##########################################################################
+   # Print the edges of the ROI, as defined by the binning of the PDFs.
+   # Note that this will not be exactly the same as the input ROI.
+   ##########################################################################
+   def PrintROIEdges( self ):
+
+       print('\n********************************************************')
+       print(' ROI bin edges:')       
+
+       for axis_name, axis_edges in self.roi_edges.items():
+           print('\t{:<15} {:>8.5}, {:>8.5}'.format( axis_name+':',\
+                 float(axis_edges[0]), float(axis_edges[-1]) ) )
+       print('********************************************************')
+
+       print('\n')
+   ##################### End of PrintROIEdges() ############################
+
+
+
+   #########################################################################
+   # Return the indices, in the correct array structure, of the bins
+   # in the ROI
+   #########################################################################
+   def GetROIBinIndices( self ):
+
+       roi_indices_array = []
+
+       for i in range( len(self.histogram_axis_names) ):
+           axis_name = self.histogram_axis_names[i]
+           axis_indices = self.roi_indices[axis_name]
+           roi_indices_array.append( axis_indices )
+
+       return np.array(roi_indices_array)
+   ###################### End of GetROIBinIndices() #######################
+
+
+
+
+
+
+
    ##########################################################################
    # Creates negative log likelihood object
    ##########################################################################
