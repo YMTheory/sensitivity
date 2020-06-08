@@ -17,6 +17,12 @@ bkg_shape_err = float(sys.argv[2])
 num_datasets = int(sys.argv[3])
 input_table = sys.argv[4]
 output_dir = sys.argv[5]
+
+input_name = input_table.split('.')[0]
+input_table_label = input_name.split('_')[-1] if 'gaus' in input_name.split('_')[-1] \
+                                             else '{}_{}_{}'.format(input_name.split('_')[-3],\
+                                                                    input_name.split('_')[-2],\
+                                                                    input_name.split('_')[-1])
 #####################################################################
 
 ##########################################################################
@@ -39,7 +45,7 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 	# Next, select only values near the critical lambda threshold (~2.7)
 	mask = mask&(yvals>0.5)&(yvals<6.)
 
-	xfit = np.linspace(0.,40.,800)
+	xfit = np.linspace(0.,60.,1200)
 
 	if len( xvals[mask] ) > 0:
 		try:
@@ -131,7 +137,7 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 ##########################################################################
 # Here's where the calculation loop begins.
 
-num_hypotheses = 20
+num_hypotheses = 30
 xvals = np.array([])
 
 lambdas = np.zeros(num_hypotheses)
@@ -281,7 +287,7 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_90CL_{}_00.h5'.format(output_dir,iteration_num),key='df')
+output_df.to_hdf('{}/sens_output_file_90CL_{}_{:03}.h5'.format(output_dir,input_table_label,iteration_num),key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))
 

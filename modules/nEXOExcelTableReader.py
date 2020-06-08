@@ -77,7 +77,14 @@ class nEXOExcelTableReader:
 
             component = row['Component']
             isotope   = row['Isotope']
-            thispdf['PDFName'] = '%s_%s' % (isotope.replace('-',''),self.name_dict[component])
+
+            # Remove all spaces, parentheses, and hyphens from the names for better bookkeeping.
+            component_name = component['name'].replace('(','').replace(')','').replace(' ','')
+            isotope_name = ( measurement['isotope'].split(' ')[0] ).replace('-','')
+
+            pdf_name = '{}_{}'.format(isotope_name,component_name)
+
+            thispdf['PDFName'] = pdf_name
             thispdf['Component'] = row['Component']
             thispdf['Isotope'] = row['Isotope']
             thispdf['MC ID'] = row['Monte Carlo']

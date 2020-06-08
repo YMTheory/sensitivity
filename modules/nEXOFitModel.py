@@ -205,7 +205,7 @@ class nEXOFitModel:
        if self.full_distribution==None:
           self.GenerateModelDistribution()
 
-       if len(bin_range_numpy_array) != len(self.full_distribution.values.shape):
+       if num_dimensions != len(self.full_distribution.values.shape):
           print('\nERROR: input array does NOT have the same dimensions as\n')
           print('       this model. Check that your axes are correct.')
           print('       Returning 0.....')
@@ -217,5 +217,29 @@ class nEXOFitModel:
            temp_sum = np.sum( temp_sum[ bin_range_numpy_array[i] ], axis=0)
          
        return temp_sum
+
+
+   #########################################################################
+   def GetComponentIntegralInBinRange( self, var_name, bin_range_numpy_array ):
+
+       num_dimensions = len(bin_range_numpy_array)
+
+       var_idx = self.GetVariableIndexByName( var_name )
+       this_pdf = self.pdfs[ var_idx ]
+        
+       if len(bin_range_numpy_array) != len(this_pdf.values.shape):
+          print('\nERROR: input array does NOT have the same dimensions as\n')
+          print('       this model. Check that your axes are correct.')
+          print('       Returning 0.....')
+          return 0.
+
+       temp_sum = this_pdf.values * self.variable_list[var_idx]['Value']
+       for i in range(num_dimensions):
+           temp_sum = np.sum( temp_sum[ bin_range_numpy_array[i] ], axis=0 )
+
+       return temp_sum
+
+
+
 
 
