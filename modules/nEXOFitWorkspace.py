@@ -472,6 +472,8 @@ class nEXOFitWorkspace:
 
          if row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts
+         elif self.fluctuate_radioassay_during_grouping:
+             totalExpectedCounts = self.GetFluctuatedExpectedCounts( row ) 
          else:
              if row['SpecActiv'] > 0.:
                 totalExpectedCounts = row['Total Mass or Area'] * \
@@ -534,6 +536,49 @@ class nEXOFitWorkspace:
        return 
    ######################## End of CreateGroupPDFs() ########################
 
+
+   ##########################################################################
+   # Apply fluctuation
+
+   ##########################################################################
+   def GetFluctuatedExpectedCounts( self, components_table_row ):
+       
+       # Fluctuations are applied in two ways:
+       #    - If the radioassay result is a 90% upper limit, we draw from a 
+       #      gaussian centered at 0, with 1-sigma = value/sqrt(2)/erfinv(0.8)
+       #    - If the radioassay result is a measured value, we draw from a gaussian
+       #      centered at the measured value with the measured 1-sigma uncertainties. 
+       #    - If the fluctuated value is below 0, resample until you get a nonnegative result. 
+       # This strategy follows the recommendations in Raymond's paper: arXiv:1808.05307
+
+       fluctuated_spec_activity = None
+
+       if components_table_row['SpecErrorType'] == 'Upper limit (90% C.L.)' or \
+          components_table_row['SpecErrorType'] == 'limit':
+           fluct_mean = 0.
+           fluct_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
+       elif components_table_row['SpecErrorType'] == 'Symmetric error (68% C.L.)' or \
+            components_table_row['SpecErrorType'] == 'obs':
+               fluct_mean = components_table_row['SpecActiv']
+               fluct_sigma = components_table_row['SpecActivErr']
+       else: 
+           print('\nComponent {} has undefined error type {}\n'.format(\
+                            components_table_row['SpecErrorType'],\
+                            components_table_row['SpecErrorType'] ))
+           raise TypeError
+   
+       # keep trying until you get a nonnegative number
+       fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+       while fluctuated_spec_activity < 0.:
+              fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+
+       totalExpectedCounts = row['Total Mass or Area'] * \
+                             fluctuated_spec_activity/1000. * \
+                             row['TotalHitEff_K'] / row['TotalHitEff_N'] * \
+                             self.livetime
+
+       return totalExpectedCounts
+        
 
    ##########################################################################
    # Defines the ROI. The ROI boundaries are given as a dict, where the
