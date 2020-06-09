@@ -240,7 +240,7 @@ class nEXOFitWorkspace:
        for component in geometry_doc['components']:
            print('\n{}'.format(component['name']))
            print('    - Material: {}'.format(component['material']))
-           print('    - Mass/Area: {} {}'.format(component['mass'],component['unit']))
+           print('    - Mass/Area: {} {} x {} units'.format(component['mass'],component['unit'],component['quantity']))
            print('    - Isotopes and activities:')
 
            radioassay_data = self.materialsDB.GetRadioassayData( component['radioassayid'] )
@@ -277,9 +277,9 @@ class nEXOFitWorkspace:
                
                thispdf['PDFName'] = pdf_name
                thispdf['Component'] = component['name']
-               thispdf['Isotope'] = measurement['isotope']
+               thispdf['Isotope'] = measurement['isotope'].split(' ')[0]
                thispdf['MC ID'] = component['montecarloid']
-               thispdf['Total Mass or Area'] = float( component['mass'] )
+               thispdf['Total Mass or Area'] = float( component['mass'] ) * float( component['quantity'] )
                thispdf['Activity ID'] = component['radioassayid'] 
 
                if data_type == 'R':
@@ -305,12 +305,17 @@ class nEXOFitWorkspace:
       
                # Get the number of primaries from the Materials DB
                mc_data = self.materialsDB.GetDoc( thispdf['MC ID'] )
+               thispdf['TotalHitEff_N'] = 0.
                try:
+                    found = 0
                     for isotope_mc in mc_data['rootfiles']:
                         if thispdf['Isotope'] in isotope_mc['isotope']:
-                           thispdf['TotalHitEff_N'] = isotope_mc['numbersimed']
+                           thispdf['TotalHitEff_N'] = float(isotope_mc['numbersimed'])
+                           found += 1
+                    if found == 0:
+                        print('\n\tWARNING: No match for {} inlist of rootfiles for {}'.format(thispdf['Isotope'],thispdf['MC ID']))
                except KeyError:
-                    print('WARNING: no root files for MC ID: {}'.format(thispdf['MC ID']))
+                    print('\nWARNING: no root files for MC ID: {}\n'.format(thispdf['MC ID']))
 
                # Get the histogram and histogram axis names
                thispdf['Histogram'] = None
@@ -340,6 +345,12 @@ class nEXOFitWorkspace:
                          '\tThere is no group assignment for {}\n'.format(thispdf['PDFName']) + \
                          '\tPlease add one to the configuration file and try again.\n')
                    raise KeyError
+
+               if thispdf['TotalHitEff_N'] > 0.:
+                   thispdf['Expected Counts'] =  thispdf['TotalHitEff_K'] / thispdf['TotalHitEff_N'] * \
+                                                 thispdf['RawActiv'] * 60. * 60. * 24. * 365. * 10
+               else:
+                   thispdf['Expected Counts'] = -1.
 
                if self.df_components.empty:
                   self.df_components = pd.DataFrame(columns=thispdf.index.values)
@@ -470,7 +481,11 @@ class nEXOFitWorkspace:
        # Loop over rows in df_components, add histograms to the appropriate group.
        for index,row in self.df_components.iterrows():
 
-         if row['Isotope']=='bb0n':
+
+         if row['Group'] == 'Off':
+            continue
+            #totalExpectedCounts = 0.
+         elif row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts
          elif self.fluctuate_radioassay_during_grouping:
              totalExpectedCounts = self.GetFluctuatedExpectedCounts( row ) 

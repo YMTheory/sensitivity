@@ -94,7 +94,6 @@ GroupAssignments:
   U238_HVPlunger:                      "Internals_U238"
   U238_ChargeTilesCables:             "Internals_U238"
   U238_ChargeTilesElectronics:        "Internals_U238"
-  U238_ChargeTilesBacking:             "Interals_U238"
   Th232_Cathode:                       "Internals_Th232"
   Th232_Bulge:                         "Internals_Th232"
   Th232_FieldRings:                    "Internals_Th232"

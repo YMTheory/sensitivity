@@ -202,8 +202,11 @@ class nEXOMaterialsDBInterface:
       elif unit == 'ppb' or unit == 'ng/g':
          new_specific_activity = self.ConvertToFloat( specific_activity ) * 1.e-9  * mBq_per_kg
       elif unit == 'pg/cm^2' or unit == u'pg/cm\u00B2':
-         new_specific_activity = self.ConvertToFloat( specific_activity ) * 1.e-12 * mBq_per_kg
-      
+         new_specific_activity = self.ConvertToFloat( specific_activity ) * 1.e-12 * (mBq_per_kg/1000.)
+      else: 
+         print('\nUNITS ERROR: {} not a supported unit - could not do specific activity conversion.'.format(unit))
+         raise TypeError     
+ 
       return new_specific_activity
 
 
