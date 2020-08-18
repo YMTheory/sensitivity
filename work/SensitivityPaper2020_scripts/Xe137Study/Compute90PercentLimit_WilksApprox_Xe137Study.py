@@ -8,12 +8,12 @@ if len(sys.argv) != 7:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<iteration_num> <bkg_shape_err_parameter> ' + \
+		'<job_id_num> <bkg_shape_err_parameter> ' + \
                 '<num_datasets_to_generate> <input_table> <output_directory> ' + \
                 '<xe137_scale_factor>\n\n')
 	sys.exit()
 
-iteration_num = int(sys.argv[1])
+job_id_num = int(sys.argv[1])
 bkg_shape_err = float(sys.argv[2])
 num_datasets = int(sys.argv[3])
 input_table = sys.argv[4]
@@ -313,8 +313,8 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_xe137study_{}x_90CL_{:03}.h5'.format(\
-                         output_dir, int(xe137_scale_factor), iteration_num ),\
+output_df.to_hdf('{}/sens_output_file_xe137study_{:0>3.3}x_90CL_{:03}.h5'.format(\
+                         output_dir, xe137_scale_factor, job_id_num ),\
                          key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

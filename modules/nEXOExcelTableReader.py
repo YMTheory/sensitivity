@@ -79,8 +79,9 @@ class nEXOExcelTableReader:
             isotope   = row['Isotope']
 
             # Remove all spaces, parentheses, and hyphens from the names for better bookkeeping.
-            component_name = component['name'].replace('(','').replace(')','').replace(' ','')
-            isotope_name = ( measurement['isotope'].split(' ')[0] ).replace('-','')
+            component_name = component.replace('(','').replace(')','').replace(' ','')
+            isotope_name = ( isotope.split(' ')[0] ).replace('-','')
+            
 
             pdf_name = '{}_{}'.format(isotope_name,component_name)
 
