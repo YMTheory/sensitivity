@@ -1,0 +1,203 @@
+################################################################################
+# Example configuration file for sensitivity calculation
+# Contact: Brian Lenardo
+################################################################################
+
+# Input file
+SummaryInputFile: '../tables/Summary_D-005_v22_2018-11-12_02_tutorial.h5'
+
+# Location of ROOT files containing reconstructed PDFs
+RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
+
+# Choose which variables will make up each axis in the fit. 
+# These are:
+#      Title -- the name, with units, the axis in question
+#      VariableName -- the name of the variable in the reconstruction TTree
+#      Min -- the minimum value to be used in the fit
+#      Max -- the maxmum value to be used in the fit
+#      NumBins -- the number of bins to be used in the fit. 
+FitAxes:
+  - Title: 'DNN'
+    VariableName: 'dnn_value'
+    Min: 0.
+    Max: 1.
+    NumBins: 5
+  - Title: 'Energy (keV)'
+    VariableName: 'energy'
+    Min: 1000.
+    Max: 3500.
+    NumBins: 250
+  - Title: 'Standoff (mm)'
+    VariableName: 'Standoff'
+    Min: 0.
+    Max: 650.
+    NumBins: 25
+
+
+# Input the type of histogram. Currently, the only supported option
+# is "Linear", where the bin sizes are uniform in each dimension, but
+# the intention is to also support "Custom", to allow non-uniform binning
+HistogramBinningOption: 'Linear'
+
+# Set a customized specific activity for a specific component, 
+# which overrides whatever is stored in the Materials Database. 
+# All units are in mBq/kg.
+CustomSpecActivities:
+  bb0n_FullLXe:      0.0000000001 # mBq/kg
+
+# Set a custom scaling factor for a specific component,
+# which scales the activity calculated from the Materials Database.
+# Useful for e.g. Xe137 depth studies
+CustomScalingFactors:
+  Xe137_ActiveLXe:    1.
+  Xe137_InactiveLXe:  1.
+
+# Each component needs to be assigned to a group to create
+# composite PDFs in the sensitivity code. 
+GroupAssignments:
+  U238_OuterCryostatResin:             "Far"
+  U238_OuterCryostatFiber:             "Far"
+  U238_OuterCryostatSupportResin:      "Far"
+  U238_OuterCryostatSupportFiber:      "Far"
+  U238_InnerCryostatResin:             "Far"
+  U238_InnerCryostatFiber:             "Far"
+  U238_InnerCryostatSupportResin:      "Far"
+  U238_InnerCryostatSupportFiber:      "Far"
+  U238_InnerCryostatLiner:             "Far"
+  Th232_OuterCryostatResin:            "Far"
+  Th232_OuterCryostatFiber:            "Far"
+  Th232_OuterCryostatSupportResin:     "Far"
+  Th232_OuterCryostatSupportFiber:     "Far"
+  Th232_InnerCryostatResin:            "Far"
+  Th232_InnerCryostatFiber:            "Far"
+  Th232_InnerCryostatSupportResin:     "Far"
+  Th232_InnerCryostatSupportFiber:     "Far"
+  Th232_InnerCryostatLiner:            "Far"
+  Co60_OuterCryostatResin:             "Far"
+  Co60_OuterCryostatFiber:             "Far"
+  Co60_OuterCryostatSupportResin:      "Far"
+  Co60_OuterCryostatSupportFiber:      "Far"
+  Co60_InnerCryostatResin:             "Far"
+  Co60_InnerCryostatFiber:             "Far"
+  Co60_InnerCryostatSupportResin:      "Far"
+  Co60_InnerCryostatSupportFiber:      "Far"
+  Co60_InnerCryostatLiner:             "Far"
+  K40_OuterCryostatResin:              "Far"
+  K40_OuterCryostatFiber:              "Far"
+  K40_OuterCryostatSupportResin:       "Far"
+  K40_OuterCryostatSupportFiber:       "Far"
+  K40_InnerCryostatResin:              "Far"
+  K40_InnerCryostatFiber:              "Far"
+  K40_InnerCryostatSupportResin:       "Far"
+  K40_InnerCryostatSupportFiber:       "Far"
+  K40_InnerCryostatLiner:              "Far"
+  U238_HFE:                            "Vessel_U238"
+  U238_TPCVessel:                      "Vessel_U238"
+  U238_TPCSupportCone:                 "Vessel_U238"
+  U238_HVTubes:                        "Vessel_U238"
+  U238_HVCables:                       "Vessel_U238"
+  U238_HVFeedthrough:                  "Vessel_U238"
+  U238_HVFeedthroughCore:              "Vessel_U238"
+  U238_CalibrationGuideTube1:          "Vessel_U238"
+  U238_CalibrationGuideTube2:          "Vessel_U238"
+  Th232_HFE:                           "Vessel_Th232"
+  Th232_TPCVessel:                     "Vessel_Th232"
+  Th232_TPCSupportCone:                "Vessel_Th232"
+  Th232_HVTubes:                       "Vessel_Th232"
+  Th232_HVCables:                      "Vessel_Th232"
+  Th232_HVFeedthrough:                 "Vessel_Th232"
+  Th232_HVFeedthroughCore:             "Vessel_Th232"
+  Th232_CalibrationGuideTube1:         "Vessel_Th232"
+  Th232_CalibrationGuideTube2:         "Vessel_Th232"
+  U238_Cathode:                        "Internals_U238"
+  U238_Bulge:                          "Internals_U238"
+  U238_FieldRings:                     "Internals_U238"
+  U238_SupportRodsandSpacers:          "Internals_U238"
+  U238_SiPMStaves:                     "Internals_U238"
+  U238_SiPMElectronics:                "Internals_U238"
+  U238_SiPMModuleInterposer:           "Internals_U238"
+  U238_SiPMCables:                     "Internals_U238"
+  U238_SiPMs:                          "Internals_U238"
+  U238_ChargeModuleSupport:            "Internals_U238"
+  U238_ChargeModuleBacking:            "Internals_U238"
+  U238_HVPlunger:                      "Internals_U238"
+  U238_ChargeModuleCables:             "Internals_U238"
+  U238_ChargeModuleElectronics:        "Internals_U238"
+  Th232_Cathode:                       "Internals_Th232"
+  Th232_Bulge:                         "Internals_Th232"
+  Th232_FieldRings:                    "Internals_Th232"
+  Th232_SupportRodsandSpacers:         "Internals_Th232"
+  Th232_SiPMStaves:                    "Internals_Th232"
+  Th232_SiPMElectronics:               "Internals_Th232"
+  Th232_SiPMModuleInterposer:          "Internals_Th232"
+  Th232_SiPMCables:                    "Internals_Th232"
+  Th232_SiPMs:                         "Internals_Th232"
+  Th232_ChargeModuleSupport:           "Internals_Th232"
+  Th232_ChargeModuleBacking:           "Internals_Th232"
+  Th232_HVPlunger:                     "Internals_Th232"
+  Th232_ChargeModuleCables:            "Internals_Th232"
+  Th232_ChargeModuleElectronics:       "Internals_Th232"
+  K40_SupportRodsandSpacers:           "FullTPC_K40"
+  K40_SiPMModuleInterposer:            "FullTPC_K40" 
+  K40_ChargeModuleBacking:             "FullTPC_K40"
+  Co60_ChargeTilesCables:              "FullTPC_Co60"
+  Co60_ChargeTilesElectronics:         "FullTPC_Co60"
+  Co60_ChargeModuleSupport:            "FullTPC_Co60"
+  Co60_ChargeModuleBacking:            "FullTPC_Co60"
+  Co60_HVPlunger:                      "FullTPC_Co60"
+  Rn222_ActiveLXe:                     "Rn222"
+  Rn222_InactiveLXe:                   "Rn222"
+  Rn222_CathodeRadon:                  "Rn222"
+  Xe137_ActiveLXe:                     "Xe137"
+  Xe137_InactiveLXe:                   "Xe137"
+  bb2n_FullLXe:                        "FullLXeBb2n"
+  bb0n_FullLXe:                        "FullLXeBb0n"
+  Co60_Cathode:                        "Off"
+  Co60_Bulge:                          "Off"
+  Co60_FieldRings:                     "Off"
+  Co60_SupportRodsandSpacers:          "Off"
+  Co60_SiPMStaves:                     "Off"
+  Co60_SiPMElectronics:                "Off"
+  Co60_SiPMModuleInterposer:           "Off"
+  Co60_SiPMCables:                     "Off"
+  Co60_SiPMs:                          "Off"
+  Co60_HFE:                            "Off"
+  Co60_TPCVessel:                      "Off"
+  Co60_TPCSupportCone:                 "Off"
+  Co60_HVTubes:                        "Off"
+  Co60_HVCables:                       "Off"
+  Co60_HVFeedthrough:                  "Off"
+  Co60_HVFeedthroughCore:              "Off"
+  Co60_CalibrationGuideTube1:          "Off"
+  Co60_CalibrationGuideTube2:          "Off"
+  K40_Cathode:                         "Off"
+  K40_Bulge:                           "Off"
+  K40_FieldRings:                      "Off"
+  K40_SiPMStaves:                      "Off"
+  K40_SiPMElectronics:                 "Off"
+  K40_SiPMCables:                      "Off"
+  K40_SiPMs:                           "Off"
+  K40_ChargeModuleSupport:             "Off"
+  K40_HVPlunger:                       "Off"
+  K40_HFE:                             "Off"
+  K40_TPCVessel:                       "Off"
+  K40_TPCSupportCone:                  "Off"
+  K40_HVTubes:                         "Off"
+  K40_HVCables:                        "Off"
+  K40_HVFeedthrough:                   "Off"
+  K40_HVFeedthroughCore:               "Off"
+  K40_CalibrationGuideTube1:           "Off"
+  K40_CalibrationGuideTube2:           "Off"
+  U238_SolderAnode:                    "Off"
+  Th232_SolderAnode:                   "Off"
+  K40_SolderAnode:                     "Off"
+  Co60_SolderAnode:                    "Off"
+  Ag110m_SolderAnode:                  "Off"
+  U238_SolderSiPM:                     "Off"
+  Th232_SolderSiPM:                    "Off"
+  K40_SolderSiPM:                      "Off"
+  Co60_SolderSiPM:                     "Off"
+  Ag110m_SolderSiPM:                   "Off"
+  B8nu_FullLXe:                        "Off"
+  Al26_SupportRodsandSpacers:          "Off"
+  Cs137_FieldRings:                    "Off"

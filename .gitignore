@@ -32,6 +32,10 @@
 *.root
 *.pdf
 
+# PNG or JPG plots
+*.png
+*.jpg
+
 tables/
 quick/
 histos/
