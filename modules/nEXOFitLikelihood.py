@@ -510,28 +510,28 @@ class nEXOFitLikelihood:
 
               h_sum += ( weight * pdf )
 
-              hl.plot1d( self.ax[0,0], (weight * pdf)[0:1].project([1]), label=component_name )
-              hl.plot1d( self.ax[0,1], (weight * pdf)[1:].project([1]) )
-              hl.plot1d( self.ax[1,1], (weight * pdf)[1:].project([2]) )
-              hl.plot1d( self.ax[1,0], (weight * pdf)[0:1].project([2]) )
+              hl.plot1d( self.ax[0,0], (weight * pdf)[0:-1].project([1]), label=component_name )
+              hl.plot1d( self.ax[0,1], (weight * pdf)[-1:].project([1]) )
+              hl.plot1d( self.ax[1,1], (weight * pdf)[-1:].project([2]) )
+              hl.plot1d( self.ax[1,0], (weight * pdf)[0:-1].project([2]) )
 
               if 'Bb0n' in component_name:
-                 hl.fill_between( self.ax[0,0], 0, (weight * pdf)[0:1].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
-                 hl.fill_between( self.ax[0,1], 0, (weight * pdf)[1:].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
-                 hl.fill_between( self.ax[1,1], 0, (weight * pdf)[1:].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
-                 hl.fill_between( self.ax[1,0], 0, (weight * pdf)[0:1].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[0,0], 0, (weight * pdf)[0:-1].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[0,1], 0, (weight * pdf)[-1:].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[1,1], 0, (weight * pdf)[-1:].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[1,0], 0, (weight * pdf)[0:-1].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
 
-       hl.plot1d(self.ax[0,0],h_sum[0:1].project([1]),color='b',label='Total Sum')
-       hl.plot1d(self.ax[0,1],h_sum[1:].project([1]),color='b')
-       hl.plot1d(self.ax[1,1],h_sum[1:].project([2]),color='b')
-       hl.plot1d(self.ax[1,0],h_sum[0:1].project([2]),color='b') 
+       hl.plot1d(self.ax[0,0],h_sum[0:-1].project([1]),color='b',label='Total Sum')
+       hl.plot1d(self.ax[0,1],h_sum[-1:].project([1]),color='b')
+       hl.plot1d(self.ax[1,1],h_sum[-1:].project([2]),color='b')
+       hl.plot1d(self.ax[1,0],h_sum[0:-1].project([2]),color='b') 
 
        if plot_data:
-          hl.plot1d( self.ax[0,0], (self.dataset[0:1]).project([1]),crosses=True,\
+          hl.plot1d( self.ax[0,0], (self.dataset[0:-1]).project([1]),crosses=True,\
                      label='Toy Data Sample',color='k')
-          hl.plot1d( self.ax[0,1], (self.dataset[1:]).project([1]),crosses=True,color='k')
-          hl.plot1d( self.ax[1,1], (self.dataset[1:]).project([2]),crosses=True,color='k')
-          hl.plot1d( self.ax[1,0], (self.dataset[0:1]).project([2]),crosses=True,color='k')
+          hl.plot1d( self.ax[0,1], (self.dataset[-1:]).project([1]),crosses=True,color='k')
+          hl.plot1d( self.ax[1,1], (self.dataset[-1:]).project([2]),crosses=True,color='k')
+          hl.plot1d( self.ax[1,0], (self.dataset[0:-1]).project([2]),crosses=True,color='k')
 
        self.fig.legend(ncol=4,facecolor=(1.,1.,1.),framealpha=1.,loc='upper center')
        self.ax[0,0].set_ylim(1e-2,1e7)

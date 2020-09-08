@@ -12,6 +12,8 @@ from scipy.special import erfinv
 import nEXOExcelTableReader
 import nEXOMaterialsDBInterface
 
+from MC_ID_Dict_2019Baseline import MC_ID_Dict
+
 class nEXOFitWorkspace:
 
    ##########################################################################
@@ -191,14 +193,17 @@ class nEXOFitWorkspace:
    # Geometry tag is the number associated with a particular model, e.g.
    # 'D-023' for the Baseline 2019 geometry
    ##########################################################################
-   def CreateComponentsTableFromMaterialsDB( self, geometry_tag,\
+   def CreateComponentsTableFromMaterialsDB( self, geometry_tag, label='',\
                                              histograms_file = None,\
                                              create_histograms_from_trees = False,\
                                              trees_directory = None,\
                                              download_mc_data = False,\
-                                              ):
+                                             use_mc_id_dict = False):
 
        start_time = time.time()
+
+       if use_mc_id_dict:
+          mc_id_dict = MC_ID_Dict()
 
        if histograms_file is None and\
           not create_histograms_from_trees and\
@@ -278,7 +283,10 @@ class nEXOFitWorkspace:
                thispdf['PDFName'] = pdf_name
                thispdf['Component'] = component['name']
                thispdf['Isotope'] = measurement['isotope'].split(' ')[0]
-               thispdf['MC ID'] = component['montecarloid']
+               if use_mc_id_dict:
+                  thispdf['MC ID'] = mc_id_dict.data[component['name']]
+               else:
+                  thispdf['MC ID'] = component['montecarloid']
                thispdf['Total Mass or Area'] = float( component['mass'] ) * float( component['quantity'] )
                thispdf['Activity ID'] = component['radioassayid'] 
 
@@ -373,7 +381,7 @@ class nEXOFitWorkspace:
  
        # Store the components table in a file in case you want to
        # go back and look at it later.
-       outTableName = 'ComponentsTable_' + geometry_tag + '.h5'
+       outTableName = 'ComponentsTable_' + geometry_tag + '_{}'.format(label) + '.h5'
        print('\n\nWriting table to file {}\n'.format(outTableName))
        self.df_components.to_hdf( outTableName, key='Components' )
  
@@ -428,9 +436,12 @@ class nEXOFitWorkspace:
              print('\n*********************** EXITING *******************************\n')
              sys.exit('')
 
+          # Grab the correct variables from the tree, and also grab the 'weight' column
+          #var_list = [axis['VariableName'] for axis in self.config['FitAxes']].append('weight')
+          var_list = self.GetReconVariableList()         
+
           try:
-             input_df = input_tree.arrays( [axis['VariableName'] for axis in self.config['FitAxes']], \
-                                           outputtype=pd.DataFrame )
+             input_df = input_tree.arrays( var_list, outputtype=pd.DataFrame )
           except KeyError as e:
              print('\n\n************** ERROR: PROBLEM WITH AXIS NAMES **************')
              print('The input TTree does not contain all of the variables listed')
@@ -439,13 +450,26 @@ class nEXOFitWorkspace:
              print('\n*********************** EXITING *******************************\n')
              sys.exit('') 
 
-          binspecs_list = [ np.linspace( axis['Min'],\
-                                         axis['Max'],\
-                                         axis['NumBins']+1 )\
-                            for axis in self.config['FitAxes'] ]
-          
-          data_list = [ input_df[ axis['VariableName'] ] for axis in self.config['FitAxes'] ]
-          hh = hl.hist( tuple(data_list), bins=tuple(binspecs_list) )
+          # Define binning
+          if 'Linear' in self.config['HistogramBinningOption']:
+             binspecs_list = [ np.linspace( axis['Min'],\
+                                           axis['Max'],\
+                                           axis['NumBins']+1 )\
+                              for axis in self.config['FitAxes'] ]
+          else:
+             print('\n\n************** ERROR: TRYING TO DO NONLINEAR BINNING **************')
+             print('Nonlinear binning is not yet implemented.')
+             print('\n*********************** EXITING *******************************\n')
+             sys.exit('') 
+
+          # Define cuts
+          mask = self.GetCutMask( input_df )
+          if len(mask) > 0:
+             print('\tEvents passing cuts: {} evts of {} ({:4.4}%)'.format(\
+                     np.sum(mask), len(mask), 100*float(np.sum(mask))/float(len(mask))))
+ 
+          data_list = [ input_df[ axis['VariableName'] ].loc[mask] for axis in self.config['FitAxes'] ]
+          hh = hl.hist( tuple(data_list), weights=input_df['weight'].loc[mask], bins=tuple(binspecs_list) )
           thisrow = { 'Filename': filename,\
                       'Histogram': hh,\
                       'HistogramAxisNames': [ axis['Title'] for axis in self.config['FitAxes'] ] }
@@ -460,7 +484,83 @@ class nEXOFitWorkspace:
    
 
 
+   ##########################################################################
+   # Returns a list containing the names of all the variables you need to
+   # grab from the reconstructed data.
+   ##########################################################################
+   def GetReconVariableList( self ):
+      recon_variable_list = []
+      
+      # Add whatever variables will go on the axes of your PDFs
+      for axis in self.config['FitAxes']:
+          recon_variable_list.append( axis['VariableName'] )
 
+      # Add whatever variables you will need to cut on
+      for cut in self.config['Cuts']:
+          for propertyname, value in cut.items():
+              if 'Variable' in propertyname:
+                 recon_variable_list.append( value )
+
+      # Make sure you also grab the weights
+      recon_variable_list.append( 'weight' )
+    
+      # Remove any duplicate variable names
+      recon_variable_list = list( dict.fromkeys( recon_variable_list ) )
+
+      return recon_variable_list
+     
+
+   ##########################################################################
+   # Generates a boolean numpy array that represents the sum of all the cuts
+   # to apply to the reconstructed data while making the PDFs.
+   ##########################################################################
+   def GetCutMask( self, input_df ):
+
+      global_mask = np.ones( len(input_df), dtype=bool)
+
+      for cut in self.config['Cuts']:
+
+          if cut['Type'] == 'Boolean':
+             this_mask = input_df[ cut['Variable'] ].values
+
+          elif cut['Type'] == '1D':
+             if cut['Bound'] == 'Upper':
+                this_mask = input_df[cut['Variable']].values < cut['Value']
+             elif cut['Bound'] == 'Lower':
+                this_mask = input_df[cut['Variable']].values > cut['Value']
+             else:
+                print('\n\n************** ERROR: UNSUPPORTED CUT BOUND **************')
+                print('\'Bound\' type {} is not supported. '.format(cut['Bound']) +\
+                      'Please choose either \'Upper\' or \'Lower\'.')
+                print('\n*********************** EXITING *******************************\n')
+                sys.exit('') 
+                
+
+          elif cut['Type'] == '2DLinear':
+             if cut['Bound'] == 'Upper':
+                this_mask = input_df[cut['YVariable']].values < \
+                              cut['Slope'] * input_df[cut['XVariable']].values + cut['Intercept']
+             elif cut['Bound'] == 'Lower':
+                this_mask = input_df[cut['YVariable']].values > \
+                              cut['Slope'] * input_df[cut['XVariable']].values + cut['Intercept']
+             else:
+                print('\n\n************** ERROR: UNSUPPORTED CUT BOUND **************')
+                print('\'Bound\' type {} is not supported. '.format(cut['Bound']) +\
+                      'Please choose either \'Upper\' or \'Lower\'.')
+                print('\n*********************** EXITING *******************************\n')
+                sys.exit('')
+ 
+          else:
+             print('\n\n************** ERROR: UNSUPPORTED CUT **************')
+             print('Cut type {} is not yet supported. ' +\
+                   'See nEXOFitWorkspace.GetCutMask for more details.'.format(cut['Type']))
+             print('\n*********************** EXITING *******************************\n')
+             sys.exit('') 
+
+          global_mask = global_mask & this_mask
+
+      return global_mask  
+          
  
    ##########################################################################
    # Creates grouped PDFs from the information contained in the input
