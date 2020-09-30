@@ -523,6 +523,9 @@ class nEXOFitWorkspace:
           if cut['Type'] == 'Boolean':
              this_mask = input_df[ cut['Variable'] ].values
 
+          elif cut['Type'] == 'InvertedBoolean':
+             this_mask = np.invert( input_df[ cut['Variable'] ].values )
+
           elif cut['Type'] == '1D':
              if cut['Bound'] == 'Upper':
                 this_mask = input_df[cut['Variable']].values < cut['Value']
