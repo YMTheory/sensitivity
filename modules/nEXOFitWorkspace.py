@@ -133,7 +133,7 @@ class nEXOFitWorkspace:
    #          gaussian that has a sigma given by assuming the reported value
    #          is the 90% CL. 
    ##########################################################################
-   def SetHandlingOfRadioassayData( fluctuate = False, limits_handling = "Delta" ):
+   def SetHandlingOfRadioassayData( self, fluctuate = False, limits_handling = "Delta" ):
        self.fluctuate_radioassay_during_grouping = fluctuate
        self.radioassay_limits_handling = limits_handling 
 
@@ -599,7 +599,7 @@ class nEXOFitWorkspace:
                                       row['TotalHitEff_K'] / row['TotalHitEff_N'] * \
                                       self.livetime
              else:
-                totalExpectedCounts = 0
+                totalExpectedCounts = 0.
          
          
          if not (row['Group'] in self.df_group_pdfs['Group'].values):
@@ -615,12 +615,12 @@ class nEXOFitWorkspace:
 
              group_mask = row['Group']==self.df_group_pdfs['Group']            
  
-             self.df_group_pdfs['Histogram'].loc[ group_mask ] = \
+             self.df_group_pdfs.loc[ group_mask, 'Histogram' ] = \
                   self.df_group_pdfs['Histogram'].loc[ group_mask ] + \
                   row['Histogram'].normalize( (0,1,2), integrate=False) * \
                   totalExpectedCounts
-             
-             self.df_group_pdfs['TotalExpectedCounts'].loc[ group_mask ] = \
+
+             self.df_group_pdfs.loc[ group_mask,'TotalExpectedCounts'] = \
                   self.df_group_pdfs['TotalExpectedCounts'].loc[ group_mask ] + \
                   totalExpectedCounts
 
@@ -631,7 +631,7 @@ class nEXOFitWorkspace:
        total_sum_row = {}
        for index,row in self.df_group_pdfs.iterrows():
 
-         self.df_group_pdfs['Histogram'].loc[index] = row['Histogram'].normalize( (0,1,2), integrate=False )
+         self.df_group_pdfs.loc[ index, 'Histogram'] = row['Histogram'].normalize( (0,1,2), integrate=False )
 
          # TOFIX: Need better handling of negative totals, and need to figure out why 'Far' gives
          # me weird stuff. For now, I'm ignoring these.
@@ -671,28 +671,30 @@ class nEXOFitWorkspace:
 
        fluctuated_spec_activity = None
 
-       if components_table_row['SpecErrorType'] == 'Upper limit (90% C.L.)' or \
-          components_table_row['SpecErrorType'] == 'limit':
+       if components_table_row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
+          components_table_row['SpecActivErrorType'] == 'limit':
            fluct_mean = 0.
            fluct_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
-       elif components_table_row['SpecErrorType'] == 'Symmetric error (68% C.L.)' or \
-            components_table_row['SpecErrorType'] == 'obs':
+       elif components_table_row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
+            components_table_row['SpecActivErrorType'] == 'obs':
                fluct_mean = components_table_row['SpecActiv']
                fluct_sigma = components_table_row['SpecActivErr']
        else: 
            print('\nComponent {} has undefined error type {}\n'.format(\
-                            components_table_row['SpecErrorType'],\
-                            components_table_row['SpecErrorType'] ))
+                            components_table_row['SpecActivErrorType'],\
+                            components_table_row['SpecActivErrorType'] ))
            raise TypeError
    
        # keep trying until you get a nonnegative number
        fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
-       while fluctuated_spec_activity < 0.:
-              fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+       if fluctuated_spec_activity < 0.:
+              fluctuated_spec_activity = 0.
+              #fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
 
-       totalExpectedCounts = row['Total Mass or Area'] * \
+       totalExpectedCounts = components_table_row['Total Mass or Area'] * \
                              fluctuated_spec_activity/1000. * \
-                             row['TotalHitEff_K'] / row['TotalHitEff_N'] * \
+                             components_table_row['TotalHitEff_K'] / \
+                             components_table_row['TotalHitEff_N'] * \
                              self.livetime
 
        return totalExpectedCounts

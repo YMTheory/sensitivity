@@ -167,7 +167,7 @@ class nEXOFitModel:
 
    #########################################################################
    def GenerateDataset( self ):
-       if self.full_distribution==None:
+       if self.full_distribution is None:
           self.GenerateModelDistribution()
  
        # Generates a Poisson sample of each bin
