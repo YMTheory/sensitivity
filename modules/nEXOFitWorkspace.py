@@ -584,11 +584,17 @@ class nEXOFitWorkspace:
        # Loop over rows in df_components, add histograms to the appropriate group.
        for index,row in self.df_components.iterrows():
 
-
          if row['Group'] == 'Off':
             continue
-            #totalExpectedCounts = 0.
-         elif row['Isotope']=='bb0n':
+
+         # If the histogram is non-zero, normalize it. Note that running
+         # `.normalize` on a histogram with all zeros returns a histogram filled with nan
+         if np.sum( row['Histogram'].values ) > 0.:
+            normalized_histogram = row['Histogram'].normalize( (0,1,2), integrate=False ) 
+         else:
+            normalized_histogram = row['Histogram']
+
+         if row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts
          elif self.fluctuate_radioassay_during_grouping:
              totalExpectedCounts = self.GetFluctuatedExpectedCounts( row ) 
@@ -605,7 +611,7 @@ class nEXOFitWorkspace:
          if not (row['Group'] in self.df_group_pdfs['Group'].values):
 
              new_group_row = { 'Group' : row['Group'], \
-                               'Histogram' : row['Histogram'].normalize((0,1,2),integrate=False) * \
+                               'Histogram' : normalized_histogram * \
                                              totalExpectedCounts, \
                                'TotalExpectedCounts' : totalExpectedCounts }
 
@@ -617,7 +623,7 @@ class nEXOFitWorkspace:
  
              self.df_group_pdfs.loc[ group_mask, 'Histogram' ] = \
                   self.df_group_pdfs['Histogram'].loc[ group_mask ] + \
-                  row['Histogram'].normalize( (0,1,2), integrate=False) * \
+                  normalized_histogram * \
                   totalExpectedCounts
 
              self.df_group_pdfs.loc[ group_mask,'TotalExpectedCounts'] = \
@@ -631,7 +637,8 @@ class nEXOFitWorkspace:
        total_sum_row = {}
        for index,row in self.df_group_pdfs.iterrows():
 
-         self.df_group_pdfs.loc[ index, 'Histogram'] = row['Histogram'].normalize( (0,1,2), integrate=False )
+         if np.sum( row['Histogram'].values ) > 0.:
+            self.df_group_pdfs.loc[ index, 'Histogram'] = row['Histogram'].normalize( (0,1,2), integrate=False )
 
          # TOFIX: Need better handling of negative totals, and need to figure out why 'Far' gives
          # me weird stuff. For now, I'm ignoring these.
