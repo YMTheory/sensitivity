@@ -46,8 +46,9 @@ class nEXOFitLikelihood:
        self.penalize_negative_bins = value
 
    ##############################################################################################
-   def AddPDFDataframeToModel( self, df_pdfs ):
-       self.model.AddPDFsFromDataframe( df_pdfs )
+   def AddPDFDataframeToModel( self, df_pdfs, replace_existing_variables=True ):
+       self.model.AddPDFsFromDataframe( df_pdfs, \
+                                        replace_existing_variables = replace_existing_variables )
        self.model_distribution = self.model.GenerateModelDistribution()
 
    ##############################################################################################

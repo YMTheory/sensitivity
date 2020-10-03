@@ -23,33 +23,40 @@ class nEXOFitModel:
        self.signal_name = None
 
    #########################################################################
-   def AddPDFsFromDataframe( self, input_df, append=False ):
+   def AddPDFsFromDataframe( self, input_df, append=False, replace_existing_variables=True ):
 
        self.df_pdfs = input_df
-       if not append:
-          self.pdfs = []
-          self.variable_list = []
 
-       for index, row in input_df.iterrows():
-           if (row['Group']=='Total Sum')|\
-              (row['Group']=='Off'):
-              #(row['Group']=='Far'):
-                  continue
-           self.pdfs.append( row['Histogram'] )
+       if replace_existing_variables:
+           if not append:
+              self.pdfs = []
+              self.variable_list = []
+    
+           for index, row in input_df.iterrows():
+               if (row['Group']=='Total Sum') | (row['Group']=='Off'):
+                      continue
+               self.pdfs.append( row['Histogram'] )
+    
+               this_variable_dict = {}
+               this_variable_dict['Name'] = 'Num_{}'.format( row['Group'] ) 
+               this_variable_dict['Value'] = row['TotalExpectedCounts']
+               self.variable_list.append( this_variable_dict )
+           for var in self.variable_list:
+               var['IsFixed'] = False
+               var['FitError'] = None
+               var['MinuitInputError'] = np.sqrt(var['Value'])
+               var['IsConstrained'] = False
+               var['Limits'] = (None,None)
+    
+           self.initial_variable_list = copy.deepcopy( self.variable_list )
 
-           this_variable_dict = {}
-           this_variable_dict['Name'] = 'Num_{}'.format( row['Group'] ) 
-           this_variable_dict['Value'] = row['TotalExpectedCounts']
-           self.variable_list.append( this_variable_dict )
-       for var in self.variable_list:
-           var['IsFixed'] = False
-           var['FitError'] = None
-           var['MinuitInputError'] = np.sqrt(var['Value'])
-           var['IsConstrained'] = False
-           var['Limits'] = (None,None)
-
-       self.initial_variable_list = copy.deepcopy( self.variable_list )
-
+       else:
+           for index, row in input_df.iterrows():
+               if (row['Group']=='Total Sum') | (row['Group']=='Off'):
+                   continue
+               var_idx = self.GetVariableIndexByName( 'Num_{}'.format(row['Group']) )
+               self.pdfs[var_idx] = row['Histogram'] 
+               self.variable_list[var_idx]['Value'] = row['TotalExpectedCounts'] 
 
    #########################################################################
    def GenerateModelDistribution( self, fast=False ):

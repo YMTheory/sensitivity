@@ -654,9 +654,9 @@ class nEXOFitWorkspace:
        self.df_group_pdfs = self.df_group_pdfs.append(total_sum_row,ignore_index=True)
 
        # Print out all the groups and their expected counts.
-       print('\t{:<10} \t{:>15}'.format('Group:','Expected Counts:'))
+       print('\t{:<20} \t{:>15}'.format('Group:','Expected Counts:'))
        for index,row in self.df_group_pdfs.iterrows():
-           print('\t{:<10} \t{:>15.2f}'.format( row['Group'], row['TotalExpectedCounts']))
+           print('\t{:<20} \t{:>15.2f}'.format( row['Group'], row['TotalExpectedCounts']))
 
        return 
    ######################## End of CreateGroupPDFs() ########################
