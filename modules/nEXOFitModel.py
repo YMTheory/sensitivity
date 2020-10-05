@@ -177,8 +177,12 @@ class nEXOFitModel:
        if self.full_distribution is None:
           self.GenerateModelDistribution()
  
+       negative_mask = self.full_distribution.values < 0.
+       nonnegative_distribution = self.full_distribution.values
+       nonnegative_distribution[negative_mask] = \
+                      np.zeros( nonnegative_distribution[negative_mask].shape )
        # Generates a Poisson sample of each bin
-       fake_data_values = np.random.poisson( self.full_distribution.values )   
+       fake_data_values = np.random.poisson( nonnegative_distribution )   
        # Creates a Histlite histogram with the sampled values and errors     
        self.dataset = hl.Hist( self.full_distribution.bins,\
                                  fake_data_values,\
