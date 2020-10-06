@@ -18,7 +18,7 @@ RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
 #      NumBins -- the number of bins to be used in the fit. 
 FitAxes:
   - Title: 'DNN'
-    VariableName: 'dnn_value'
+    VariableName: 'm_DNNvalue'
     Min: 0.
     Max: 1.
     NumBins: 5
@@ -28,7 +28,7 @@ FitAxes:
     Max: 3500.
     NumBins: 250
   - Title: 'Standoff (mm)'
-    VariableName: 'Standoff'
+    VariableName: 'standoff'
     Min: 0.
     Max: 650.
     NumBins: 25
@@ -63,15 +63,15 @@ Cuts:
     XVariable: 'm_nQ'
     YVariable: 'm_nOPCal'
     Bound: 'Upper'
-    Slope: 1.064
-    Intercept: 703.
+    Slope: 1.077
+    Intercept: 313.
   - Title: 'LightVsChargeLower'
     Type: '2DLinear'
     XVariable: 'm_nQ'
     YVariable: 'm_nOPCal'
     Bound: 'Lower'
-    Slope: 0.644
-    Intercept: -2411.
+    Slope: 0.597
+    Intercept: -216.
   - Title: 'PassedZThreshold'
     Type: 'Boolean'
     Variable: 'passed_z_thresh'
@@ -81,7 +81,18 @@ Cuts:
   - Title: 'NestBug'
     Type: 'InvertedBoolean'
     Variable: 'NESTBugFound'
-   
+  - Title: 'n_x_ch_abovenoise'
+    Type: '1D'
+    Variable: 'n_x_ch_abovenoise'
+    Bound: 'Lower'
+    Value: 0
+  - Title: 'n_x_ch_abovenoise'
+    Type: '1D'
+    Variable: 'n_y_ch_abovenoise'
+    Bound: 'Lower'
+    Value: 0
+     
+ 
  
 # Set a customized specific activity for a specific component, 
 # which overrides whatever is stored in the Materials Database. 

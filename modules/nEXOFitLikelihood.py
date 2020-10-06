@@ -59,7 +59,6 @@ class nEXOFitLikelihood:
        self.model_distribution = self.model.GenerateModelDistribution(fast=fast)
        if not fast:
           self.model_distribution = self.model_distribution.values
-       #self.variable_list = self.model.variable_list
       
        # Here we do a binned negative log-likelihood, assuming
        # each bin is an independent, poisson-distributed variable

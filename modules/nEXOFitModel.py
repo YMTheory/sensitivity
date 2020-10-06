@@ -216,13 +216,13 @@ class nEXOFitModel:
        if self.full_distribution is None:
           self.GenerateModelDistribution()
 
-       if num_dimensions != len(self.full_distribution.shape):
+       if num_dimensions != len(self.full_distribution.values.shape):
           print('\nERROR: input array does NOT have the same dimensions as\n')
           print('       this model. Check that your axes are correct.')
           print('       Returning 0.....')
           return 0.
       
-       temp_sum = self.full_distribution
+       temp_sum = self.full_distribution.values
  
        for i in range(num_dimensions):
            temp_sum = np.sum( temp_sum[ bin_range_numpy_array[i] ], axis=0)
