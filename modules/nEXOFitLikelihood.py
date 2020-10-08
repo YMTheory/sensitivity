@@ -128,6 +128,36 @@ class nEXOFitLikelihood:
                  num_iterations += 1
                  #self.PrintVariableList()
 
+
+       #############################################################################
+       # If the fit did converge, make a small perturbation and run it again to make
+       # sure it finds the absolute minimum.
+       print('Attempting to refine the fit...')
+       if self.fitter.get_fmin()['is_valid'] \
+          and self.fitter.get_fmin()['has_accurate_covar']:
+                 fluctuated_input_values = self.GetVariableValues() + \
+                                     np.random.randn(len(initial_values)) * \
+                                     0.5 * self.fitter.np_errors()
+                 for i in range(0,len(self.model.variable_list)):
+                          if self.model.variable_list[i]['IsFixed']:
+                             fluctuated_input_values[i] = initial_values[i]
+                 second_pass_fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
+                                        np.copy(fluctuated_input_values),\
+                                        error = self.GetMinuitInputErrorTuple(), \
+                                        fix   = self.GetVariableFixTuple(), \
+                                        name  = self.GetVariableNamesTuple(), \
+                                        limit = self.GetVariableLimitsTuple(), \
+                                        errordef = 0.5,\
+                                        print_level = print_level)
+                 second_pass_fitter.migrad()
+
+                 # If the new fit is an improvement, replace the old one 
+                 if second_pass_fitter.fval < self.fitter.fval \
+                    and second_pass_fitter.get_fmin()['is_valid'] \
+                    and second_pass_fitter.get_fmin()['has_accurate_covar']:
+                    self.fitter = second_pass_fitter 
+       ############################################################################
+              
        fit_errors = self.fitter.errors
        for var in self.model.variable_list:
            var['FitError'] = fit_errors[ var['Name'] ]
@@ -202,6 +232,8 @@ class nEXOFitLikelihood:
 
        lambda_result = dict()
 
+       lambda_result['best_fit_nll']         = self.best_fit_result['nll']
+       lambda_result['fixed_fit_nll']        = self.fitter.fval
        lambda_result['lambda']               = this_lambda
        lambda_result['best_fit_converged']   = self.best_fit_result['best_fit_converged']
        lambda_result['best_fit_covar']       = self.best_fit_result['best_fit_covar']
