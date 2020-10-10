@@ -46,8 +46,9 @@ class nEXOFitLikelihood:
        self.penalize_negative_bins = value
 
    ##############################################################################################
-   def AddPDFDataframeToModel( self, df_pdfs, replace_existing_variables=True ):
+   def AddPDFDataframeToModel( self, df_pdfs, axis_names, replace_existing_variables=True ):
        self.model.AddPDFsFromDataframe( df_pdfs, \
+                                        axis_names, \
                                         replace_existing_variables = replace_existing_variables )
        self.model_distribution = self.model.GenerateModelDistribution()
 
@@ -507,9 +508,12 @@ class nEXOFitLikelihood:
 
 
    ##############################################################################################
-   def PlotModelDistributions( self, output_filename='test_plot.png', plot_data=False, save=True, show=False ):
+   def PlotModelDistributions( self, ss_cut_dict, ms_cut_dict, \
+                               output_filename='test_plot.png', plot_data=False, \
+                               save=True, show=False ):
 
        # Set up the plotting parameters
+       initial_cycler = plt.rcParams['axes.prop_cycle']
        plt.rcParams.update({'font.size': 14})
        custom_cycler = cycler( color = [ (1.,0.5,0.),\
                                          (0.,0.,1.,0.5),\
@@ -526,9 +530,6 @@ class nEXOFitLikelihood:
 
        self.fig, self.ax = plt.subplots (2, 2, figsize=(12, 10))
 
-       # Initialize the summed histogram      
-       h_sum = hl.hist( [np.array([0.]),np.array([0.]),np.array([0.])] , \
-                         bins=self.model.pdfs[0].bins)
 
        # Loop over pdfs and each to plot
        for i in range(len(self.model.variable_list)):
@@ -536,34 +537,47 @@ class nEXOFitLikelihood:
            if 'Num' in var['Name']:
 
               weight = var['Value']
-              pdf = self.model.pdfs[i]
+              ss_pdf = self.model.GetSlicedDistribution( ss_cut_dict, var_name=var['Name'], verbose=False )
+              ms_pdf = self.model.GetSlicedDistribution( ms_cut_dict, var_name=var['Name'], verbose=False )
               component_name = ''.join( var['Name'].split('_')[1:] )
               print('Plotting {}'.format(component_name))
 
-              h_sum += ( weight * pdf )
 
-              hl.plot1d( self.ax[0,0], (weight * pdf)[0:-1].project([1]), label=component_name )
-              hl.plot1d( self.ax[0,1], (weight * pdf)[-1:].project([1]) )
-              hl.plot1d( self.ax[1,1], (weight * pdf)[-1:].project([2]) )
-              hl.plot1d( self.ax[1,0], (weight * pdf)[0:-1].project([2]) )
+              if i == 0:
+                 # Initialize the summed histograms      
+                 ss_sum = hl.hist( [np.array([0.]),np.array([0.]),np.array([0.])] , \
+                                   bins=ss_pdf.bins)
+                 ms_sum = hl.hist( [np.array([0.]),np.array([0.]),np.array([0.])] , \
+                                   bins=ms_pdf.bins)
+              else:
+                 ss_sum += ( weight * ss_pdf )
+                 ms_sum += ( weight * ms_pdf )
+
+              hl.plot1d( self.ax[0,0], (weight * ss_pdf).project([1]), label=component_name )
+              hl.plot1d( self.ax[0,1], (weight * ms_pdf).project([1]) )
+              hl.plot1d( self.ax[1,1], (weight * ms_pdf).project([2]) )
+              hl.plot1d( self.ax[1,0], (weight * ss_pdf).project([2]) )
 
               if 'Bb0n' in component_name:
-                 hl.fill_between( self.ax[0,0], 0, (weight * pdf)[0:-1].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
-                 hl.fill_between( self.ax[0,1], 0, (weight * pdf)[-1:].project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
-                 hl.fill_between( self.ax[1,1], 0, (weight * pdf)[-1:].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
-                 hl.fill_between( self.ax[1,0], 0, (weight * pdf)[0:-1].project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[0,0], 0, (weight * ss_pdf).project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[0,1], 0, (weight * ms_pdf).project([1]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[1,1], 0, (weight * ms_pdf).project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.fill_between( self.ax[1,0], 0, (weight * ss_pdf).project([2]), color=(0.5,0.5,0.5), alpha=0.1 )
 
-       hl.plot1d(self.ax[0,0],h_sum[0:-1].project([1]),color='b',label='Total Sum')
-       hl.plot1d(self.ax[0,1],h_sum[-1:].project([1]),color='b')
-       hl.plot1d(self.ax[1,1],h_sum[-1:].project([2]),color='b')
-       hl.plot1d(self.ax[1,0],h_sum[0:-1].project([2]),color='b') 
+       hl.plot1d(self.ax[0,0],ss_sum.project([1]),color='b',label='Total Sum')
+       hl.plot1d(self.ax[0,1],ms_sum.project([1]),color='b')
+       hl.plot1d(self.ax[1,1],ms_sum.project([2]),color='b')
+       hl.plot1d(self.ax[1,0],ss_sum.project([2]),color='b') 
 
        if plot_data:
-          hl.plot1d( self.ax[0,0], (self.dataset[0:-1]).project([1]),crosses=True,\
-                     label='Toy Data Sample',color='k')
-          hl.plot1d( self.ax[0,1], (self.dataset[-1:]).project([1]),crosses=True,color='k')
-          hl.plot1d( self.ax[1,1], (self.dataset[-1:]).project([2]),crosses=True,color='k')
-          hl.plot1d( self.ax[1,0], (self.dataset[0:-1]).project([2]),crosses=True,color='k')
+          ss_data = self.GetSlicedDataset( ss_cut_dict, verbose=False ) 
+          ms_data = self.GetSlicedDataset( ms_cut_dict, verbose=False ) 
+
+          hl.plot1d( self.ax[0,0], ss_data.project([1]),crosses=False,\
+                     label='Toy Data Sample',color='k',linewidth=1.0)
+          hl.plot1d( self.ax[0,1], ms_data.project([1]),crosses=False,linewidth=1.0,color='k')
+          hl.plot1d( self.ax[1,1], ms_data.project([2]),crosses=False,linewidth=1.0,color='k')
+          hl.plot1d( self.ax[1,0], ss_data.project([2]),crosses=False,linewidth=1.0,color='k')
 
        self.fig.legend(ncol=4,facecolor=(1.,1.,1.),framealpha=1.,loc='upper center')
        self.ax[0,0].set_ylim(1e-2,1e7)
@@ -593,9 +607,73 @@ class nEXOFitLikelihood:
        if show:
           plt.show()
 
+       plt.rc('axes', prop_cycle=initial_cycler)
+
        return
 
 
+   #########################################################################
+   def GetSlicedDataset( self, cut_dict, renormalize = False, \
+                               verbose=True ):
+
+       # Check to make sure the cut_dict contains the right axes
+       for axis_name in cut_dict.keys():
+           if axis_name not in self.model.axis_names:
+              print('\nERROR: \"{}\" is not a valid axis '.format(axis_name) + \
+                    'for the PDFs in this model.' )
+              print('       Please choose from:')
+              for i in range( len(self.model.axis_names) ):
+                  print('          {}'.format(self.model.axis_names[i]))
+              return None
+       for axis_name in self.model.axis_names:
+            if axis_name not in list(cut_dict.keys()):
+               print('\nERROR: The PDF axis \"{}\"'.format(axis_name) + \
+                     ' is not included in the input dict.' )
+               print('       Please choose from:')
+               for i in range( len(self.model.axis_names) ):
+                   print('          {}'.format(self.model.axis_names[i]))
+               return None
+ 
+
+       if self.dataset is not None:
+          this_distribution = self.dataset
+       else:
+          print('\nERROR: no dataset in likelihood object.')
+          return None 
+
+       bin_edges = this_distribution.bins
+       bin_values = this_distribution.values
+ 
+       new_edges = []
+       new_slices = []     
+ 
+       for i in range(len(bin_edges)):
+ 
+            axis_name = self.model.axis_names[i]
+            axis_bins = bin_edges[i]
+ 
+            match_edges_lower_limit = np.where( axis_bins >= cut_dict[axis_name][0] )
+            match_edges_upper_limit = np.where( axis_bins <= cut_dict[axis_name][1] )
+    
+            match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+            match_indices = match_edges[:-1]
+  
+            new_edges.append( np.array( axis_bins[match_edges] ) )
+            new_slices.append( slice(match_indices[0],match_indices[-1]+1) )
+
+            if verbose:
+               print('{}:'.format(axis_name))
+               print('\tInput cut boundaries:  {:>8.5}, {:>8.5}'.format(\
+                      float(cut_dict[axis_name][0]), float(cut_dict[axis_name][1]) ) ) 
+               print('\tActual ROI boundaries: {:>8.5}, {:>8.5}'.format(\
+                      float(new_edges[i][0]), float(new_edges[i][-1]) ) ) 
+   
+       sliced_hist = hl.Hist( bins=new_edges, values=bin_values[ tuple(new_slices)  ] )
+
+       if renormalize:
+          sliced_hist = sliced_hist.normalize( (0,1,2), integrate=False )
+
+       return sliced_hist
 
 
 

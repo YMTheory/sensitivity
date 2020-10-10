@@ -21,11 +21,13 @@ class nEXOFitModel:
        self.background_shape_var_flag = False
        self.initial_variable_list = []
        self.signal_name = None
+       self.axis_names = None
 
    #########################################################################
-   def AddPDFsFromDataframe( self, input_df, append=False, replace_existing_variables=True ):
+   def AddPDFsFromDataframe( self, input_df, axis_names, append=False, replace_existing_variables=True ):
 
        self.df_pdfs = input_df
+       self.axis_names = axis_names
 
        if replace_existing_variables:
            if not append:
@@ -249,6 +251,71 @@ class nEXOFitModel:
            temp_sum = np.sum( temp_sum[ bin_range_numpy_array[i] ], axis=0 )
 
        return temp_sum
+
+
+   #########################################################################
+   def GetSlicedDistribution( self, cut_dict, renormalize = False, \
+                              var_name = None, verbose=True ):
+
+       # Check to make sure the cut_dict contains the right axes
+       for axis_name in cut_dict.keys():
+           if axis_name not in self.axis_names:
+              print('\nERROR: \"{}\" is not a valid axis '.format(axis_name) + \
+                    'for the PDFs in this model.' )
+              print('       Please choose from:')
+              for i in range( len(self.axis_names) ):
+                  print('          {}'.format(self.axis_names[i]))
+              return None
+       for axis_name in self.axis_names:
+            if axis_name not in list(cut_dict.keys()):
+               print('\nERROR: The PDF axis \"{}\"'.format(axis_name) + \
+                     ' is not included in the input dict.' )
+               print('       Please choose from:')
+               for i in range( len(self.axis_names) ):
+                   print('          {}'.format(self.axis_names[i]))
+               return None
+ 
+       if var_name is not None:
+          var_idx = self.GetVariableIndexByName( var_name )
+          this_distribution = self.pdfs[var_idx]
+       else:
+          this_distribution = self.full_distribution
+ 
+       bin_edges = this_distribution.bins
+       bin_values = this_distribution.values
+ 
+       new_edges = []
+       new_slices = []     
+ 
+       for i in range(len(bin_edges)):
+ 
+            axis_name = self.axis_names[i]
+            axis_bins = bin_edges[i]
+ 
+            match_edges_lower_limit = np.where( axis_bins >= cut_dict[axis_name][0] )
+            match_edges_upper_limit = np.where( axis_bins <= cut_dict[axis_name][1] )
+    
+            match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+            match_indices = match_edges[:-1]
+  
+            new_edges.append( np.array( axis_bins[match_edges] ) )
+            new_slices.append( slice(match_indices[0],match_indices[-1]+1) )
+
+            if verbose:
+               print('{}:'.format(axis_name))
+               print('\tInput cut boundaries:  {:>8.5}, {:>8.5}'.format(\
+                      float(cut_dict[axis_name][0]), float(cut_dict[axis_name][1]) ) ) 
+               print('\tActual ROI boundaries: {:>8.5}, {:>8.5}'.format(\
+                      float(new_edges[i][0]), float(new_edges[i][-1]) ) ) 
+   
+       sliced_hist = hl.Hist( bins=new_edges, values=bin_values[ tuple(new_slices)  ] )
+
+       if renormalize:
+          sliced_hist = sliced_hist.normalize( (0,1,2), integrate=False )
+
+       return sliced_hist
+
+
 
 
 
