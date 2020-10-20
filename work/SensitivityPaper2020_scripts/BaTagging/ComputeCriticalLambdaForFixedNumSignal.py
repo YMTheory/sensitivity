@@ -48,7 +48,7 @@ workspace.CreateGroupedPDFs()
 
 # Create the likelihood object
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
-likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
+likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names)
 
 # Include the signal efficiency variable in the fit
 #likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
@@ -125,7 +125,9 @@ for j in range(0,num_datasets):
 
 	# Redo the grouping, which fluctuates the radioassay values within their uncertainties.
 	workspace.CreateGroupedPDFs()
-	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, replace_existing_variables=False )
+	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, \
+                                           workspace.histogram_axis_names, \
+                                           replace_existing_variables=False )
 
 	sig_idx = likelihood.model.GetVariableIndexByName('Bb0n')
 	likelihood.model.variable_list[ sig_idx ]['Value'] = input_num_signal
@@ -209,6 +211,6 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/critical_lambda_calculation_num_sig_{:3.3}_file_{}.h5'.format(output_dir,input_num_signal,iteration_num),key='df')
+output_df.to_hdf('{}/critical_lambda_calculation_num_sig_{:06.6}_file_{}.h5'.format(output_dir,input_num_signal,iteration_num),key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))
