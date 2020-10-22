@@ -451,16 +451,30 @@ class nEXOFitWorkspace:
              sys.exit('') 
 
           # Define binning
-          if 'Linear' in self.config['HistogramBinningOption']:
-             binspecs_list = [ np.linspace( axis['Min'],\
-                                           axis['Max'],\
-                                           axis['NumBins']+1 )\
-                              for axis in self.config['FitAxes'] ]
-          else:
-             print('\n\n************** ERROR: TRYING TO DO NONLINEAR BINNING **************')
-             print('Nonlinear binning is not yet implemented.')
-             print('\n*********************** EXITING *******************************\n')
-             sys.exit('') 
+          binspecs_list = []
+          for axis in self.config['FitAxes']:
+              if 'BinningOption' not in axis.keys():
+                  print('\n\n************** ERROR: PLEASE SEPCIFY A BINNING OPTION **************')
+                  print('Supported options are:')
+                  print('      \'Linear\': requires a min, max, and number of bins')
+                  print('      \'Custom\': requires a list of the bin edges')
+                  print('\n*********************** EXITING *******************************\n')
+                  sys.exit('') 
+
+              if 'Linear' in axis['BinningOption']:
+                  binspecs_list.append( np.linspace( axis['Min'],\
+                                                    axis['Max'],\
+                                                    axis['NumBins']+1 ) )
+              elif 'Custom' in axis['BinningOption']:
+                  binspecs_list.append( np.array(axis['BinEdges']) )
+              else:   
+                  print('\n\n************** ERROR: {} IS NOT A SUPPORTED BINNING OPTION **************'.format(axis['BinningOption']))
+                  print('Supported options are:')
+                  print('      \'Linear\': requires a min, max, and number of bins')
+                  print('      \'Custom\': requires a list of the bin edges')
+                  print('\n*********************** EXITING *******************************\n')
+                  sys.exit('') 
+
 
           # Define cuts
           mask = self.GetCutMask( input_df )

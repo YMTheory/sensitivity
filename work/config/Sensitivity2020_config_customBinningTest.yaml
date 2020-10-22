@@ -16,13 +16,14 @@ RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
 #      Min -- the minimum value to be used in the fit
 #      Max -- the maxmum value to be used in the fit
 #      NumBins -- the number of bins to be used in the fit. 
+#      BinningOption -- whether you want evenly spaced bins (Linear) or some
+#                       custom binning scheme (Custom)
+#      BinEdges -- only used if BinningOption is set to 'Custom'
 FitAxes:
   - Title: 'DNN'
     VariableName: 'm_DNNvalue'
-    Min: 0.
-    Max: 1.
-    NumBins: 5
-    BinningOption: 'Linear'
+    BinningOption: 'Custom'
+    BinEdges: [0.,0.85,1.]
   - Title: 'Energy (keV)'
     VariableName: 'energy'
     Min: 1000.
@@ -35,6 +36,7 @@ FitAxes:
     Max: 650.
     NumBins: 25
     BinningOption: 'Linear'
+
 
 # Define the cuts which are applied when constructing the PDFs from the
 # merged reconstruction files. Supported cut types are '1D', '2DLinear',
