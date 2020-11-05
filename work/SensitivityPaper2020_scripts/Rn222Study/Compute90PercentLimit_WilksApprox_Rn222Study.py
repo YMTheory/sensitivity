@@ -87,21 +87,23 @@ DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('./config/TUTORIAL_config.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/work/config/Sensitivity2020_config.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
-roi_dict = { 'SS/MS':         [0.,1.],
+roi_dict = { 'DNN':         [0.8,1.],
              'Energy (keV)':  [ 2428.89, 2486.77 ], 
-             'Standoff (mm)': [ 120., 650. ] }
+             'Standoff (mm)': [ 110., 650. ] }
 workspace.DefineROI( roi_dict )
 
 
 
 # Create the likelihood object
+print('Axis names:')
+print(workspace.histogram_axis_names)
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
-likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
+likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs,workspace.histogram_axis_names)
 
 
 if INCLUDE_EFFICIENCY_ERROR:
@@ -313,8 +315,8 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_rn222study_{}x_90CL_{:03}.h5'.format(\
-                         output_dir, int(rn222_scale_factor), iteration_num ),\
+output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}.h5'.format(\
+                         output_dir, rn222_scale_factor, iteration_num ),\
                          key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

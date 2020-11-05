@@ -735,7 +735,7 @@ class nEXOFitWorkspace:
        # First, make sure the right axes are being called.
        for axis in input_roi_dict.keys():
            if not axis in self.histogram_axis_names:
-              print('ERROR: {} does not match any of the fit axes.')
+              print('ERROR: {} does not match any of the fit axes.'.format(axis))
               print('       Choices are:')
               for name in self.histogram_axis_names:
                   print('                 {}'.format(name))

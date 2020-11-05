@@ -2,26 +2,26 @@
 
 import os
 execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/"
-outputdir = "/p/lustre1/lenardo1/sensitivity_output/June23_2020_Rn222_test/"
+outputdir = "/p/lustre1/lenardo1/sensitivity_output/October28_Rn222_Study_Baseline2019/"
 outputname = ""
 executable_name = 'Compute90PercentLimit_WilksApprox_Rn222Study.py'
-components_table = '/g/g20/lenardo1/nEXO/sensitivity/tables/ComponentsTable_D-005.h5' 
+components_table = '/usr/workspace/wsa/nexo/lenardo1/baseline2019_third_pass/ComponentsTable_D-023_merged-v5_final_cuts.h5' 
 
-rn222_scale_factor = 30.
+rn222_scale_factor = 0.01
 
 iter_num = 1
-bkg_shape_err = 1.
-num_datasets = 5000
+bkg_shape_err = 2.5
+num_datasets = 2500
 num_jobs = 50
 num_datasets_per_job = int(num_datasets/num_jobs)
 
-base = "Run_Rn222_x"
+base = "Run_Rn222_"
 
 for iter_num in range(num_jobs):
 		
-		scriptfilename = outputdir +  base + str(int(rn222_scale_factor)) + "_{:03}.sub".format(iter_num)
+		scriptfilename = outputdir +  base + '{:0>4.4}'.format(rn222_scale_factor) + "x_{:03}.sub".format(iter_num)
 		os.system( "rm -f " + scriptfilename )
-		outfilename = outputdir + base + str(int(rn222_scale_factor)) + "_{:03}.out".format(iter_num)
+		outfilename = outputdir + base + '{:0>4.4}'.format(rn222_scale_factor) + "x_{:03}.out".format(iter_num)
 		os.system( "rm -f " + outfilename )
 	
 		
