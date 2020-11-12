@@ -12,7 +12,7 @@ from scipy.special import erfinv
 import nEXOExcelTableReader
 import nEXOMaterialsDBInterface
 
-from MC_ID_Dict_2019Baseline import MC_ID_Dict
+# from MC_ID_Dict_2019Baseline import MC_ID_Dict
 
 class nEXOFitWorkspace:
 
@@ -604,7 +604,8 @@ class nEXOFitWorkspace:
          # If the histogram is non-zero, normalize it. Note that running
          # `.normalize` on a histogram with all zeros returns a histogram filled with nan
          if np.sum( row['Histogram'].values ) > 0.:
-            normalized_histogram = row['Histogram'].normalize( (0,1,2), integrate=False ) 
+            histogram_axes = tuple([x for x in range(len(row['Histogram'].values.shape))])
+            normalized_histogram = row['Histogram'].normalize( histogram_axes, integrate=False ) 
          else:
             normalized_histogram = row['Histogram']
 
@@ -652,7 +653,7 @@ class nEXOFitWorkspace:
        for index,row in self.df_group_pdfs.iterrows():
 
          if np.sum( row['Histogram'].values ) > 0.:
-            self.df_group_pdfs.loc[ index, 'Histogram'] = row['Histogram'].normalize( (0,1,2), integrate=False )
+            self.df_group_pdfs.loc[ index, 'Histogram'] = row['Histogram'].normalize( histogram_axes, integrate=False )
 
          # TOFIX: Need better handling of negative totals, and need to figure out why 'Far' gives
          # me weird stuff. For now, I'm ignoring these.
