@@ -614,14 +614,10 @@ class nEXOFitWorkspace:
          elif self.fluctuate_radioassay_during_grouping:
              totalExpectedCounts = self.GetFluctuatedExpectedCounts( row ) 
          else:
-             if row['SpecActiv'] > 0.:
-                totalExpectedCounts = row['Total Mass or Area'] * \
-                                      row['SpecActiv']/1000. * \
-                                      row['TotalHitEff_K'] / row['TotalHitEff_N'] * \
-                                      self.livetime
-             else:
-                totalExpectedCounts = 0.
-         
+             totalExpectedCounts = row['Total Mass or Area'] *\
+                                self.GetMeanSpecificActivity(row)/1000.*\
+                                row['TotalHitEff_K'] / row['TotalHitEff_N'] *\
+                                self.livetime   
          
          if not (row['Group'] in self.df_group_pdfs['Group'].values):
 
@@ -669,9 +665,9 @@ class nEXOFitWorkspace:
        self.df_group_pdfs = self.df_group_pdfs.append(total_sum_row,ignore_index=True)
 
        # Print out all the groups and their expected counts.
-       print('\t{:<20} \t{:>15}'.format('Group:','Expected Counts:'))
+       print('\t{:<35} \t{:>15}'.format('Group:','Expected Counts:'))
        for index,row in self.df_group_pdfs.iterrows():
-           print('\t{:<20} \t{:>15.2f}'.format( row['Group'], row['TotalExpectedCounts']))
+           print('\t{:<35} \t{:>15.4f}'.format( row['Group'], row['TotalExpectedCounts']))
 
        return 
    ######################## End of CreateGroupPDFs() ########################
@@ -707,7 +703,7 @@ class nEXOFitWorkspace:
                             components_table_row['SpecActivErrorType'] ))
            raise TypeError
    
-       # keep trying until you get a nonnegative number
+       # If fluctuated activity is less than 0, use 0.
        fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
        if fluctuated_spec_activity < 0.:
               fluctuated_spec_activity = 0.
@@ -721,6 +717,34 @@ class nEXOFitWorkspace:
 
        return totalExpectedCounts
         
+   ##########################################################################
+   # Compute the mean specific activity that we expect to see, given the
+   # fluctuations strategy outlined above and the radioassay measurement
+   ##########################################################################
+   def GetMeanSpecificActivity( self, components_table_row ):
+        if 'limit' in components_table_row['SpecActivErrorType']:
+           spec_activ_mean = 0.
+           spec_activ_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
+        else:
+           spec_activ_mean = components_table_row['SpecActiv']
+           spec_activ_sigma = components_table_row['SpecActivErr']
+        xvals = np.linspace( spec_activ_mean - 5.*spec_activ_sigma,\
+                             spec_activ_mean + 5.*spec_activ_sigma,\
+                             3000. )
+        if spec_activ_sigma < 1.e-30:
+           print('no sigma for {} ({})'.format(components_table_row['PDFName'],\
+                                               components_table_row['Activity ID']))
+           if spec_activ_mean < 0.:
+              return 0.
+           else:
+              return spec_activ_mean
+        yvals = NormalDistribution(xvals,spec_activ_mean,spec_activ_sigma)
+        dx = xvals[1]-xvals[0] 
+        
+        xvals[xvals<0.] = np.zeros(len(xvals[xvals<0.]))
+        return np.sum(xvals * yvals)*dx 
+
+
 
    ##########################################################################
    # Defines the ROI. The ROI boundaries are given as a dict, where the
@@ -820,5 +844,8 @@ class nEXOFitWorkspace:
    #def CreateNegLogLikelihood( self ):
        
 
-
+####################################################################
+def NormalDistribution(x,mu,sigma):
+    return 1./np.sqrt(2*np.pi*sigma**2) * np.exp(-(x-mu)**2/(2.*sigma**2))
+###################################################################
 
