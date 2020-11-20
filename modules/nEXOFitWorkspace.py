@@ -778,10 +778,10 @@ class nEXOFitWorkspace:
            axis_name = self.histogram_axis_names[i]
            axis_bins = pdf_bins[i]
 
-           match_edges_lower_limit = np.where( axis_bins >= input_roi_dict[axis_name][0] )
-           match_edges_upper_limit = np.where( axis_bins <= input_roi_dict[axis_name][1] )
-   
-           match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+           match_edges_lower_limit = np.argmin( (axis_bins - input_roi_dict[axis_name][0] )**2 )
+           match_edges_upper_limit = np.argmin( (axis_bins - input_roi_dict[axis_name][1] )**2 )  
+
+           match_edges = range(match_edges_lower_limit,match_edges_upper_limit+1)
            match_indices = match_edges[:-1]
  
            self.roi_edges[axis_name] = np.array( axis_bins[match_edges] )
