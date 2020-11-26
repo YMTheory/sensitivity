@@ -8,12 +8,12 @@ if len(sys.argv) != 7:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<job_id_num> <bkg_shape_err_parameter> ' + \
+		'<iteration_num> <bkg_shape_err_parameter> ' + \
                 '<num_datasets_to_generate> <input_table> <output_directory> ' + \
                 '<rn222_scale_factor>\n\n')
 	sys.exit()
 
-job_id_num = int(sys.argv[1])
+iteration_num = int(sys.argv[1])
 bkg_shape_err = float(sys.argv[2])
 num_datasets = int(sys.argv[3])
 input_table = sys.argv[4]
@@ -42,7 +42,7 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 	# Next, select only values near the critical lambda threshold (~2.7)
 	mask = mask&(yvals>0.5)&(yvals<6.)
 
-	xfit = np.linspace(0.,100.,10000)
+	xfit = np.linspace(0.,100.,3000)
 
 	if len( xvals[mask] ) > 0:
 		try:
@@ -87,17 +87,15 @@ DEBUG_PLOTTING = False
 
 
 # Create the workspace
-#workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
+            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
 roi_dict = { 'DNN':         [0.85,1.],
-             'Energy (keV)':  [ 2434., 2480. ], 
+             'Energy (keV)':  [ 2428.89, 2486.77 ], 
              'Standoff (mm)': [ 104.5, 650. ] }
 workspace.DefineROI( roi_dict )
 
@@ -264,7 +262,7 @@ for j in range(0,num_datasets):
 	for i in (range(0,num_hypotheses)):
 
 		# Fix the 0nu parameter to a specific hypothesis
-		signal_hypothesis = float(i)*2.+0.000001
+		signal_hypothesis = float(i)*4.+0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
 		initial_values[signal_idx] = signal_hypothesis
@@ -345,7 +343,7 @@ output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
 output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}.h5'.format(\
-                         output_dir, rn222_scale_factor, job_id_num ),\
+                         output_dir, rn222_scale_factor, iteration_num ),\
                          key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

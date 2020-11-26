@@ -603,11 +603,15 @@ class nEXOFitWorkspace:
 
          # If the histogram is non-zero, normalize it. Note that running
          # `.normalize` on a histogram with all zeros returns a histogram filled with nan
-         if np.sum( row['Histogram'].values ) > 0.:
-            histogram_axes = tuple([x for x in range(len(row['Histogram'].values.shape))])
-            normalized_histogram = row['Histogram'].normalize( histogram_axes, integrate=False ) 
-         else:
-            normalized_histogram = row['Histogram']
+         try:
+            if np.sum( row['Histogram'].values ) > 0.:
+               histogram_axes = tuple([x for x in range(len(row['Histogram'].values.shape))])
+               normalized_histogram = row['Histogram'].normalize( histogram_axes, integrate=False ) 
+            else:
+               normalized_histogram = row['Histogram']
+         except AttributeError:
+            print('\nERROR: No histogram available for {}'.format(row['PDFName']))
+            continue
 
          if row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts
@@ -691,15 +695,19 @@ class nEXOFitWorkspace:
 
        if components_table_row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
           components_table_row['SpecActivErrorType'] == 'limit':
-           fluct_mean = 0.
-           fluct_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
+               fluct_mean = 0.
+               fluct_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
        elif components_table_row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
             components_table_row['SpecActivErrorType'] == 'obs':
                fluct_mean = components_table_row['SpecActiv']
                fluct_sigma = components_table_row['SpecActivErr']
+       elif components_table_row['SpecActivErrorType'] == 'Asymmetric error':
+                fluct_mean = components_table_row['SpecActiv']
+                fluct_sigma = 0.
+       
        else: 
            print('\nComponent {} has undefined error type {}\n'.format(\
-                            components_table_row['SpecActivErrorType'],\
+                            components_table_row['PDFName'],\
                             components_table_row['SpecActivErrorType'] ))
            raise TypeError
    
