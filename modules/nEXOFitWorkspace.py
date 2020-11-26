@@ -198,7 +198,8 @@ class nEXOFitWorkspace:
                                              create_histograms_from_trees = False,\
                                              trees_directory = None,\
                                              download_mc_data = False,\
-                                             use_mc_id_dict = False):
+                                             use_mc_id_dict = False,\
+                                             output_dir=''):
 
        start_time = time.time()
 
@@ -381,7 +382,7 @@ class nEXOFitWorkspace:
  
        # Store the components table in a file in case you want to
        # go back and look at it later.
-       outTableName = 'ComponentsTable_' + geometry_tag + '_{}'.format(label) + '.h5'
+       outTableName = output_dir + 'ComponentsTable_' + geometry_tag + '_{}'.format(label) + '.h5'
        print('\n\nWriting table to file {}\n'.format(outTableName))
        self.df_components.to_hdf( outTableName, key='Components' )
  
@@ -407,7 +408,7 @@ class nEXOFitWorkspace:
    # Stores the histograms as histlite objects, then writes these to an HDF5
    # file.
    ##########################################################################
-   def CreateHistogramsFromRawTrees( self, path_to_trees, output_hdf5_filename ):
+   def CreateHistogramsFromRawTrees( self, path_to_trees, output_hdf5_filename, resolution_factor=None):
 
       start_time = time.time()      
 
@@ -448,7 +449,7 @@ class nEXOFitWorkspace:
              print('in the FitAxes. See error message below for details:\n')
              print(e)
              print('\n*********************** EXITING *******************************\n')
-             sys.exit('') 
+             sys.exit('')
 
           # Define binning
           binspecs_list = []
@@ -483,6 +484,20 @@ class nEXOFitWorkspace:
                      np.sum(mask), len(mask), 100*float(np.sum(mask))/float(len(mask))))
  
           data_list = [ input_df[ axis['VariableName'] ].loc[mask] for axis in self.config['FitAxes'] ]
+
+          if resolution_factor:
+             try:
+                for idx, (bin, data) in enumerate(data_list[1].iteritems()):
+                    data_list[1][bin] = np.random.normal(data, float(resolution_factor) * data, 1)[0]
+                    if len(data_list[1]) > 5 and not idx % int(len(data_list[1]) / 5):
+                        print("{} is {:.2f}% complete.".format(filename, idx/len(data_list[1])*100))
+             except:
+                print("data = " + str(data) + "\n")
+                print("bin = " + str(bin) + "\n")
+                print("resolution_factor = " + str(resolution_factor) + "\n")
+                print("res * data = " + str(float(resolution_factor) * data) + "\n")
+                exit()
+
           hh = hl.hist( tuple(data_list), weights=input_df['weight'].loc[mask], bins=tuple(binspecs_list) )
           thisrow = { 'Filename': filename,\
                       'Histogram': hh,\
@@ -621,7 +636,7 @@ class nEXOFitWorkspace:
              totalExpectedCounts = row['Total Mass or Area'] *\
                                 self.GetMeanSpecificActivity(row)/1000.*\
                                 row['TotalHitEff_K'] / row['TotalHitEff_N'] *\
-                                self.livetime   
+                                self.livetime
          
          if not (row['Group'] in self.df_group_pdfs['Group'].values):
 
@@ -747,10 +762,10 @@ class nEXOFitWorkspace:
            else:
               return spec_activ_mean
         yvals = NormalDistribution(xvals,spec_activ_mean,spec_activ_sigma)
-        dx = xvals[1]-xvals[0] 
-        
+        dx = xvals[1]-xvals[0]
+
         xvals[xvals<0.] = np.zeros(len(xvals[xvals<0.]))
-        return np.sum(xvals * yvals)*dx 
+        return np.sum(xvals * yvals)*dx
 
 
 
