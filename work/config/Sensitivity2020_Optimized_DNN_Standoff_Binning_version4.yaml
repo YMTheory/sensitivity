@@ -19,7 +19,7 @@ RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
 FitAxes:
   - Title: 'DNN'
     VariableName: 'm_DNNvalue'
-    BinEdges: [0., 0.2, 0.4, 0.6, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1.0]
+    BinEdges: [0.0, 0.2, 0.4, 0.6, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 0.99, 1.0]
     BinningOption: 'Custom'
   - Title: 'Energy (keV)'
     VariableName: 'energy'
