@@ -23,8 +23,8 @@ livetime = float(sys.argv[7])
 yaml_card = sys.argv[8]
 
 
-num_hypotheses = 1
-step_hypothesis = 2
+num_hypotheses = 5
+step_hypothesis = 3
 
 #####################################################################
 # Import useful libraries for analysis
@@ -41,7 +41,6 @@ import nEXOFitLikelihood
 
 
 # Set some switches
-INCLUDE_EFFICIENCY_ERROR = False
 INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
 
@@ -53,8 +52,8 @@ workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.livetime = livetime * 365. * 24. * 60. * 60.
 workspace.LoadComponentsTableFromFile(input_table)
 
-mask = workspace.df_components['Component'].str.contains("Repeater")
-workspace.df_components['Group'][mask] = 'Off'
+# mask = workspace.df_components['Component'].str.contains("Repeater")
+# workspace.df_components['Group'][mask] = 'Off'
 workspace.CreateGroupedPDFs()
 
 
@@ -62,8 +61,7 @@ workspace.CreateGroupedPDFs()
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names)
 
-if INCLUDE_EFFICIENCY_ERROR:
-	likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
+
 if INCLUDE_BACKGROUND_SHAPE_ERROR:
 	likelihood.model.IncludeBackgroundShapeVariableInFit(True)
 
@@ -157,12 +155,6 @@ for j in range(0,num_datasets):
 							 rn222_constraint_val, \
 	                	                         0.1 * initial_guess[rn222_idx])
 
-	if INCLUDE_EFFICIENCY_ERROR:
-		eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
-		eff_constraint_val = (np.random.randn()*eff_err + 1)* initial_guess[eff_idx]
-		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],\
-			eff_constraint_val,\
-			eff_err)
 			
 	if INCLUDE_BACKGROUND_SHAPE_ERROR:
 		bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
