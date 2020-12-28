@@ -2,20 +2,19 @@
 
 import os
 execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/SensitivityPaper2020_scripts/BaTagging/"
-outputdir = "/p/lustre1/lenardo1/sensitivity_output/October6_2020_critical_lambda_ba_tagging_no_shape_error_histats_final_cuts/"
-outputname = ""
+#outputdir = "/p/lustre1/lenardo1/sensitivity_output/October6_2020_critical_lambda_ba_tagging_no_shape_error_histats_final_cuts/"
+outputdir = "/p/lustre2/lenardo1/sensitivity_output/Dec20_2020_CriticalLambda_ba_tagging_background_scaling/"
 
-base = "BaTagging_Sensitivity_Baseline2019_"
+scaling_2nu = 1.25
 
+base = "BaTagging_Sensitivity_Baseline2019_2nuScaling_{:06.6}_".format(scaling_2nu)
 
 # Number of toy datasets to run for each hypothesis
 num_datasets=20000
 
 
-for num in range(0,1000):
+for num in range(0,400):
 
-	basename = base + str(num)
-	
 	scriptfilename = outputdir + "Sub/" +  base + str(num) + ".sub"
 	os.system( "rm -f " + scriptfilename )
 	outfilename = outputdir + "Out/" + base + str(num) + ".out"
@@ -51,7 +50,8 @@ for num in range(0,1000):
 		"cd " + execdir + "\n" + \
 		"export STARTTIME=`date +%s`\n" + \
 		"echo Start time $STARTTIME\n" + \
-		"python3 ComputeCriticalLambdaForFixedNumSignal.py {} {} {} {}\n".format(iteration_num,hyp_val,num_datasets,outputdir) + \
+		"python3 ComputeCriticalLambdaForFixedNumSignal.py {} {} {} {} {}\n".format( \
+				iteration_num, hyp_val, num_datasets, scaling_2nu, outputdir) + \
 		"export STOPTIME=`date +%s`\n" + \
 		"echo Stop time $STOPTIME\n" + \
 		"export DT=`expr $STOPTIME - $STARTTIME`\n" + \

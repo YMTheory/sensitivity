@@ -6,18 +6,20 @@ sys.path.append('../../modules')
 
 ######################################################################
 # Check arguments and load inputs
-if len(sys.argv) == 5:
+if len(sys.argv) == 6:
 	iteration_num = int(sys.argv[1])
 	input_num_signal = float(sys.argv[2])
 	num_datasets = int(sys.argv[3])
-	output_dir = sys.argv[4]
+	scaling_2nu = float(sys.argv[4])
+	output_dir = sys.argv[5]
 	if not os.path.exists(output_dir):
 		sys.exit('\nERROR: path to output_dir does not exist\n')
 else:
 	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 4 arguments')
 	print('Usage:')
 	print('\tpython ComputeCriticalLambdaForNumSignal.py ' + \
-		'<iteration_num> <input_num_signal> <num_datasets_to_generate> </path/to/output/directory/>')
+		'<iteration_num> <input_num_signal> <num_datasets_to_generate> '  + \
+		'<scaling_2nu> </path/to/output/directory/>')
 	sys.exit('\n')
 ######################################################################
 
@@ -41,40 +43,24 @@ from iminuit import Minuit
 
 # Create the workspace
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(config='../../config/Sensitivity2020_BaTagging_config.yaml')
-workspace.LoadComponentsTableFromFile('/usr/workspace/wsa/nexo/lenardo1/baseline2019_third_pass/ComponentsTable_D-023_merged-v5_final_cuts_ba_tagging.h5')
+workspace.LoadComponentsTableFromFile('/usr/workspace/wsa/nexo/lenardo1/baseline2019_third_pass/'+\
+					'ComponentsTable_D-023_merged-v5_final_cuts_ba_tagging.h5')
 workspace.SetHandlingOfRadioassayData( fluctuate=True )
 workspace.CreateGroupedPDFs()
-
 
 # Create the likelihood object
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names)
 
-# Include the signal efficiency variable in the fit
-#likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
-
-INCLUDE_BACKGROUND_SHAPE_ERROR = False
-
-if INCLUDE_BACKGROUND_SHAPE_ERROR:
-	likelihood.model.IncludeBackgroundShapeVariableInFit()
-	bkg_shape_err = 2.5
-
 # Get the initial values; set the BB0n num_signal to the user-provided input
 initial_values = likelihood.GetVariableValues()
 initial_values[ likelihood.GetVariableIndex('Bb0n') ] = input_num_signal
-
+initial_values[ likelihood.GetVariableIndex('Bb2n') ] = \
+	initial_values[ likelihood.GetVariableIndex('Bb2n') ] * scaling_2nu
 
 # Initialize the model
 likelihood.model.UpdateVariables(initial_values)
 likelihood.model.GenerateModelDistribution()
-#for i in range(len(likelihood.model.pdfs)):
-#	if 'Far' in likelihood.model.variable_list[i]['Name']:
-#		print('{}'.format(likelihood.model.variable_list[i]['Name']))
-#		print('-----> {}'.format(likelihood.model.pdfs[i]))
-#		print('-----> {}'.format(likelihood.model.pdfs[i].values))
-#		print('-----> {}'.format(likelihood.model.variable_list[i]))
-#		print('\n\n')
-
 likelihood.AddDataset( likelihood.model.GenerateDataset() )
 
 
@@ -88,10 +74,6 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
 	                                  upper_limit = 100.)
-	    elif 'Background_Shape_Error' in var['Name']:
-                likelihood.SetVariableLimits( var['Name'], \
-                                          lower_limit = -100., \
-                                          upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
@@ -120,19 +102,21 @@ for j in range(0,num_datasets):
 	fixed_fit_parameters = None
 	fixed_fit_errors = None
 
-
-	#likelihood.model.UpdateVariables(initial_values)
-
 	# Redo the grouping, which fluctuates the radioassay values within their uncertainties.
 	workspace.CreateGroupedPDFs()
 	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, \
                                            workspace.histogram_axis_names, \
                                            replace_existing_variables=False )
 
+	# Set the variable values appropriately
 	sig_idx = likelihood.model.GetVariableIndexByName('Bb0n')
 	likelihood.model.variable_list[ sig_idx ]['Value'] = input_num_signal
 
-	# Need to regenerate the distribution since we've changed Num_Bb0n
+	twoNu_idx = likelihood.model.GetVariableIndexByName('Bb2n')
+	likelihood.model.variable_list[ twoNu_idx ]['Value'] = \
+		likelihood.model.variable_list[ twoNu_idx ]['Value'] * scaling_2nu
+
+	# Need to regenerate the distribution since we've changed Num_Bb0n and Num_Bb2n
 	likelihood.model.GenerateModelDistribution()
 	likelihood.AddDataset( likelihood.model.GenerateDataset() )
 
@@ -145,28 +129,6 @@ for j in range(0,num_datasets):
 			input_parameters[ var['Name'] ] = float(var['Value'])
 
 	likelihood.SetAllVariablesFloating()
-
-	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
-	
-	#if CONSTRAINTS:
-		#rn222_idx = likelihood.GetVariableIndex('Rn222')
-		# Fluctuate Rn222 constraint
-		#rn222_constraint_val = (np.random.randn()*0.1 + 1)*initial_values[rn222_idx]
-		# Set Rn222 constraint
-		#likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],\
-		#					 rn222_constraint_val, \
-	        #        	                         0.1 * initial_values[rn222_idx])
-		#eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
-		#eff_constraint_val = (np.random.randn()*eff_err + 1)* initial_values[eff_idx]
-		#likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],\_val,\
-		#					eff_constraint_val,\
-		#					eff_err * initial_values[eff_idx])
-	if INCLUDE_BACKGROUND_SHAPE_ERROR:
-		bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
-		bkg_shape_constraint_val = np.random.randn()*bkg_shape_err
-		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'],\
-							bkg_shape_constraint_val,\
-							bkg_shape_err)
 
 
 	print('\n\nRunning dataset {}....\n'.format(j))
@@ -199,7 +161,6 @@ for j in range(0,num_datasets):
 	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
 	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
 	output_row['input_parameters']     = input_parameters
-	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)	
 	print('Variable values at end of loop:')
@@ -211,6 +172,7 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/critical_lambda_calculation_num_sig_{:06.6}_file_{}.h5'.format(output_dir,input_num_signal,iteration_num),key='df')
+output_df.to_hdf('{}/critical_lambda_calculation_num_sig_{:06.6}_file_2nuscaling_{:04.4}_{}.h5'.format(\
+				output_dir,input_num_signal,scaling_2nu,iteration_num), key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

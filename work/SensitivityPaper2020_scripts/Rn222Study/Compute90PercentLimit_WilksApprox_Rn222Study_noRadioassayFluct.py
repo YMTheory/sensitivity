@@ -92,7 +92,7 @@ workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdf
 #workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
 #            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
-workspace.SetHandlingOfRadioassayData(fluctuate=True)
+workspace.SetHandlingOfRadioassayData(fluctuate=False)
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
@@ -226,7 +226,7 @@ for j in range(0,num_datasets):
 	likelihood.SetAllVariablesFloating()
 
         # Fix the Co60 parameter
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
 	RN_CONSTRAINTS=True
 	if RN_CONSTRAINTS:

@@ -42,7 +42,7 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 	# Next, select only values near the critical lambda threshold (~2.7)
 	mask = mask&(yvals>0.5)&(yvals<6.)
 
-	xfit = np.linspace(0.,60.,1200)
+	xfit = np.linspace(0.,100.,10000)
 
 	if len( xvals[mask] ) > 0:
 		try:
@@ -81,20 +81,21 @@ import nEXOFitLikelihood
 
 # Set some switches
 INCLUDE_EFFICIENCY_ERROR = False
-INCLUDE_BACKGROUND_SHAPE_ERROR = True
+INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
 DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/work/config/Sensitivity2020_config.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/config_files/'+\
+                                     'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
-roi_dict = { 'DNN':         [0.8,1.],
-             'Energy (keV)':  [ 2428.89, 2486.77 ], 
-             'Standoff (mm)': [ 110., 650. ] }
+roi_dict = { 'DNN':         [0.85,1.],
+             'Energy (keV)':  [ 2433., 2480. ], 
+             'Standoff (mm)': [ 104., 650. ] }
 workspace.DefineROI( roi_dict )
 
 
@@ -162,7 +163,7 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 ##########################################################################
 # Here's where the calculation loop begins.
 
-num_hypotheses = 30
+num_hypotheses = 20
 xvals = np.array([])
 
 lambdas = np.zeros(num_hypotheses)

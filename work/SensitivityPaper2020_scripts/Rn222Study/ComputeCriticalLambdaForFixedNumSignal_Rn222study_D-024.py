@@ -211,7 +211,7 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/critical_lambda_calculation_rn222study_{:0>4.4}x_D-023_num_sig_{:06.6}_file_{}.h5'.format(\
+output_df.to_hdf('{}/critical_lambda_calculation_rn222study_{:0>4.4}x_D-024_num_sig_{:06.6}_file_{}.h5'.format(\
 			output_dir, rn222_scale_factor, input_num_signal, iteration_num),key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

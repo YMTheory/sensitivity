@@ -3,9 +3,10 @@
 import os
 execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/"
 #outputdir = "/p/lustre1/lenardo1/sensitivity_output/October28_Rn222_Study_Baseline2019/"
-outputdir = "/p/lustre2/lenardo1/sensitivity_output/Dec20_Rn222_OptimizedBinningV1_RadioassayFluct_D-024/"
+#outputdir = "/p/lustre2/lenardo1/sensitivity_output/Nov20_Rn222_OptimizedBinningV1_RadioassayFluct_D-024/"
+outputdir = "/p/lustre2/lenardo1/sensitivity_output/Dec20_Rn222_OptimizedBinningV1_D-024_InternalsU238_and_Rn222_swapped/"
 outputname = ""
-executable_name = 'Compute90PercentLimit_WilksApprox_Rn222Study_D024.py'
+executable_name = 'Compute90PercentLimit_WilksApprox_Rn222Study_D024_InternalsU238_and_Rn222_swapped.py'
 #components_table = '/usr/workspace/wsa/nexo/lenardo1/baseline2019_third_pass/ComponentsTable_D-023_merged-v5_final_cuts.h5' 
 #components_table = '/p/vast1/nexo/sensitivity2020/pdfs/component_tables/ComponentsTable_D-023_Optimized_DNN_Standoff_Binning_version1.h5'
 components_table = '/p/vast1/nexo/sensitivity2020/pdfs/component_tables/ComponentsTable_D-024_Optimized_DNN_Standoff_Binning_version1.h5'
@@ -29,7 +30,7 @@ for iter_num in range(0,0+num_jobs):
 	
 		
 		thescript = "#!/bin/bash\n" + \
-			"#SBATCH -t 07:00:00\n" + \
+			"#SBATCH -t 08:00:00\n" + \
 			"#SBATCH -A nuphys\n" + \
 			"#SBATCH -e " + outfilename + "\n" + \
 			"#SBATCH -o " + outfilename + "\n" + \

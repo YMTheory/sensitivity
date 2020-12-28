@@ -613,6 +613,96 @@ class nEXOFitLikelihood:
        return
 
 
+   ##############################################################################################
+   def PlotModelDistributionsSingleFrame( self, cut_dict, axis=1, \
+                               output_filename='test_plot.png', plot_data=False, \
+                               save=True, show=False, yrange=[1e-2,1e7],data_markersize=3,\
+                               show_legend=True ):
+
+       # Set up the plotting parameters
+       initial_cycler = plt.rcParams['axes.prop_cycle']
+       plt.rcParams.update({'font.size': 15})
+       custom_cycler = cycler( color = [ (1.,0.5,0.),\
+                                         (0.4,0.4,0.9),\
+                                         (0.,0.5,0.),\
+                                         (0.8,0.,0.),\
+                                         (0.4,0.8,0.4),\
+                                         (0.,0.8,0.8),\
+                                         (0.1,0.5,0.4),\
+                                         (1.,0.,1.),\
+                                         (0.,0.,0.,0.2),\
+                                         (0.4,0.4,0.4),\
+                                         (0.5,0.,0.5),\
+                                         (0.45,0.,0.0) ] )
+       plt.rc('axes', prop_cycle=custom_cycler)
+
+       self.fig, self.ax = plt.subplots (1, 1, figsize=(10, 8))
+
+
+       # Loop over pdfs and each to plot
+       for i in range(len(self.model.variable_list)):
+           var = self.model.variable_list[i]
+           if 'Num' in var['Name']:
+
+              weight = var['Value']
+              cut_pdf = self.model.GetSlicedDistribution( cut_dict, var_name=var['Name'], verbose=False )
+              component_name = ''.join( var['Name'].split('_')[1:] )
+              print('Plotting {}'.format(component_name))
+
+
+              if i == 0:
+                 # Initialize the summed histograms      
+                 cut_sum = hl.hist( [np.array([0.]),np.array([0.]),np.array([0.])] , \
+                                   bins=cut_pdf.bins)
+              else:
+                 cut_sum += ( weight * cut_pdf )
+
+              hl.plot1d( self.ax, (weight * cut_pdf).project([axis]), label=component_name )
+
+              if 'Bb0n' in component_name:
+                 hl.fill_between( self.ax, 0, (weight * cut_pdf).project([axis]), color=(0.5,0.5,0.5), alpha=0.1 )
+
+       hl.plot1d(self.ax,cut_sum.project([axis]),color='b',label='Total Sum')
+
+       if plot_data:
+          cut_data = self.GetSlicedDataset( cut_dict, verbose=False ) 
+
+          cut_data_1d = cut_data.project([axis])
+          bin_centers = (cut_data_1d.bins[0][:-1]+cut_data_1d.bins[0][1:])/2.
+          plt.errorbar(bin_centers,cut_data_1d.values,yerr=np.sqrt(cut_data_1d.values),\
+                                                      fmt='ok',markersize=data_markersize,label='Toy Data Sample')
+
+          #hl.plot1d( self.ax, cut_data.project([axis]),crosses=crosses,\
+          #           label='Toy Data Sample',color='k')
+
+       if show_legend:
+           self.fig.legend(ncol=4,facecolor=(1.,1.,1.),framealpha=1.,loc='upper center',fontsize=13)
+       self.ax.set_ylim(yrange[0],yrange[1])
+       self.ax.set_ylabel('Counts')
+       if axis==1:
+          self.ax.set_xlim(1000.,3500.)
+          self.ax.set_xlabel('Energy (keV)')
+       elif axis==0:
+           self.ax.set_xlim(0.,1.)
+           self.ax.set_xlabel('DNN')
+       elif axis==2:
+           self.ax.set_xlim(0.,640.)
+           self.ax.set_xlabel('Standoff (mm)')
+       self.ax.set_yscale('log')
+
+       if save:
+          plt.savefig(output_filename,dpi=200,bbox_inches='tight')
+
+       if show:
+          plt.show()
+
+       plt.rc('axes', prop_cycle=initial_cycler)
+
+       return
+
+
+
+
    #########################################################################
    def GetSlicedDataset( self, cut_dict, renormalize = False, \
                                verbose=True ):

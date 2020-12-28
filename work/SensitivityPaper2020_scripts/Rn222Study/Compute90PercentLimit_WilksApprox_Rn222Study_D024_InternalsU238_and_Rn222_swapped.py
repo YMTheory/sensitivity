@@ -89,11 +89,12 @@ DEBUG_PLOTTING = False
 # Create the workspace
 workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
             'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
-#workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.CreateGroupedPDFs()
+u238_mask = workspace.df_group_pdfs['Group'] == 'Internals_U238'
+rn222_mask = workspace.df_group_pdfs['Group'] == 'Rn222'
+workspace.df_group_pdfs.loc[rn222_mask,'Histogram'] = workspace.df_group_pdfs['Histogram'].loc[u238_mask].values[0]
 
 # Define the ROI within the workspace
 roi_dict = { 'DNN':         [0.85,1.],
@@ -212,6 +213,10 @@ for j in range(0,num_datasets):
 
 	# Redo the grouping, which fluctuates the radioassay values within their uncertainties.
 	workspace.CreateGroupedPDFs()
+	u238_mask = workspace.df_group_pdfs['Group'] == 'Internals_U238'
+	rn222_mask = workspace.df_group_pdfs['Group'] == 'Rn222'
+	workspace.df_group_pdfs.loc[rn222_mask,'Histogram'] = workspace.df_group_pdfs['Histogram'].loc[u238_mask].values[0]
+
 	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, \
                                            workspace.histogram_axis_names, \
                                            replace_existing_variables=False )
@@ -226,7 +231,7 @@ for j in range(0,num_datasets):
 	likelihood.SetAllVariablesFloating()
 
         # Fix the Co60 parameter
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
 	RN_CONSTRAINTS=True
 	if RN_CONSTRAINTS:
@@ -344,7 +349,7 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}.h5'.format(\
+output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}_D024.h5'.format(\
                          output_dir, rn222_scale_factor, job_id_num ),\
                          key='df')
 

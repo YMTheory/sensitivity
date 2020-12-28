@@ -87,10 +87,10 @@ DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 #workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
+#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
+            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.CreateGroupedPDFs()

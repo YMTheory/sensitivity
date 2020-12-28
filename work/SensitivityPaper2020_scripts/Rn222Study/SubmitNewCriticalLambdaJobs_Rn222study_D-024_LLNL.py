@@ -13,7 +13,7 @@ base = "Rn222Study_CritLambda_Sensitivity2020_"
 num_datasets=400
 
 rn222_scale_factor = 1.
-offset = 10
+offset = 20
 
 
 for num in range(0,1000):
@@ -41,7 +41,7 @@ for num in range(0,1000):
 		hyp_val = (float(num-4) + 0.0000)/40.
 		iteration_num = 4 + offset
 	elif num % 10 == 5:
-		hyp_val = (float(num-4) + 0.0000)/40.
+		hyp_val = (float(num-5) + 0.0000)/40.
 		iteration_num = 5 + offset
 	elif num % 10 == 6:
 		hyp_val = (float(num-6) + 0.0000)/40.
