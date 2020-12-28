@@ -10,7 +10,7 @@ if len(sys.argv) != 9:
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
 		'<job_id_num> <bkg_shape_err_parameter> ' + \
                 '<num_datasets_to_generate> <input_table> <output_directory> ' + \
-                '<xe137_scale_factor> <bb0n_count> <livetime>\n\n')
+                '<bb0n_count> <livetime>\n\n')
 	sys.exit()
 
 job_id_num = int(sys.argv[1])
@@ -18,13 +18,13 @@ bkg_shape_err = float(sys.argv[2])
 num_datasets = int(sys.argv[3])
 input_table = sys.argv[4]
 output_dir = sys.argv[5]
-xe137_scale_factor = float(sys.argv[6])
-bb0n_count = int(sys.argv[7])
-livetime = float(sys.argv[8])
+bb0n_count = int(sys.argv[6])
+livetime = float(sys.argv[7])
+yaml_card = sys.argv[8]
 
 
-num_hypotheses = 1
-step_hypothesis = 2
+num_hypotheses = 5
+step_hypothesis = 3
 
 #####################################################################
 # Import useful libraries for analysis
@@ -41,17 +41,19 @@ import nEXOFitLikelihood
 
 
 # Set some switches
-INCLUDE_EFFICIENCY_ERROR = False
-INCLUDE_BACKGROUND_SHAPE_ERROR = True
+INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
-DEBUG_PLOTTING = False
+
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/lustre1/jamil1/sensitivity/work/config/Sensitivity2020_config.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace(yaml_card)
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.livetime = livetime * 365. * 24. * 60. * 60.
 workspace.LoadComponentsTableFromFile(input_table)
+
+# mask = workspace.df_components['Component'].str.contains("Repeater")
+# workspace.df_components['Group'][mask] = 'Off'
 workspace.CreateGroupedPDFs()
 
 
@@ -59,12 +61,12 @@ workspace.CreateGroupedPDFs()
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names)
 
-if INCLUDE_EFFICIENCY_ERROR:
-	likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
+
 if INCLUDE_BACKGROUND_SHAPE_ERROR:
 	likelihood.model.IncludeBackgroundShapeVariableInFit(True)
 
 initial_guess = likelihood.GetVariableValues()
+
 
 # Scale the bb0n component to input number
 bb0n_idx = likelihood.model.GetVariableIndexByName('FullLXeBb0n')
@@ -73,10 +75,11 @@ initial_guess[bb0n_idx] = bb0n_count
 # Update the model in the likelihood object
 likelihood.model.UpdateVariables(initial_guess)
 likelihood.model.GenerateModelDistribution()
-
+ 
 # Add an initial dataset
 likelihood.AddDataset(likelihood.model.GenerateDataset())
 
+ 
 # Set limits so that none of the PDFs can go negative in the fit.
 # (except the signal PDF)
 if PAR_LIMITS:
@@ -87,7 +90,7 @@ if PAR_LIMITS:
 	                                  upper_limit = 100.)
 	    elif 'Background_Shape_Error' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
+	                                  lower_limit = -100., \
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
@@ -100,11 +103,7 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 ##########################################################################
 # Here's where the calculation loop begins.
 
-xvals = np.array([])
 
-lambdas = np.zeros(num_hypotheses)
-num_iterations = np.zeros(num_hypotheses)
-best_fit_converged = True
 output_df_list = []
 
 import time
@@ -114,25 +113,35 @@ last_time = start_time
 
 for j in range(0,num_datasets):
 	# Initialize (or reset) all my output variables.
-	converged = True
+
 	num_iterations = np.ones(num_hypotheses)
 	lambdas = np.zeros(num_hypotheses)
 	xvals = np.zeros(num_hypotheses)
 	fixed_fit_converged = np.array([],dtype=bool)
 	fixed_fit_covar = np.array([],dtype=bool)
+	fixed_fit_parameters = np.array([],dtype=bool)
+	fixed_fit_errors = np.array([],dtype=bool)
 	output_row = dict()
 
 	workspace.CreateGroupedPDFs()
-	likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names,replace_existing_variables=False)
+	likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names, replace_existing_variables=False)
 
-	likelihood.model.UpdateVariables(initial_guess)
+	# likelihood.model.UpdateVariables(initial_guess)
+	sig_idx = likelihood.model.GetVariableIndexByName('FullLXeBb0n')
+	likelihood.model.variable_list[sig_idx]['Value'] = bb0n_count
+
+	if INCLUDE_BACKGROUND_SHAPE_ERROR: 
+		shape_idx = likelihood.model.GetVariableIndexByName('Background_Shape_Error')
+		likelihood.model.variable_list[shape_idx]['Value'] = 0
+
+	
 	likelihood.model.GenerateModelDistribution()
-	likelihood.AddDataset( likelihood.model.GenerateDataset() )
+	likelihood.AddDataset(likelihood.model.GenerateDataset())
 	
 	likelihood.SetAllVariablesFloating()
 
     # Fix the Co60 parameter
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	# likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
 	likelihood.PrintVariableList() 
 
@@ -146,18 +155,13 @@ for j in range(0,num_datasets):
 							 rn222_constraint_val, \
 	                	                         0.1 * initial_guess[rn222_idx])
 
-	if INCLUDE_EFFICIENCY_ERROR:
-                eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
-                eff_constraint_val = (np.random.randn()*eff_err + 1)* initial_guess[eff_idx]
-                likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],\
-                                                        eff_constraint_val,\
-                                                        eff_err)
+			
 	if INCLUDE_BACKGROUND_SHAPE_ERROR:
 		bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
 		bkg_shape_constraint_val = np.random.randn()*bkg_shape_err
 		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'],\
-							bkg_shape_constraint_val,\
-							bkg_shape_err)
+			bkg_shape_constraint_val,\
+			bkg_shape_err)
 
 
 	print('\n\nRunning dataset {}...\n'.format(j))
@@ -196,6 +200,8 @@ for j in range(0,num_datasets):
 		lambdas[i] = lambda_fit_result['lambda']
 		fixed_fit_converged = np.append(fixed_fit_converged, lambda_fit_result['fixed_fit_converged'])
 		fixed_fit_covar = np.append(fixed_fit_covar, lambda_fit_result['fixed_fit_covar'])
+		fixed_fit_parameters = np.append(fixed_fit_parameters, lambda_fit_result['fixed_fit_parameters'])
+		fixed_fit_errors = np.append(fixed_fit_errors, lambda_fit_result['fixed_fit_errors'])
 		num_iterations[i] = lambda_fit_result['fixed_fit_iterations']
 
 		print('After fit ends:')
@@ -207,8 +213,8 @@ for j in range(0,num_datasets):
 	output_row['lambda'] = lambdas
 	output_row['fixed_fit_converged'] = fixed_fit_converged
 	output_row['fixed_fit_acc_covar'] = fixed_fit_covar
-	output_row['fixed_fit_parameters'] = fixed_fit_covar
-	output_row['fixed_fit_errors'] = fixed_fit_covar
+	output_row['fixed_fit_parameters'] = fixed_fit_parameters
+	output_row['fixed_fit_errors'] = fixed_fit_errors
 	output_row['num_iterations'] = num_iterations
 	output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
 	output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
