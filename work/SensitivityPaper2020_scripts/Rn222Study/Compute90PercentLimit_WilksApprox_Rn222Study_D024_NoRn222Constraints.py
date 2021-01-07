@@ -8,12 +8,12 @@ if len(sys.argv) != 7:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<iteration_num> <bkg_shape_err_parameter> ' + \
+		'<job_id_num> <bkg_shape_err_parameter> ' + \
                 '<num_datasets_to_generate> <input_table> <output_directory> ' + \
                 '<rn222_scale_factor>\n\n')
 	sys.exit()
 
-iteration_num = int(sys.argv[1])
+job_id_num = int(sys.argv[1])
 bkg_shape_err = float(sys.argv[2])
 num_datasets = int(sys.argv[3])
 input_table = sys.argv[4]
@@ -42,7 +42,7 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 	# Next, select only values near the critical lambda threshold (~2.7)
 	mask = mask&(yvals>0.5)&(yvals<6.)
 
-	xfit = np.linspace(0.,100.,3000)
+	xfit = np.linspace(0.,100.,10000)
 
 	if len( xvals[mask] ) > 0:
 		try:
@@ -87,15 +87,17 @@ DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/work/config/'+\
+            'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')     
+#workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
+#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
 roi_dict = { 'DNN':         [0.85,1.],
-             'Energy (keV)':  [ 2428.89, 2486.77 ], 
+             'Energy (keV)':  [ 2434., 2480. ], 
              'Standoff (mm)': [ 104.5, 650. ] }
 workspace.DefineROI( roi_dict )
 
@@ -116,7 +118,7 @@ if INCLUDE_BACKGROUND_SHAPE_ERROR:
 
 initial_guess = likelihood.GetVariableValues()
 
-# Scale the Xe13 component according to the input value
+# Scale the Rn222 component according to the input value
 rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 initial_guess[rn222_idx] *= rn222_scale_factor
 
@@ -171,10 +173,15 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = -100., \
 	                                  upper_limit = 100.)
+	    elif 'U238' in var['Name']: 
+	        likelihood.SetVariableLimits( var['Name'], \
+	                                  lower_limit = var['Value']*0.01, \
+	                                  upper_limit = var['Value']*100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
-	                                  upper_limit = var['Value']*10.)
+	                                  lower_limit = var['Value']*0.01, \
+	                                  upper_limit = var['Value']*20.)
+
 
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 
@@ -224,9 +231,9 @@ for j in range(0,num_datasets):
 	likelihood.SetAllVariablesFloating()
 
         # Fix the Co60 parameter
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
-	RN_CONSTRAINTS=True
+	RN_CONSTRAINTS=False
 	if RN_CONSTRAINTS:
 		rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 		# Fluctuate Rn222 constraint
@@ -262,7 +269,12 @@ for j in range(0,num_datasets):
 	for i in (range(0,num_hypotheses)):
 
 		# Fix the 0nu parameter to a specific hypothesis
-		signal_hypothesis = float(i)*4.+0.000001
+		if rn222_scale_factor > 9.:
+			signal_hypothesis = float(i)*2.5+0.000001
+		elif rn222_scale_factor < 0.3:
+			signal_hypothesis = float(i)*1.4+0.000001
+		else: 
+			signal_hypothesis = float(i)*2.0+0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
 		initial_values[signal_idx] = signal_hypothesis
@@ -323,6 +335,11 @@ for j in range(0,num_datasets):
 	output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
 	output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
 	output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
+	output_row['best_fit_parameters']  = lambda_fit_result['best_fit_parameters']
+	output_row['best_fit_errors']      = lambda_fit_result['best_fit_errors']
+	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
+	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
+	output_row['input_parameters']     = initial_guess
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)
@@ -342,8 +359,8 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}.h5'.format(\
-                         output_dir, rn222_scale_factor, iteration_num ),\
+output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}_D024_no_constraints.h5'.format(\
+                         output_dir, rn222_scale_factor, job_id_num ),\
                          key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

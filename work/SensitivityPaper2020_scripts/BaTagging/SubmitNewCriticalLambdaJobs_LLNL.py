@@ -5,13 +5,14 @@ execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/SensitivityPaper2020_scripts/Ba
 #outputdir = "/p/lustre1/lenardo1/sensitivity_output/October6_2020_critical_lambda_ba_tagging_no_shape_error_histats_final_cuts/"
 outputdir = "/p/lustre2/lenardo1/sensitivity_output/Dec20_2020_CriticalLambda_ba_tagging_background_scaling/"
 
-scaling_2nu = 1.25
+scaling_2nu = 0.0001
 
 base = "BaTagging_Sensitivity_Baseline2019_2nuScaling_{:06.6}_".format(scaling_2nu)
 
 # Number of toy datasets to run for each hypothesis
 num_datasets=20000
-
+#offset = 0.063
+offset = 0.
 
 for num in range(0,400):
 
@@ -21,19 +22,19 @@ for num in range(0,400):
 	os.system( "rm -f " + outfilename )
 
 	if num % 5 == 0:
-		hyp_val = (float(num) + 0.0000)/40.
+		hyp_val = (float(num) + 0.0000)/40. + offset
 		iteration_num = 0
 	elif num % 5 == 1:
-		hyp_val = (float(num-1) + 0.0000)/40.
+		hyp_val = (float(num-1) + 0.0000)/40. + offset
 		iteration_num = 1
 	elif num % 5 == 2:
-		hyp_val = (float(num-2) + 0.0000)/40.
+		hyp_val = (float(num-2) + 0.0000)/40. + offset
 		iteration_num = 2
 	elif num % 5 == 3:
-		hyp_val = (float(num-3) + 0.0000)/40.
+		hyp_val = (float(num-3) + 0.0000)/40. + offset
 		iteration_num = 3
 	elif num % 5 == 4:
-		hyp_val = (float(num-4) + 0.0000)/40.
+		hyp_val = (float(num-4) + 0.0000)/40. + offset
 		iteration_num = 4
 
 		
