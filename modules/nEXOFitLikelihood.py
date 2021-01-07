@@ -617,7 +617,7 @@ class nEXOFitLikelihood:
    def PlotModelDistributionsSingleFrame( self, cut_dict, axis=1, \
                                output_filename='test_plot.png', plot_data=False, \
                                save=True, show=False, yrange=[1e-2,1e7],data_markersize=3,\
-                               show_legend=True ):
+                               show_legend=True, xrange=None ):
 
        # Set up the plotting parameters
        initial_cycler = plt.rcParams['axes.prop_cycle']
@@ -654,8 +654,8 @@ class nEXOFitLikelihood:
                  # Initialize the summed histograms      
                  cut_sum = hl.hist( [np.array([0.]),np.array([0.]),np.array([0.])] , \
                                    bins=cut_pdf.bins)
-              else:
-                 cut_sum += ( weight * cut_pdf )
+              #else:
+              cut_sum += ( weight * cut_pdf )
 
               hl.plot1d( self.ax, (weight * cut_pdf).project([axis]), label=component_name )
 
@@ -665,7 +665,8 @@ class nEXOFitLikelihood:
        hl.plot1d(self.ax,cut_sum.project([axis]),color='b',label='Total Sum')
 
        if plot_data:
-          cut_data = self.GetSlicedDataset( cut_dict, verbose=False ) 
+          print('Plotting data...')
+          cut_data = self.GetSlicedDataset( cut_dict, verbose=True ) 
 
           cut_data_1d = cut_data.project([axis])
           bin_centers = (cut_data_1d.bins[0][:-1]+cut_data_1d.bins[0][1:])/2.
@@ -679,15 +680,17 @@ class nEXOFitLikelihood:
            self.fig.legend(ncol=4,facecolor=(1.,1.,1.),framealpha=1.,loc='upper center',fontsize=13)
        self.ax.set_ylim(yrange[0],yrange[1])
        self.ax.set_ylabel('Counts')
-       if axis==1:
+       if axis==1 and xrange==None:
           self.ax.set_xlim(1000.,3500.)
           self.ax.set_xlabel('Energy (keV)')
-       elif axis==0:
+       elif axis==0 and xrange==None:
            self.ax.set_xlim(0.,1.)
            self.ax.set_xlabel('DNN')
-       elif axis==2:
+       elif axis==2 and xrange==None:
            self.ax.set_xlim(0.,640.)
            self.ax.set_xlabel('Standoff (mm)')
+       else:
+           self.ax.set_xlim(xrange[0],xrange[1])
        self.ax.set_yscale('log')
 
        if save:
@@ -743,10 +746,14 @@ class nEXOFitLikelihood:
             axis_name = self.model.axis_names[i]
             axis_bins = bin_edges[i]
  
-            match_edges_lower_limit = np.where( axis_bins >= cut_dict[axis_name][0] )
-            match_edges_upper_limit = np.where( axis_bins <= cut_dict[axis_name][1] )
+            #match_edges_lower_limit = np.where( axis_bins >= cut_dict[axis_name][0] )
+            #match_edges_upper_limit = np.where( axis_bins <= cut_dict[axis_name][1] )
+            match_edges_lower_limit = np.argmin( (axis_bins - cut_dict[axis_name][0] )**2 )
+            match_edges_upper_limit = np.argmin( (axis_bins - cut_dict[axis_name][1] )**2 )  
     
-            match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+            #match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+            #match_indices = match_edges[:-1]
+            match_edges = range(match_edges_lower_limit,match_edges_upper_limit+1)
             match_indices = match_edges[:-1]
   
             new_edges.append( np.array( axis_bins[match_edges] ) )

@@ -87,10 +87,10 @@ DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/work/config/'+\
+            'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')     
 #workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
+#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.SetHandlingOfRadioassayData(fluctuate=False)
 workspace.CreateGroupedPDFs()
@@ -118,7 +118,7 @@ if INCLUDE_BACKGROUND_SHAPE_ERROR:
 
 initial_guess = likelihood.GetVariableValues()
 
-# Scale the Xe13 component according to the input value
+# Scale the Rn222 component according to the input value
 rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 initial_guess[rn222_idx] *= rn222_scale_factor
 
@@ -175,7 +175,7 @@ if PAR_LIMITS:
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
+	                                  lower_limit = var['Value']*0.05, \
 	                                  upper_limit = var['Value']*10.)
 
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
@@ -344,7 +344,7 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}.h5'.format(\
+output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}_NoRadioassayFluctuations.h5'.format(\
                          output_dir, rn222_scale_factor, job_id_num ),\
                          key='df')
 

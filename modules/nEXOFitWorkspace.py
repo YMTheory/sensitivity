@@ -87,6 +87,7 @@ class nEXOFitWorkspace:
          self.df_components = pd.read_hdf(input_filename,key='Components')
       except OSError as e:
           print('\nERROR: The input file must be an HDF5 file.\n')
+          print(e)
           #sys.exit()
           return
       except KeyError as e:

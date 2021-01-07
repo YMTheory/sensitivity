@@ -191,6 +191,23 @@ class nEXOFitModel:
                                  np.sqrt(fake_data_values) )
        return self.dataset
 
+   #########################################################################
+   def GenerateAsimovDataset( self ):
+       if self.full_distribution is None:
+          self.GenerateModelDistribution()
+ 
+       negative_mask = self.full_distribution.values < 0.
+       nonnegative_distribution = self.full_distribution.values
+       nonnegative_distribution[negative_mask] = \
+                      np.zeros( nonnegative_distribution[negative_mask].shape )
+       # Generates a Poisson sample of each bin
+       fake_data_values = np.random.poisson( nonnegative_distribution )   
+       # Creates a Histlite histogram with the sampled values and errors     
+       self.dataset = hl.Hist( self.full_distribution.bins,\
+                                 nonnegative_distribution,\
+                                 np.sqrt(nonnegative_distribution) )
+       return self.dataset
+
 
    #########################################################################
    def UpdateVariables( self, variable_numpy_array ):

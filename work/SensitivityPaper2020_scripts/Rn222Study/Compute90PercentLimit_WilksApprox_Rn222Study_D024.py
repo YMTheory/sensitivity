@@ -87,8 +87,10 @@ DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
-            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/work/config/'+\
+            'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')     
+#workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
+#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.CreateGroupedPDFs()
@@ -116,7 +118,7 @@ if INCLUDE_BACKGROUND_SHAPE_ERROR:
 
 initial_guess = likelihood.GetVariableValues()
 
-# Scale the Xe13 component according to the input value
+# Scale the Rn222 component according to the input value
 rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 initial_guess[rn222_idx] *= rn222_scale_factor
 
@@ -173,7 +175,7 @@ if PAR_LIMITS:
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
+	                                  lower_limit = var['Value']*0.05, \
 	                                  upper_limit = var['Value']*10.)
 
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
@@ -262,7 +264,12 @@ for j in range(0,num_datasets):
 	for i in (range(0,num_hypotheses)):
 
 		# Fix the 0nu parameter to a specific hypothesis
-		signal_hypothesis = float(i)*2.+0.000001
+		if rn222_scale_factor > 9.:
+			signal_hypothesis = float(i)*2.5+0.000001
+		elif rn222_scale_factor < 0.3:
+			signal_hypothesis = float(i)*1.4+0.000001
+		else: 
+			signal_hypothesis = float(i)*2.0+0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
 		initial_values[signal_idx] = signal_hypothesis
@@ -323,6 +330,11 @@ for j in range(0,num_datasets):
 	output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
 	output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
 	output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
+	output_row['best_fit_parameters']  = lambda_fit_result['best_fit_parameters']
+	output_row['best_fit_errors']      = lambda_fit_result['best_fit_errors']
+	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
+	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
+	output_row['input_parameters']     = initial_guess
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)
