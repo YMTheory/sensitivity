@@ -24,7 +24,7 @@ yaml_card = sys.argv[8]
 
 
 num_hypotheses = 5
-step_hypothesis = 3
+step_hypothesis = 2
 
 #####################################################################
 # Import useful libraries for analysis
@@ -45,17 +45,12 @@ INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
 
 
-
 # Create the workspace
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(yaml_card)
+workspace.LoadComponentsTableFromFile(input_table)
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.livetime = livetime * 365. * 24. * 60. * 60.
-workspace.LoadComponentsTableFromFile(input_table)
-
-# mask = workspace.df_components['Component'].str.contains("Repeater")
-# workspace.df_components['Group'][mask] = 'Off'
 workspace.CreateGroupedPDFs()
-
 
 # Create the likelihood object
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
@@ -67,10 +62,9 @@ if INCLUDE_BACKGROUND_SHAPE_ERROR:
 
 initial_guess = likelihood.GetVariableValues()
 
-
-# Scale the bb0n component to input number
-bb0n_idx = likelihood.model.GetVariableIndexByName('FullLXeBb0n')
-initial_guess[bb0n_idx] = bb0n_count
+# Get the initial values; set the BB0n num_signal to the user-provided input
+initial_values = likelihood.GetVariableValues()
+initial_values[likelihood.GetVariableIndex('Bb0n')] = bb0n_count
 
 # Update the model in the likelihood object
 likelihood.model.UpdateVariables(initial_guess)
@@ -94,8 +88,8 @@ if PAR_LIMITS:
 	                                  upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
-	                                  upper_limit = var['Value']*10.)
+	                                  lower_limit = var['Value']*0.1, \
+	                                  upper_limit = var['Value']*10.0)
 
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 
@@ -134,34 +128,30 @@ for j in range(0,num_datasets):
 		shape_idx = likelihood.model.GetVariableIndexByName('Background_Shape_Error')
 		likelihood.model.variable_list[shape_idx]['Value'] = 0
 
-	
+	initial_guess = likelihood.GetVariableValues()
 	likelihood.model.GenerateModelDistribution()
 	likelihood.AddDataset(likelihood.model.GenerateDataset())
 	
+	
 	likelihood.SetAllVariablesFloating()
 
-    # Fix the Co60 parameter
-	# likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+    #Fix the Co60 parameter
+	# likelihood.SetVariableFixStatus('Num_FullTPC_Co60', True)
 
-	likelihood.PrintVariableList() 
 
 	RN_CONSTRAINTS=True
 	if RN_CONSTRAINTS:
 		rn222_idx = likelihood.GetVariableIndex('Rn222')
 		# Fluctuate Rn222 constraint
-		rn222_constraint_val = (np.random.randn()*0.1 + 1)*initial_guess[rn222_idx]
+		rn222_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[rn222_idx]
 		# Set Rn222 constraint
-		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],\
-							 rn222_constraint_val, \
-	                	                         0.1 * initial_guess[rn222_idx])
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'], rn222_constraint_val, 0.1 * initial_guess[rn222_idx])
 
 			
 	if INCLUDE_BACKGROUND_SHAPE_ERROR:
 		bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
 		bkg_shape_constraint_val = np.random.randn()*bkg_shape_err
-		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'],\
-			bkg_shape_constraint_val,\
-			bkg_shape_err)
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'], bkg_shape_constraint_val, bkg_shape_err)
 
 
 	print('\n\nRunning dataset {}...\n'.format(j))
@@ -176,7 +166,7 @@ for j in range(0,num_datasets):
 	for i in (range(0,num_hypotheses)):
 
 		# Fix the 0nu parameter to a specific hypothesis
-		signal_hypothesis = float(i)*step_hypothesis
+		signal_hypothesis = float(i)*step_hypothesis + 0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
 		initial_values[signal_idx] = signal_hypothesis
@@ -221,8 +211,8 @@ for j in range(0,num_datasets):
 	output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
 	output_row['best_fit_parameters'] = lambda_fit_result['best_fit_parameters']
 	output_row['best_fit_errors'] = lambda_fit_result['best_fit_errors']
+	output_row['input_parameters'] = initial_guess
 	output_df_list.append(output_row)
-	
 	
 	print('\nDataset {} finished at {:4.4}s'.format(j,time.time()-last_time))
 	print('Total time elapsed: {:4.4}s ({:4.4} min)\n\n\n'.format( (time.time() - start_time), (time.time() - start_time)/60. ))
