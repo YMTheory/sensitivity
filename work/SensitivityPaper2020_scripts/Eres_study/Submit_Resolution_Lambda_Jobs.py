@@ -1,27 +1,34 @@
 #!/usr/local/bin/python
 
 import os
+
+caldate = '20_12_22'
+compdate = '20_12_22'
+database = '023'
+date = caldate + '_DNN1_' + database
+
+
 execdir = "/p/lustre2/czyz1/nexo_sensitivity/work/SensitivityPaper2020_scripts"
 outputdir = "/p/lustre2/nexouser/czyz1/output"
-config_loc = "/p/lustre2/czyz1/nexo_sensitivity/work/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml"
-comp_loc = "/p/lustre2/nexouser/czyz1/workdir/components_tables/ComponentsTable_D-024_wAr42_Energy_Res="
+config_loc = "/p/lustre2/czyz1/nexo_sensitivity/work/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml"
+comp_loc = "/p/lustre2/nexouser/czyz1/workdir/components_tables/{}/ComponentsTable_D-{}_Energy_Res=".format(compdate, database)
 
 bkg_shape_err = 0.00000001
-num_datasets = 10
+num_datasets = 100
 num_hypotheses = 15
 
-base = "Sensitivity_run_test_trial_"
-date = "20_11_30_DNN1_024"
+base = "Sensitivity_run_trial_"
+crit_lam_loc = "/p/lustre2/nexouser/czyz1/workdir/lambda/{}".format(date)
 
-for num in range(0, 250):
+for num in range(0, 500):
 
         basename = base + str(num)
         if not os.path.exists(outputdir + "/Sub/" + date):
                 os.makedirs(outputdir + "/Sub/" + date)
-        scriptfilename = outputdir + "/Sub/"+ date + "/" + base + str(num) + ".sub"
+        scriptfilename = outputdir + "/Sub/" + date + "/" + base + str(num) + ".sub"
         os.system("rm -f " + scriptfilename)
-        if not os.path.exists(outputdir + "/Out/"+ date):
-                os.makedirs(outputdir + "/Out/"+ date)
+        if not os.path.exists(outputdir + "/Out/" + date):
+                os.makedirs(outputdir + "/Out/" + date)
         outfilename = outputdir + "/Out/" + date + "/" + base + str(num) + ".out"
         os.system("rm -f " + outfilename)
         errfilename = outputdir + "/Err/" + base + str(num) + ".err"
@@ -40,8 +47,9 @@ for num in range(0, 250):
                 "cd " + execdir + "\n" + \
                 "export STARTTIME=`date +%s`\n" + \
                 "echo Start time $STARTTIME\n" + \
-                "python3 " + execdir + "/Eres_study/Resolution_Wilks_Sensitivity.py {} {} {} {} {} {} {} {}\n".format(\
-                               num, bkg_shape_err, num_datasets, outputdir, num_hypotheses, date, config_loc, comp_loc) + \
+                "python3 " + execdir + "/Eres_study/Resolution_Lambda_Sensitivity.py {} {} {} {} {} {} {} {} {}" \
+                                       "\n".format(num, bkg_shape_err, num_datasets, outputdir, num_hypotheses,
+                                                   date, config_loc, comp_loc, crit_lam_loc) + \
                 "export STOPTIME=`date +%s`\n" + \
                 "echo Stop time $STOPTIME\n" + \
                 "export DT=`expr $STOPTIME - $STARTTIME`\n" + \

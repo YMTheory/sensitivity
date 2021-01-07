@@ -495,8 +495,9 @@ class nEXOFitWorkspace:
              except:
                 print("data = " + str(data) + "\n")
                 print("bin = " + str(bin) + "\n")
-                print("resolution_factor = " + str(resolution_factor) + "\n")
-                print("res * data = " + str(float(resolution_factor) * data) + "\n")
+                if resolution_factor:
+                   print("resolution_factor = " + str(resolution_factor) + "\n")
+                   print("res * data = " + str(float(resolution_factor) * data) + "\n")
                 exit()
 
           hh = hl.hist( tuple(data_list), weights=input_df['weight'].loc[mask], bins=tuple(binspecs_list) )

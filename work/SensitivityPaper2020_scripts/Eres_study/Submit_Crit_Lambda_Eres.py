@@ -1,91 +1,74 @@
 #!/usr/local/bin/python
 
 import os
-execdir = "/p/lustre2/czyz1/nexo_sensitivty/work/SensitivityPaper2020_scripts/Eres_study/"
-outputdir = "/p/lustre2/nexouser/czyz1/output/lambda/"
-components_table = "/p/lustre2/nexouser/czyz1/workdir/components_tables"
-outputname = ""
 
-base = "Rn222Study_CritLambda_Sensitivity2020_"
+caldate = '20_12_22'
+compdate = '20_12_22'
+database = '023'
+date = caldate + '_DNN1_' + database
+
+execdir = "/p/lustre2/czyz1/nexo_sensitivity/work/SensitivityPaper2020_scripts/"
+config_loc = "/p/lustre2/czyz1/nexo_sensitivity/work/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml"
+components_tables = "/p/lustre2/nexouser/czyz1/workdir/components_tables/" + compdate + '/'
+
+base = "Eres_Crit_Lambda_"
+outputdir = "/p/lustre2/nexouser/czyz1/workdir/lambda/" + date + '/'
 
 
 # Number of toy datasets to run for each hypothesis
-num_datasets=400
+num_datasets = 5000
 
-rn222_scale_factor = 1.
-offset = 10
+# offset = 10
 
+for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']:
+	comp_loc = components_tables + "ComponentsTable_D-{}_Energy_Res={}.h5".format(database, resolution)
 
-for num in range(0,1000):
+	for num in range(0, 122):
 
-	basename = base + str(num)
-	
-	scriptfilename = outputdir + "Sub/" +  base + str(num) + ".sub"
-	os.system( "rm -f " + scriptfilename )
-	outfilename = outputdir + "Out/" + base + str(num) + ".out"
-	os.system( "rm -f " + outfilename )
+		basename = base + '_' + str(num)
 
-	if num % 10 == 0:
-		hyp_val = (float(num) + 0.0000)/40.
-		iteration_num = 0 + offset
-	elif num % 10 == 1:
-		hyp_val = (float(num-1) + 0.0000)/40.
-		iteration_num = 1 + offset
-	elif num % 10 == 2:
-		hyp_val = (float(num-2) + 0.0000)/40.
-		iteration_num = 2 + offset
-	elif num % 10 == 3:
-		hyp_val = (float(num-3) + 0.0000)/40.
-		iteration_num = 3 + offset
-	elif num % 10 == 4:
-		hyp_val = (float(num-4) + 0.0000)/40.
-		iteration_num = 4 + offset
-	elif num % 10 == 5:
-		hyp_val = (float(num-4) + 0.0000)/40.
-		iteration_num = 5 + offset
-	elif num % 10 == 6:
-		hyp_val = (float(num-6) + 0.0000)/40.
-		iteration_num = 6 + offset
-	elif num % 10 == 7:
-		hyp_val = (float(num-7) + 0.0000)/40.
-		iteration_num = 7 + offset
-	elif num % 10 == 8:
-		hyp_val = (float(num-8) + 0.0000)/40.
-		iteration_num = 8 + offset
-	elif num % 10 == 9:
-		hyp_val = (float(num-9) + 0.0000)/40.
-		iteration_num = 9 + offset
+		if not os.path.exists(outputdir):
+			os.makedirs(outputdir)
+		scriptfilename = outputdir + date + "/Sub/" + basename + ".sub"
+		if not os.path.exists(outputdir + date + "/Sub/"):
+			os.makedirs(outputdir + date + "/Sub/")
+		os.system( "rm -f " + scriptfilename )
+		outfilename = outputdir + date + "/Out/" + basename + ".out"
+		if not os.path.exists(outputdir + date + "/Out/"):
+			os.makedirs(outputdir + date + "/Out/")
+		os.system( "rm -f " + outfilename )
 
-		
-	thescript = "#!/bin/bash\n" + \
-		"#SBATCH -t 07:00:00\n" + \
-		"#SBATCH -A nuphys\n" + \
-		"#SBATCH -e " + outfilename + "\n" + \
-		"#SBATCH -o " + outfilename + "\n" + \
-		"#SBATCH --mail-type=fail\n" + \
-		"#SBATCH -J " + base + "\n" + \
-		"#SBATCH --export=ALL \n" + \
-		"source /usr/gapps/nexo/setup.sh \n" + \
-		"source /g/g20/lenardo1/localpythonpackages/bin/activate \n" + \
-		"cd " + execdir + "\n" + \
-		"export STARTTIME=`date +%s`\n" + \
-		"echo Start time $STARTTIME\n" + \
-		"python3 ComputeCriticalLambdaForFixedNumSignal_Rn222study_D-024.py " + \
-				"{} ".format(iteration_num) + \
-				"{} ".format(hyp_val) + \
-				"{} ".format(num_datasets) + \
-				"{} ".format(outputdir) + \
-				"{} ".format(components_table) + \
-				"{} ".format(rn222_scale_factor) + "\n" + \
-		"export STOPTIME=`date +%s`\n" + \
-		"echo Stop time $STOPTIME\n" + \
-		"export DT=`expr $STOPTIME - $STARTTIME`\n" + \
-		"echo CPU time: $DT seconds\n"
-	
-	scriptfile = open( scriptfilename, 'w' )
-	scriptfile.write( thescript )
-	scriptfile.close()
-	
-	os.system( "sbatch " + scriptfilename )
+		hyp_val = num / 4
 
+		thescript = "#!/bin/bash\n" + \
+			"#SBATCH -t 96:00:00\n" + \
+			"#SBATCH -A nuphys\n" + \
+			"#SBATCH -e " + outfilename + "\n" + \
+			"#SBATCH -o " + outfilename + "\n" + \
+			"#SBATCH --mail-type=fail\n" + \
+			"#SBATCH -J " + base + "\n" + \
+			"#SBATCH --export=ALL \n" + \
+			"source /usr/gapps/nexo/setup.sh \n" + \
+			"source /g/g12/czyz1/nexoenv/bin/activate \n" + \
+			"cd " + execdir + "\n" + \
+			"export STARTTIME=`date +%s`\n" + \
+			"echo Start time $STARTTIME\n" + \
+			"python3 /p/lustre2/czyz1/nexo_sensitivity/work/SensitivityPaper2020_scripts/Eres_study/Compute_Crit_Lambda_Eres.py " + \
+					"{} ".format(num) + \
+					"{} ".format(hyp_val) + \
+					"{} ".format(num_datasets) + \
+					"{} ".format(outputdir) + \
+					"{} ".format(config_loc) + \
+					"{} ".format(date) + \
+					"{} ".format(comp_loc) + \
+					"{} ".format(resolution) + "\n" + \
+					"export STOPTIME=`date +%s`\n" + \
+			"echo Stop time $STOPTIME\n" + \
+			"export DT=`expr $STOPTIME - $STARTTIME`\n" + \
+			"echo CPU time: $DT seconds\n"
 
+		scriptfile = open( scriptfilename, 'w' )
+		scriptfile.write( thescript )
+		scriptfile.close()
+
+		os.system( "sbatch " + scriptfilename )

@@ -2,7 +2,7 @@
 import sys
 import os
 
-sys.path.append('../../modules')
+sys.path.append('../../../modules')
 
 ######################################################################
 # Load the arguments:
