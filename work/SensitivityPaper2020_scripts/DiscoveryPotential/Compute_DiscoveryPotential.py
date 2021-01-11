@@ -23,7 +23,7 @@ livetime = float(sys.argv[7])
 yaml_card = sys.argv[8]
 
 
-num_hypotheses = 5
+num_hypotheses = 1
 step_hypothesis = 2
 
 #####################################################################
@@ -146,6 +146,14 @@ for j in range(0,num_datasets):
 		rn222_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[rn222_idx]
 		# Set Rn222 constraint
 		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'], rn222_constraint_val, 0.1 * initial_guess[rn222_idx])
+
+	B8_CONSTRAINTS=True
+	if B8_CONSTRAINTS:
+		b8_index = likelihood.GetVariableIndex('B8')
+		# Fluctuate B8nu constraint
+		b8_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[b8_index]
+		# Set B8nu constraint
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[b8_index]['Name'], b8_constraint_val, 0.1 * initial_guess[b8_index])
 
 			
 	if INCLUDE_BACKGROUND_SHAPE_ERROR:
