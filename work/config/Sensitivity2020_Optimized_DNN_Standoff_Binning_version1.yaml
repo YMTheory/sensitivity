@@ -248,6 +248,7 @@ GroupAssignments:
   Rn222_ActiveLXe:                     "Rn222"
   Rn222_InactiveLXe:                   "Rn222"
   Rn222_CathodeRadon:                  "Rn222"
+  Rn222_FieldRings:                    "Rn222"
   Xe137_ActiveLXe:                     "Xe137_and_Ar42"
   Xe137_InactiveLXe:                   "Xe137_and_Ar42"
   Ar42_ActiveLXe:                      "Xe137_and_Ar42"
