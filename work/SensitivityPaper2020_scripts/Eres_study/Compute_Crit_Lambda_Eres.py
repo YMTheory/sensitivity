@@ -6,17 +6,21 @@ sys.path.append('../../modules')
 
 ######################################################################
 # Check arguments and load inputs
-if len(sys.argv) == 7:
+if len(sys.argv) == 9:
+
 	iteration_num = int(sys.argv[1])
 	input_num_signal = float(sys.argv[2])
 	num_datasets = int(sys.argv[3])
 	output_dir = sys.argv[4]
-	input_components_table = sys.argv[5]
-	rn222_scale_factor = float(sys.argv[6])
+	config_loc = sys.argv[5]
+	date = sys.argv[6]
+	comp_loc = sys.argv[7]
+	resolution = sys.argv[8]
+
 	if not os.path.exists(output_dir):
 		sys.exit('\nERROR: path to output_dir does not exist\n')
 else:
-	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 7 arguments')
+	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 8 arguments')
 	print('Usage:')
 	print('\tpython ComputeCriticalLambdaForNumSignal.py ' + \
 		'<iteration_num> <input_num_signal> <num_datasets_to_generate> </path/to/output/directory/> '+\
@@ -45,7 +49,7 @@ from iminuit import Minuit
 # Create the workspace
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(config='/p/lustre2/czyz1/nexo_sensitivity/work/config/' +
 											'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
-workspace.LoadComponentsTableFromFile(input_components_table)
+workspace.LoadComponentsTableFromFile(comp_loc)
 workspace.SetHandlingOfRadioassayData( fluctuate=True )
 workspace.CreateGroupedPDFs()
 
@@ -129,9 +133,6 @@ for j in range(0,num_datasets):
 	sig_idx = likelihood.model.GetVariableIndexByName('Bb0n')
 	likelihood.model.variable_list[ sig_idx ]['Value'] = input_num_signal
 
-	rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
-	likelihood.model.variable_list[ rn222_idx ]['Value'] *= rn222_scale_factor
-
 	# Need to regenerate the distribution since we've changed Num_Bb0n
 	likelihood.model.GenerateModelDistribution()
 	likelihood.AddDataset( likelihood.model.GenerateDataset() )
@@ -146,7 +147,8 @@ for j in range(0,num_datasets):
 
 	likelihood.SetAllVariablesFloating()
 
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	if date.split('_')[-1] == '023':
+		likelihood.SetVariableFixStatus('Num_FullTPC_Co60', True)
 	
 	if CONSTRAINTS:
 		rn222_idx = likelihood.GetVariableIndex('Rn222')
@@ -210,8 +212,10 @@ for j in range(0,num_datasets):
 
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
-print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/critical_lambda_calculation_rn222study_{:0>4.4}x_D-023_num_sig_{:06.6}_file_{}.h5'.format(\
-			output_dir, rn222_scale_factor, input_num_signal, iteration_num),key='df')
-
+print('Saving file to output directory: {}'.format(output_dir + date))
+if not os.path.exists(output_dir + date):
+	os.makedirs(output_dir + date)
+output_df.to_hdf('{}{}/critical_lambda_eres_{}_resolution_{}.h5'.format( \
+	output_dir, date, iteration_num, resolution), key='df')
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))
+

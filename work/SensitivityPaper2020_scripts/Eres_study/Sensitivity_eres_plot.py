@@ -4,15 +4,17 @@ from matplotlib import pyplot as plt
 import numpy as np
 import histlite as hl
 
-dates = ["20_11_19"]
+dnn = 'DNN1'
+materialdb = "024"
+dates = ["20_12_22_{}_{}".format(dnn, materialdb), "20_12_22_{}_023".format(dnn)]
 # dates = ["20_10_22", "20_10_21", "20_10_19"]
 # root_dir = '/p/lustre2/nexouser/czyz1/output/'
-root_dir = '/Users/czyz1/OneDrive - LLNL/Projects/nEXO/testoutput/'
+root_dir = '/p/lustre2/nexouser/czyz1/output/'
 
 num_dataset = 10
 start_it = 0
 end_it = 500
-eres = ['0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']
+eres = ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']
 
 def calc_atoms_136():
     """ Number of Xe136 atoms in nEXO fiducial volume """
@@ -47,6 +49,8 @@ if __name__ == "__main__":
         if date == '20_11_04_DNN1_024':     # special case where the code was ran differently
             end_its = 450
             num_datasets = 50
+        elif date == '20_11_30_DNN1_023':
+            eres = ['0.008']
         else:
             end_its = end_it
             num_datasets = num_dataset
@@ -55,8 +59,7 @@ if __name__ == "__main__":
         num_toys = num_its * len(eres) * num_datasets
 
         fig, ax = plt.subplots()
-        dnn = 'DNN1'
-        materialdb = "024"
+
         failed = 0
         converged = 0
         sensitivity = []
@@ -78,7 +81,7 @@ if __name__ == "__main__":
                 if not os.path.exists(filename):
                     num_toys -= num_datasets
                     failed += 1
-                    print('livetime = {}, iteration = {}, failed = {}'.format(res, iter, failed))
+                    print('resolution = {}, iteration = {}, failed = {}'.format(res, iter, failed))
                     print(filename)
                     continue
                 df = pandas.read_hdf(filename)
@@ -98,13 +101,18 @@ if __name__ == "__main__":
 
         fig.savefig('{}/sens_hist_{}_{}.png'.format(output_dir, dnn, materialdb), dpi=800)
 
-        ax2.plot(eres, sensitivity, '-o', label='MatDB = {}, DNN = {}'.format(materialdb, dnn))
-        ax2.set_xlim([0, 12])
-        ax2.set_ylim([1E27, 2E28])
-        ax2.set_yscale('log')
+        eres_num = [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6]
+        if date == '20_11_30_DNN1_023':
+            eres_num = [0.8]
+        ax2.plot(eres_num, sensitivity, '-o')#, label='MatDB = {}, DNN = {}'.format(materialdb, dnn))
+        ax2.set_xlim([.6, 1.6])
+        ax2.set_ylim([7E27, 2E28])
+        ax2.set_xlabel('Resolution $\sigma$Q$_{\\beta\\beta}$ [%]', fontsize=16)
+        ax2.set_ylabel('$^{136}$Xe 0$\\nu\\beta\\beta$ T$_{1/2}$ [yr]', fontsize=16)
+        ax2.set_yscale('linear')
         ax2.legend()
 
-    fig2.savefig('{}/sens_vs_hl_{}_{}.png'.format(output_dir, dnn, materialdb), dpi=800)
+    fig2.savefig('{}/sens_vs_res_{}_{}.png'.format(output_dir, dnn, materialdb), dpi=800)
 
     fig.show()
     fig2.show()

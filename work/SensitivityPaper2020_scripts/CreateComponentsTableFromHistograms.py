@@ -26,7 +26,6 @@ import nEXOFitWorkspace
 
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(config=config_file)
 
-workspace.CreateComponentsTableFromMaterialsDB( geometry_tag = tag,\
-                               histograms_file = input_histogram_file,\
+workspace.CreateComponentsTableFromMaterialsDB(geometry_tag=tag,\
+                               histograms_file=input_histogram_file,\
                                label=label, output_dir=output_dir)
- 

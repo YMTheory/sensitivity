@@ -4,9 +4,30 @@ import os
 
 sys.path.append('../../modules')
 
+# iteration_num = 0
+# bkg_shape_err = .00000001
+# num_datasets = 10
+# resolution = '0.008'
+# compdate = '20_12_22'
+# database = '023'
+# # path_home = '/p/lustre2/czyz1/nexo_sensitivity/work'
+# # path_result = '/p/lustre2/nexouser/czyz1'
+# path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
+# path_result = '/Users/czyz1/lc-nexouser'
+#
+# execdir = "{}/SensitivityPaper2020_scripts/".format(path_home)
+# output_dir = "{}/workdir/lambda/".format(path_result)
+# components_tables = "{}/workdir/components_tables/{}/".format(path_result, compdate)
+# config_loc = "{}/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml".format(path_home)
+# num_hypotheses = 15
+# comp_loc = components_tables + "ComponentsTable_D-{}_Energy_Res=".format(database)
+# date = "{}_DNN1_{}".format(compdate, database)
+# base = "Eres_Crit_Lambda_"
+# crit_lam_loc = "{}/workdir/lambda/{}".format(path_result, date)
+
 ######################################################################
 # Load the arguments:
-if len(sys.argv) != 9:
+if len(sys.argv) != 10:
     print('\nERROR: incorrect number of arguments.\n')
     print('Usage:')
     print('\tpython Compute90PercentLimit_Wilks_Cluster.py ' + \
@@ -21,8 +42,10 @@ num_hypotheses = int(sys.argv[5])
 date = sys.argv[6]
 config_loc = sys.argv[7]
 comp_loc = sys.argv[8]
+crit_lam_loc = sys.argv[9]
+
 ##########################################################################
-def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
+def FindIntersectionByQuadraticInterpolation( xvals, yvals, SplineFunction ):
 
 	if len(xvals)!=len(yvals):
 		print('ERROR: need same length arrays for ' +\
@@ -51,8 +74,8 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 			p = np.polyfit( xvals[mask], yvals[mask], 1)
 			print('Linear fit: {}'.format(p))
 			yfit = p[0]*xfit + p[1]
-		ythreshold = np.ones(len(yfit))*2.706 # This is the Wilks' approx.
-		crossing_idx = np.where( (yfit - ythreshold)>0. )[0][0]
+		yspline = SplineFunction(xfit)
+		crossing_idx = np.where( (yfit - yspline)>0. )[0][0]
 		crossing = xfit[crossing_idx]
 	else:
 		yfit = np.zeros(len(xfit))
@@ -63,12 +86,12 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 ##########################################################################
 ##########################################################################
 
-
 # Import useful libraries for analysis
 import pandas as pd
 import histlite as hl
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.interpolate import LSQUnivariateSpline
 
 
 # Import the nEXO sensitivity classes
@@ -77,25 +100,29 @@ import nEXOFitModel
 import nEXOFitLikelihood
 
 
-
 # Set some switches
 INCLUDE_EFFICIENCY_ERROR = False
 INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
 DEBUG_PLOTTING = False
 lt_years = 10
+lambda_x = []
+for i in range(122):
+	lambda_x.append(i*0.25)
 
 for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']:
+	critical_lambda_file = crit_lam_loc + '/lambdas_res=' + resolution + '.txt'
+
+	# Get the critical lambda data points, fit them to a spline curve.
+	critical_lambda_data = np.genfromtxt(critical_lambda_file)
+	spline_xn = np.array([1., 5., 7., 10., 20., 30])  # defines the locations of the knots
+	SplineFunc = LSQUnivariateSpline(lambda_x, critical_lambda_data, t=spline_xn, k=3)
+
 	# Create the workspace
 	workspace = nEXOFitWorkspace.nEXOFitWorkspace(config_loc)
 	workspace.SetHandlingOfRadioassayData(fluctuate=True)
-	
-	# workspace.ConnectToMaterialsDB()
-	# workspace.materialsDB.PrintAllGeometryTags()
-	# workspace.CreateComponentsTableFromMaterialsDB('D-024',
-        #                                                histograms_file='/p/lustre2/czyz1/nexo_sensitivity/work/histogram_files/Baseline2019_Histograms_D-024_Energy_Res={}.h5'.format(resolution))
-	#                                               histograms_file='/p/vast1/nexo/sensitivity2020/pdfs/component_tables/ComponentsTable_D-024_Optimized_DNN_Standoff_Binning_version1.h5')
-	# print(workspace.df_components.head())
+
+	print('')
 	workspace.LoadComponentsTableFromFile(comp_loc+resolution+'.h5')
 	workspace.livetime = lt_years * 365.25 * 24. * 60. * 60.
 	workspace.CreateGroupedPDFs()
@@ -133,7 +160,7 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 										  upper_limit = 100.)
 			else:
 				likelihood.SetVariableLimits( var['Name'], \
-										  lower_limit = 0., \
+										  lower_limit = 0.1*var['Value'], \
 										  upper_limit = var['Value']*10.)
 
 	likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
@@ -142,7 +169,6 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 	##########################################################################
 	# Here's where the calculation loop begins.
 
-	# num_hypotheses = 15
 	xvals = np.array([])
 
 	lambdas = np.zeros(num_hypotheses)
@@ -187,7 +213,8 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 		likelihood.SetAllVariablesFloating()
 
 		# Fix the Co60 parameter
-		# likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+		# if date.split('_')[-1] == '023':
+		# 	likelihood.SetVariableFixStatus('Num_FullTPC_Co60', True)
 
 		RN_CONSTRAINTS=True
 		if RN_CONSTRAINTS:
@@ -231,7 +258,7 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 			initial_values[signal_idx] = signal_hypothesis
 			xvals[i] = signal_hypothesis
 
-				###########################################################################
+			###########################################################################
 			# All the exciting stuff happens here!
 			lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal(\
 									initial_values=initial_values,\
@@ -239,7 +266,7 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 									signal_expectation=0.,\
 									print_level=1,\
 									fixed_fit_signal_value=signal_hypothesis)
-				###########################################################################
+			###########################################################################
 
 
 			# Store all the important quantities
@@ -254,26 +281,25 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 
 		# Next, find the hypothesis value for which lambda crosses the critical lambda curve
 		if lambda_fit_result['best_fit_covar']:
-			xfit, yfit, crossing, crossing_idx = FindIntersectionByQuadraticInterpolationWilks(\
-									xvals[fixed_fit_covar],\
-									lambdas[fixed_fit_covar] )
+			xfit, yfit, crossing, crossing_idx = FindIntersectionByQuadraticInterpolation(xvals[fixed_fit_covar],\
+									lambdas[fixed_fit_covar], SplineFunc )
 
 			if DEBUG_PLOTTING:
 				plt.clf()
-				plt.plot(xfit,np.ones(len(xfit))*2.706,'-b',label='90%CL spline')
-				plt.plot(xfit,yfit,'-r',label='Quadratic approx')
-				plt.plot( xvals[fixed_fit_converged],\
-						lambdas[fixed_fit_converged],\
-						'-o',color='tab:blue',label='Actual fits')
-				#plt.plot(xvals,lambdas,label='Actual fits')
-				plt.plot(crossing,yfit[crossing_idx],'ok')
-				plt.xlim(0.,30.)
-				plt.ylim(0.,7.)
+				plt.plot(xfit, SplineFunc(xfit), '-b', label='90%CL spline')
+				plt.plot(xfit, yfit, '-r', label='Quadratic approx')
+				plt.plot(xvals[fixed_fit_converged], \
+						 lambdas[fixed_fit_converged], \
+						 '-o', color='tab:blue', label='Actual fits')
+				# plt.plot(xvals,lambdas,label='Actual fits')
+				plt.plot(crossing, yfit[crossing_idx], 'ok')
+				plt.xlim(0., 30.)
+				plt.ylim(0., 7.)
 				plt.xlabel('Num signal')
 				plt.ylabel('Lambda')
 				plt.legend(loc='upper right')
-				plt.savefig('{}/example_fit_curve_DEBUGPLOT_{}.png'.format(output_dir,j),\
-									dpi=200,bbox_inches='tight')
+				plt.savefig('{}/example_fit_curve_DEBUGPLOT_{}.png'.format(output_dir, resolution), \
+							dpi=200, bbox_inches='tight')
 
 		output_row['num_signal'] = xvals
 		output_row['lambda'] = lambdas
