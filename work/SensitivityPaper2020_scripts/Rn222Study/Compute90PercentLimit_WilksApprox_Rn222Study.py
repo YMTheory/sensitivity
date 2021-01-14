@@ -221,7 +221,6 @@ for j in range(0,num_datasets):
 	initial_guess = likelihood.GetVariableValues()
 	likelihood.model.GenerateModelDistribution()
 	likelihood.AddDataset( likelihood.model.GenerateDataset() )
-
 	
 	likelihood.SetAllVariablesFloating()
 

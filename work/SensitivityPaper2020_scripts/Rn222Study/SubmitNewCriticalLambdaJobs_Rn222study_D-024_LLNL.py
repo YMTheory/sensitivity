@@ -3,17 +3,20 @@
 import os
 execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/SensitivityPaper2020_scripts/Rn222Study/"
 outputdir = "/p/lustre2/lenardo1/sensitivity_output/Nov20_Rn222_CriticalLambda_D-024/"
-components_table = "/p/vast1/nexo/sensitivity2020/pdfs/component_tables/ComponentsTable_D-024_Optimized_DNN_Standoff_Binning_version1.h5"
+outputdir = "/p/lustre2/lenardo1/sensitivity_output/Jan10_Rn222_CriticalLambda_D024/"
+#components_table = "/p/vast1/nexo/sensitivity2020/pdfs/component_tables/ComponentsTable_D-024_Optimized_DNN_Standoff_Binning_version1.h5"
+components_table = "/p/vast1/nexo/sensitivity2020/pdfs/component_tables/" + \
+			"ComponentsTable_D-023_merged-v10b_Optimized_DNN_Standoff_Binning_version1.h5"
 outputname = ""
 
 base = "Rn222Study_CritLambda_Sensitivity2020_"
 
 
 # Number of toy datasets to run for each hypothesis
-num_datasets=400
+num_datasets=500
 
 rn222_scale_factor = 1.
-offset = 20
+offset = 0
 
 
 for num in range(0,1000):
@@ -58,7 +61,7 @@ for num in range(0,1000):
 
 		
 	thescript = "#!/bin/bash\n" + \
-		"#SBATCH -t 07:00:00\n" + \
+		"#SBATCH -t 08:00:00\n" + \
 		"#SBATCH -A nuphys\n" + \
 		"#SBATCH -e " + outfilename + "\n" + \
 		"#SBATCH -o " + outfilename + "\n" + \

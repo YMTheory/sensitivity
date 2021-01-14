@@ -328,6 +328,8 @@ class nEXOFitLikelihood:
                     self.PrintVariableList()
 
                  self.SetVariableFixStatus( signal_name, False)
+            else: 
+                 self.zero_fit_result = None
    
        print('\n\nFit with {} fixed at {:3.3} cts...\n'.format( self.model.variable_list[signal_idx]['Name'], \
                                                                 initial_values_fixed[signal_idx] ) )
@@ -364,6 +366,12 @@ class nEXOFitLikelihood:
        lambda_result['fixed_fit_iterations'] = fixed_fit_iterations 
        lambda_result['fixed_fit_parameters'] = fixed_fit_parameters
        lambda_result['fixed_fit_errors']     = fixed_fit_errors 
+       lambda_result['best_fit_nll']         = self.best_fit_result['nll']
+       lambda_result['fixed_fit_nll']        = self.fitter.fval
+       if self.best_fit_result['best_fit_signal_counts'] < 0.:
+          lambda_result['zero_fit_result']   = self.zero_fit_result['nll']
+       else:
+          lambda_result['zero_fit_result']   = np.nan
 
        return lambda_result
 
@@ -631,7 +639,7 @@ class nEXOFitLikelihood:
                                          (0.1,0.5,0.4),\
                                          (1.,0.,1.),\
                                          (0.,0.,0.,0.2),\
-                                         (0.4,0.4,0.4),\
+                                         (0.3,0.3,0.3),\
                                          (0.5,0.,0.5),\
                                          (0.45,0.,0.0) ] )
        plt.rc('axes', prop_cycle=custom_cycler)
@@ -657,10 +665,12 @@ class nEXOFitLikelihood:
               #else:
               cut_sum += ( weight * cut_pdf )
 
-              hl.plot1d( self.ax, (weight * cut_pdf).project([axis]), label=component_name )
-
+              #print('Component name: {}'.format(component_name))
               if 'Bb0n' in component_name:
                  hl.fill_between( self.ax, 0, (weight * cut_pdf).project([axis]), color=(0.5,0.5,0.5), alpha=0.1 )
+                 hl.plot1d( self.ax, (weight * cut_pdf).project([axis]), label=component_name, color=(0.2,0.2,0.2) )
+              else:
+                 hl.plot1d( self.ax, (weight * cut_pdf).project([axis]), label=component_name )
 
        hl.plot1d(self.ax,cut_sum.project([axis]),color='b',label='Total Sum')
 

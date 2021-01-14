@@ -332,6 +332,7 @@ for j in range(0,num_datasets):
 	output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
 	output_row['best_fit_parameters']  = lambda_fit_result['best_fit_parameters']
 	output_row['best_fit_errors']      = lambda_fit_result['best_fit_errors']
+	output_row['best_fit_nll']         = lambda_fit_result['best_fit_nll']
 	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
 	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
 	output_row['input_parameters']     = initial_guess

@@ -91,7 +91,7 @@ if PAR_LIMITS:
                                           upper_limit = 100.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0., \
+	                                  lower_limit = 0.05, \
 	                                  upper_limit = var['Value']*10.)
 
 
@@ -120,6 +120,7 @@ for j in range(0,num_datasets):
 
 	#likelihood.model.UpdateVariables(initial_values)
 
+
 	# Redo the grouping, which fluctuates the radioassay values within their uncertainties.
 	workspace.CreateGroupedPDFs()
 	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, \
@@ -146,7 +147,7 @@ for j in range(0,num_datasets):
 
 	likelihood.SetAllVariablesFloating()
 
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 	
 	if CONSTRAINTS:
 		rn222_idx = likelihood.GetVariableIndex('Rn222')
@@ -156,6 +157,13 @@ for j in range(0,num_datasets):
 		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],\
 							 rn222_constraint_val, \
 	                	                         0.1 * initial_values[rn222_idx])
+		b8_idx = likelihood.GetVariableIndex('B8')
+		# Fluctuate B8nu constraint
+		b8_constraint_val = (np.random.randn()*0.1 + 1)*initial_values[b8_idx]
+		# Set B8nu constraint
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[b8_idx]['Name'],\
+							 b8_constraint_val, \
+	                	                         0.1 * initial_values[b8_idx])
 		#eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
 		#eff_constraint_val = (np.random.randn()*eff_err + 1)* initial_values[eff_idx]
 		#likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],\
@@ -199,6 +207,7 @@ for j in range(0,num_datasets):
 	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
 	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
 	output_row['input_parameters']     = input_parameters
+	output_row['best_fit_nll']         = lambda_fit_result['best_fit_nll']
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)	

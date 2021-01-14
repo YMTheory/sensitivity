@@ -5,14 +5,14 @@ execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/SensitivityPaper2020_scripts/Ba
 #outputdir = "/p/lustre1/lenardo1/sensitivity_output/October6_2020_critical_lambda_ba_tagging_no_shape_error_histats_final_cuts/"
 outputdir = "/p/lustre2/lenardo1/sensitivity_output/Dec20_2020_CriticalLambda_ba_tagging_background_scaling/"
 
-scaling_2nu = 0.0001
+scaling_2nu = 0.000001
 
 base = "BaTagging_Sensitivity_Baseline2019_2nuScaling_{:06.6}_".format(scaling_2nu)
 
 # Number of toy datasets to run for each hypothesis
 num_datasets=20000
-#offset = 0.063
-offset = 0.
+offset = 0.063
+#offset = 0.
 
 for num in range(0,400):
 
