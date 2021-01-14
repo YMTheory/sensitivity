@@ -16,13 +16,27 @@ RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
 #      Min -- the minimum value to be used in the fit
 #      Max -- the maxmum value to be used in the fit
 #      NumBins -- the number of bins to be used in the fit. 
+#      BinningOption -- whether you want evenly spaced bins (Linear) or some
+#                       custom binning scheme (Custom)
+#      BinEdges -- only used if BinningOption is set to 'Custom'
 FitAxes:
+  - Title: 'DNN'
+    VariableName: 'm_DNNvalue'
+    BinningOption: 'Custom'
+    BinEdges: [0.,0.85,1.]
   - Title: 'Energy (keV)'
     VariableName: 'energy'
     Min: 1000.
     Max: 3500.
     NumBins: 250
     BinningOption: 'Linear'
+  - Title: 'Standoff (mm)'
+    VariableName: 'standoff'
+    Min: 0.
+    Max: 650.
+    NumBins: 25
+    BinningOption: 'Linear'
+
 
 # Define the cuts which are applied when constructing the PDFs from the
 # merged reconstruction files. Supported cut types are '1D', '2DLinear',
@@ -66,9 +80,6 @@ Cuts:
   - Title: 'NestBug'
     Type: 'InvertedBoolean'
     Variable: 'NESTBugFound'
-  - Title: 'AnodeBug'
-    Type: 'InvertedBoolean'
-    Variable: 'NearAnodeBugFound'
   - Title: 'n_x_ch_abovenoise'
     Type: '1D'
     Variable: 'n_x_ch_abovenoise'
@@ -104,7 +115,7 @@ GroupAssignments:
   U238_OuterCryostatSupportFiber:      "Far"
   U238_OuterCryostatFeedthrough:       "Far"
   U238_OuterCryostatLiner:             "Far"
-  U238_OuterCryostatWTSupport:         "Far"
+  U238_OuterCryostatWTSupport:         "Off"
   U238_InnerCryostatResin:             "Far"
   U238_InnerCryostatFiber:             "Far"
   U238_InnerCryostatSupportResin:      "Far"
@@ -119,7 +130,7 @@ GroupAssignments:
   Th232_OuterCryostatSupportFiber:     "Far"
   Th232_OuterCryostatFeedthrough:       "Far"
   Th232_OuterCryostatLiner:            "Far"
-  Th232_OuterCryostatWTSupport:         "Far"
+  Th232_OuterCryostatWTSupport:         "Off"
   Th232_InnerCryostatResin:            "Far"
   Th232_InnerCryostatFiber:            "Far"
   Th232_InnerCryostatSupportResin:     "Far"
@@ -134,7 +145,7 @@ GroupAssignments:
   Co60_OuterCryostatSupportFiber:      "Far"
   Co60_OuterCryostatFeedthrough:       "Far"
   Co60_OuterCryostatLiner:             "Far"
-  Co60_OuterCryostatWTSupport:          "Far"
+  Co60_OuterCryostatWTSupport:          "Off"
   Co60_InnerCryostatResin:             "Far"
   Co60_InnerCryostatFiber:             "Far"
   Co60_InnerCryostatSupportResin:      "Far"
@@ -149,7 +160,7 @@ GroupAssignments:
   K40_OuterCryostatSupportFiber:       "Far"
   K40_OuterCryostatFeedthrough:       "Far"
   K40_OuterCryostatLiner:              "Far"
-  K40_OuterCryostatWTSupport:          "Far"
+  K40_OuterCryostatWTSupport:          "Off"
   K40_InnerCryostatResin:              "Far"
   K40_InnerCryostatFiber:              "Far"
   K40_InnerCryostatSupportResin:       "Far"
@@ -158,7 +169,6 @@ GroupAssignments:
   K40_InnerCryostatFeedthrough:       "Far"
   K40_RepeaterBoxShell:               "Far"
   K40_RepeaterBoxElectronics:         "Far"
-  Rn222_HFE:                           "Far"
   U238_HFE:                            "Vessel_U238"
   U238_TPCVessel:                      "Vessel_U238"
   U238_TPCSupportCone:                 "Vessel_U238"
@@ -212,39 +222,17 @@ GroupAssignments:
   K40_SupportRodsandSpacers:           "FullTPC_K40"
   K40_SiPMModuleInterposer:            "FullTPC_K40" 
   K40_ChargeTilesBacking:             "FullTPC_K40"
-  Co60_FieldRings:                     "FullTPC_Co60"
-  Co60_TPCVessel:                      "FullTPC_Co60"
   Co60_ChargeTilesCables:              "FullTPC_Co60"
   Co60_ChargeTilesElectronics:         "FullTPC_Co60"
   Co60_ChargeTilesSupport:            "FullTPC_Co60"
   Co60_ChargeTilesBacking:            "FullTPC_Co60"
   Co60_HVPlunger:                      "FullTPC_Co60"
   Co60_SupportRodsandSpacers:          "FullTPC_Co60"
-  Co60_Cathode:                        "FullTPC_Co60"
-  Co60_Bulge:                          "FullTPC_Co60"
-  Co60_SiPMStaves:                     "FullTPC_Co60"
-  Co60_SiPMElectronics:                "FullTPC_Co60"
-  Co60_SiPMModuleInterposer:           "FullTPC_Co60"
-  Co60_SiPMCables:                     "FullTPC_Co60"
-  Co60_SiPMs:                          "FullTPC_Co60"
-  Co60_HFE:                            "FullTPC_Co60"
-  Co60_TPCSupportCone:                 "FullTPC_Co60"
-  Co60_HVTubes:                        "FullTPC_Co60"
-  Co60_HVCables:                       "FullTPC_Co60"
-  Co60_HVFeedthrough:                  "FullTPC_Co60"
-  Co60_HVFeedthroughCoreTeflon:        "FullTPC_Co60"
-  Co60_HVFeedthroughCoreCable:         "FullTPC_Co60"
-  Co60_HVFeedthroughCoreConductivePE:  "FullTPC_Co60"
-  Co60_CalibrationGuideTube1:          "FullTPC_Co60"
-  Co60_CalibrationGuideTube2:          "FullTPC_Co60"
   Rn222_ActiveLXe:                     "Rn222"
   Rn222_InactiveLXe:                   "Rn222"
   Rn222_CathodeRadon:                  "Rn222"
-  Rn222_FieldRingsRadon:               "Rn222"
-  Xe137_ActiveLXe:                     "Xe137_and_Ar42"
-  Xe137_InactiveLXe:                   "Xe137_and_Ar42"
-  Ar42_ActiveLXe:                      "Xe137_and_Ar42"
-  Ar42_InactiveLXe:                    "Xe137_and_Ar42"
+  Xe137_ActiveLXe:                     "Xe137"
+  Xe137_InactiveLXe:                   "Xe137"
   bb2n_FullLXe:                        "FullLXeBb2n"
   bb0n_FullLXe:                        "FullLXeBb0n"
   B8nu_FullLXe:                        "B8nu"
@@ -255,6 +243,25 @@ GroupAssignments:
   #U238_SupportRodsandSpacers:          "Off"
   #Th232_SupportRodsandSpacers:          "Off"
   #K40_SupportRodsandSpacers:          "Off"
+  Co60_Cathode:                        "Off"
+  Co60_Bulge:                          "Off"
+  Co60_FieldRings:                     "Off"
+  Co60_SiPMStaves:                     "Off"
+  Co60_SiPMElectronics:                "Off"
+  Co60_SiPMModuleInterposer:           "Off"
+  Co60_SiPMCables:                     "Off"
+  Co60_SiPMs:                          "Off"
+  Co60_HFE:                            "Off"
+  Co60_TPCVessel:                      "Off"
+  Co60_TPCSupportCone:                 "Off"
+  Co60_HVTubes:                        "Off"
+  Co60_HVCables:                       "Off"
+  Co60_HVFeedthrough:                  "Off"
+  Co60_HVFeedthroughCoreTeflon:        "Off"
+  Co60_HVFeedthroughCoreCable:         "Off"
+  Co60_HVFeedthroughCoreConductivePE:  "Off"
+  Co60_CalibrationGuideTube1:          "Off"
+  Co60_CalibrationGuideTube2:          "Off"
   K40_Cathode:                         "Off"
   K40_Bulge:                           "Off"
   K40_FieldRings:                      "Off"

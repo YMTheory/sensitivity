@@ -1,0 +1,313 @@
+################################################################################
+# Example configuration file for sensitivity calculation
+# Contact: Brian Lenardo
+################################################################################
+
+# Input file
+SummaryInputFile: '../tables/Summary_D-005_v22_2018-11-12_02_tutorial.h5'
+
+# Location of ROOT files containing reconstructed PDFs
+RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
+
+# Choose which variables will make up each axis in the fit. 
+# These are:
+#      Title -- the name, with units, the axis in question
+#      VariableName -- the name of the variable in the reconstruction TTree
+#      Min -- the minimum value to be used in the fit
+#      Max -- the maxmum value to be used in the fit
+#      NumBins -- the number of bins to be used in the fit. 
+FitAxes:
+  - Title: 'DNN'
+    VariableName: 'm_DNNvalue'
+    Min: 0.
+    Max: 1.
+    NumBins: 1
+  - Title: 'Energy (keV)'
+    VariableName: 'energy'
+    Min: 1000.
+    Max: 3500.
+    NumBins: 1
+  - Title: 'Standoff (mm)'
+    VariableName: 'standoff'
+    Min: 0.
+    Max: 650.
+    NumBins: 1
+
+
+# Input the type of histogram. Currently, the only supported option
+# is "Linear", where the bin sizes are uniform in each dimension, but
+# the intention is to also support "Custom", to allow non-uniform binning
+HistogramBinningOption: 'Linear'
+
+# Define the cuts which are applied when constructing the PDFs from the
+# merged reconstruction files. Supported cut types are '1D', '2DLinear',
+# and 'Boolean'.
+Cuts:
+  - Title: 'EnergyUpper'
+    Type: '1D'
+    Variable: 'energy'
+    Bound: 'Upper'
+    Value: 3500.
+  - Title: 'EnergyLower'
+    Type: '1D'
+    Variable: 'energy'
+    Bound: 'Lower'
+    Value: 1000.
+  - Title: 'StandoffLower'
+    Type: '1D'
+    Variable: 'standoff'
+    Bound: 'Lower'
+    Value: 20.
+  - Title: 'LightVsChargeUpper'
+    Type: '2DLinear'
+    XVariable: 'm_nQ'
+    YVariable: 'm_nOPCal'
+    Bound: 'Upper'
+    Slope: 1.077
+    Intercept: 313.
+  - Title: 'LightVsChargeLower'
+    Type: '2DLinear'
+    XVariable: 'm_nQ'
+    YVariable: 'm_nOPCal'
+    Bound: 'Lower'
+    Slope: 0.597
+    Intercept: -216.
+  - Title: 'PassedZThreshold'
+    Type: 'Boolean'
+    Variable: 'passed_z_thresh'
+  - Title: 'PassedXYThreshold'
+    Type: 'Boolean'
+    Variable: 'passed_xy_thresh'
+  - Title: 'NestBug'
+    Type: 'InvertedBoolean'
+    Variable: 'NESTBugFound'
+  - Title: 'n_x_ch_abovenoise'
+    Type: '1D'
+    Variable: 'n_x_ch_abovenoise'
+    Bound: 'Lower'
+    Value: 0
+  - Title: 'n_x_ch_abovenoise'
+    Type: '1D'
+    Variable: 'n_y_ch_abovenoise'
+    Bound: 'Lower'
+    Value: 0
+     
+ 
+ 
+# Set a customized specific activity for a specific component, 
+# which overrides whatever is stored in the Materials Database. 
+# All units are in mBq/kg.
+CustomSpecActivities:
+  bb0n_FullLXe:      0.0000000001 # mBq/kg
+
+# Set a custom scaling factor for a specific component,
+# which scales the activity calculated from the Materials Database.
+# Useful for e.g. Xe137 depth studies
+CustomScalingFactors:
+  Xe137_ActiveLXe:    1.
+  Xe137_InactiveLXe:  1.
+
+# Each component needs to be assigned to a group to create
+# composite PDFs in the sensitivity code. 
+GroupAssignments:
+  U238_OuterCryostatResin:             "Off"
+  U238_OuterCryostatFiber:             "Off"
+  U238_OuterCryostatSupportResin:      "Off"
+  U238_OuterCryostatSupportFiber:      "Off"
+  U238_OuterCryostatFeedthrough:       "Off"
+  U238_OuterCryostatLiner:             "Off"
+  U238_OuterCryostatWTSupport:         "Off"
+  U238_InnerCryostatResin:             "Off"
+  U238_InnerCryostatFiber:             "Off"
+  U238_InnerCryostatSupportResin:      "Off"
+  U238_InnerCryostatSupportFiber:      "Off"
+  U238_InnerCryostatLiner:             "Off"
+  U238_InnerCryostatFeedthrough:       "Off"
+  U238_RepeaterBoxShell:               "Off"
+  U238_RepeaterBoxElectronics:         "Off"
+  Th232_OuterCryostatResin:            "Off"
+  Th232_OuterCryostatFiber:            "Off"
+  Th232_OuterCryostatSupportResin:     "Off"
+  Th232_OuterCryostatSupportFiber:     "Off"
+  Th232_OuterCryostatFeedthrough:       "Off"
+  Th232_OuterCryostatLiner:            "Off"
+  Th232_OuterCryostatWTSupport:         "Off"
+  Th232_InnerCryostatResin:            "Off"
+  Th232_InnerCryostatFiber:            "Off"
+  Th232_InnerCryostatSupportResin:     "Off"
+  Th232_InnerCryostatSupportFiber:     "Off"
+  Th232_InnerCryostatLiner:            "Off"
+  Th232_InnerCryostatFeedthrough:       "Off"
+  Th232_RepeaterBoxShell:               "Off"
+  Th232_RepeaterBoxElectronics:         "Off"
+  Co60_OuterCryostatResin:             "Off"
+  Co60_OuterCryostatFiber:             "Off"
+  Co60_OuterCryostatSupportResin:      "Off"
+  Co60_OuterCryostatSupportFiber:      "Off"
+  Co60_OuterCryostatFeedthrough:       "Off"
+  Co60_OuterCryostatLiner:             "Off"
+  Co60_OuterCryostatWTSupport:          "Off"
+  Co60_InnerCryostatResin:             "Off"
+  Co60_InnerCryostatFiber:             "Off"
+  Co60_InnerCryostatSupportResin:      "Off"
+  Co60_InnerCryostatSupportFiber:      "Off"
+  Co60_InnerCryostatLiner:             "Off"
+  Co60_InnerCryostatFeedthrough:       "Off"
+  Co60_RepeaterBoxShell:               "Off"
+  Co60_RepeaterBoxElectronics:         "Off"
+  K40_OuterCryostatResin:              "Off"
+  K40_OuterCryostatFiber:              "Off"
+  K40_OuterCryostatSupportResin:       "Off"
+  K40_OuterCryostatSupportFiber:       "Off"
+  K40_OuterCryostatFeedthrough:       "Off"
+  K40_OuterCryostatLiner:              "Off"
+  K40_OuterCryostatWTSupport:          "Off"
+  K40_InnerCryostatResin:              "Off"
+  K40_InnerCryostatFiber:              "Off"
+  K40_InnerCryostatSupportResin:       "Off"
+  K40_InnerCryostatSupportFiber:       "Off"
+  K40_InnerCryostatLiner:              "Off"
+  K40_InnerCryostatFeedthrough:       "Off"
+  K40_RepeaterBoxShell:               "Off"
+  K40_RepeaterBoxElectronics:         "Off"
+  U238_HFE:                            "Off"
+  U238_TPCVessel:                      "Off"
+  U238_TPCSupportCone:                 "Off"
+  U238_HVTubes:                        "Off"
+  U238_HVCables:                       "Off"
+  U238_HVFeedthrough:                  "Off"
+  U238_HVFeedthroughCoreTeflon:        "Off"
+  U238_HVFeedthroughCoreCable:         "Off"
+  U238_HVFeedthroughCoreConductivePE:  "Off"
+  U238_CalibrationGuideTube1:          "Off"
+  U238_CalibrationGuideTube2:          "Off"
+  Th232_HFE:                           "Off"
+  Th232_TPCVessel:                     "Off"
+  Th232_TPCSupportCone:                "Off"
+  Th232_HVTubes:                       "Off"
+  Th232_HVCables:                      "Off"
+  Th232_HVFeedthrough:                 "Off"
+  Th232_HVFeedthroughCoreTeflon:       "Off"
+  Th232_HVFeedthroughCoreCable:        "Off"
+  Th232_HVFeedthroughCoreConductivePE: "Off"
+  Th232_CalibrationGuideTube1:         "Off"
+  Th232_CalibrationGuideTube2:         "Off"
+  U238_Cathode:                        "Off"
+  U238_Bulge:                          "Off"
+  U238_FieldRings:                     "Off"
+  U238_SupportRodsandSpacers:          "Off"
+  U238_SiPMStaves:                     "Off"
+  U238_SiPMElectronics:                "Off"
+  U238_SiPMModuleInterposer:           "Off"
+  U238_SiPMCables:                     "Off"
+  U238_SiPMs:                          "Off"
+  U238_ChargeTilesSupport:             "Off"
+  U238_ChargeTilesBacking:             "Off"
+  U238_HVPlunger:                      "Off"
+  U238_ChargeTilesCables:              "Off"
+  U238_ChargeTilesElectronics:         "Off"
+  Th232_Cathode:                       "Off"
+  Th232_Bulge:                         "Off"
+  Th232_FieldRings:                    "Off"
+  Th232_SupportRodsandSpacers:         "Off"
+  Th232_SiPMStaves:                    "Off"
+  Th232_SiPMElectronics:               "Off"
+  Th232_SiPMModuleInterposer:          "Off"
+  Th232_SiPMCables:                    "Off"
+  Th232_SiPMs:                         "Off"
+  Th232_ChargeTilesSupport:           "Off"
+  Th232_ChargeTilesBacking:           "Off"
+  Th232_HVPlunger:                     "Off"
+  Th232_ChargeTilesCables:            "Off"
+  Th232_ChargeTilesElectronics:       "Off"
+  K40_SupportRodsandSpacers:           "Off"
+  K40_SiPMModuleInterposer:            "Off" 
+  K40_ChargeTilesBacking:             "Off"
+  Co60_ChargeTilesCables:              "Off"
+  Co60_ChargeTilesElectronics:         "Off"
+  Co60_ChargeTilesSupport:            "Off"
+  Co60_ChargeTilesBacking:            "Off"
+  Co60_HVPlunger:                      "Off"
+  Co60_SupportRodsandSpacers:          "Off"
+  Rn222_ActiveLXe:                     "Off"
+  Rn222_InactiveLXe:                   "Off"
+  Rn222_CathodeRadon:                  "Off"
+  Xe137_ActiveLXe:                     "Off"
+  Xe137_InactiveLXe:                   "Off"
+  bb2n_FullLXe:                        "Off"
+  bb0n_FullLXe:                        "FullLXeBb0n"
+  B8nu_FullLXe:                        "Off"
+  Co60_Cathode:                        "Off"
+  Co60_Bulge:                          "Off"
+  Co60_FieldRings:                     "Off"
+  Co60_SiPMStaves:                     "Off"
+  Co60_SiPMElectronics:                "Off"
+  Co60_SiPMModuleInterposer:           "Off"
+  Co60_SiPMCables:                     "Off"
+  Co60_SiPMs:                          "Off"
+  Co60_HFE:                            "Off"
+  Co60_TPCVessel:                      "Off"
+  Co60_TPCSupportCone:                 "Off"
+  Co60_HVTubes:                        "Off"
+  Co60_HVCables:                       "Off"
+  Co60_HVFeedthrough:                  "Off"
+  Co60_HVFeedthroughCoreTeflon:        "Off"
+  Co60_HVFeedthroughCoreCable:         "Off"
+  Co60_HVFeedthroughCoreConductivePE:  "Off"
+  Co60_CalibrationGuideTube1:          "Off"
+  Co60_CalibrationGuideTube2:          "Off"
+  K40_Cathode:                         "Off"
+  K40_Bulge:                           "Off"
+  K40_FieldRings:                      "Off"
+  K40_SiPMStaves:                      "Off"
+  K40_SiPMElectronics:                 "Off"
+  K40_SiPMCables:                      "Off"
+  K40_SiPMs:                           "Off"
+  K40_ChargeTilesSupport:              "Off"
+  K40_HVPlunger:                       "Off"
+  K40_HFE:                             "Off"
+  K40_TPCVessel:                       "Off"
+  K40_TPCSupportCone:                  "Off"
+  K40_HVTubes:                         "Off"
+  K40_HVCables:                        "Off"
+  K40_HVFeedthrough:                   "Off"
+  K40_HVFeedthroughCoreTeflon:         "Off"
+  K40_HVFeedthroughCoreCable:          "Off"
+  K40_HVFeedthroughCoreConductivePE:   "Off"
+  K40_CalibrationGuideTube1:           "Off"
+  K40_CalibrationGuideTube2:           "Off"
+  U238_ElectricalConnectionsAnode:     "Off"
+  Th232_ElectricalConnectionsAnode:    "Off"
+  K40_ElectricalConnectionsAnode:      "Off"
+  Co60_ElectricalConnectionsAnode:     "Off"
+  Ag110m_ElectricalConnectionsAnode:   "Off"
+  U238_ElectricalConnectionsSiPM:      "Off"
+  Th232_ElectricalConnectionsSiPM:     "Off"
+  K40_ElectricalConnectionsSiPM:       "Off"
+  Co60_ElectricalConnectionsSiPM:      "Off"
+  Ag110m_ElectricalConnectionsSiPM:    "Off"
+  Al26_SupportRodsandSpacers:          "Off"
+  Cs137_FieldRings:                    "Off"
+  Cs137_OuterCryostatSupportResin:     "Off"
+  Cs137_OuterCryostatSupportFiber:     "Off"
+  Cs137_OuterCryostatResin:            "Off"
+  Cs137_OuterCryostatFiber:            "Off"
+  Cs137_InnerCryostatResin:            "Off"
+  Cs137_InnerCryostatFiber:            "Off"
+  Cs137_InnerCryostatSupportFiber:     "Off"
+  Cs137_InnerCryostatSupportResin:     "Off"
+  Cs137_HVTubes:                       "Off"
+  Cs137_HVFeedthrough:                 "Off"
+  Cs137_HVPlunger:                     "Off"
+  Cs137_CalibrationGuideTube1:         "Off"
+  Cs137_CalibrationGuideTube2:         "Off"
+  Cs137_TPCSupportCone:                "Off"
+  Cs137_TPCVessel:                     "Off"
+  Cs137_Bulge:                         "Off"
+  Cs137_SiPMStaves:                    "Off"
+  Cs137_SiPMCables:                    "Off"
+  Cs137_SiPMElectronics:               "Off"
+  Cs137_SiPMs:                         "Off"
+  Cs137_ChargeTilesSupport:            "Off"
+  Cs137_ChargeTilesBacking:            "Off"
+  Xe137_FullLXe:                       "Off"
