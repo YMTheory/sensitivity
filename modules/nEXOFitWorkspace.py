@@ -30,6 +30,9 @@ class nEXOFitWorkspace:
       #     'df_group_pdfs' will be a pandas dataframe
       #              which contains the distributions for
       #              each group, weighted appropriately
+      #     'df_materials' will be a pandas dataframe which
+      #              contains the radioassay data for each
+      #              material. This is used for fluctuations.
       #     'neg_log_likelihood' will be a customized
       #              object which computes a likelihood
       #              between the grouped PDFs and some toy
@@ -49,9 +52,9 @@ class nEXOFitWorkspace:
       #              an earlier stage in the data processing -
       #              the present code should be totally agnostic
       #              to the variables/binning/etc. 
-
       self.df_components = pd.DataFrame()       
       self.df_group_pdfs = pd.DataFrame()
+      self.materials_dict = {} #pd.DataFrame()
       self.neg_log_likelihood = None
       self.minimizer = None
       self.signal_counts=0.0001
@@ -63,7 +66,7 @@ class nEXOFitWorkspace:
       self.materialsDB = None
 
       self.fluctuate_radioassay_during_grouping = False
-      self.radioassay_limits_handling = "Delta"
+      self.fluctuations_correlated_by_material = True
 
       config_file = open(config,'r')
       self.config = yaml.load( config_file, Loader=yaml.SafeLoader )
@@ -126,17 +129,14 @@ class nEXOFitWorkspace:
    #          result from a gaussian distribution centered at the central 
    #          value, but it will truncate the distribution at 0 (so we 
    #          don't have negative counts).
-   #      -  'limits_handling' governs how we deal with radioassay results
-   #          that only report an upper limit. The default is "Delta", where
-   #          we simply use the upper limit as the result, and apply no
-   #          fluctuations. The other option is "TruncatedGaussianAtZero",
-   #          where we assume the central value is 0, then sample from a 
-   #          gaussian that has a sigma given by assuming the reported value
-   #          is the 90% CL. 
+   #      -  'correlate' tells the code whether or not to apply fluctuations
+   #          to each component individually, or to apply fluctuations by
+   #          material; i.e. fluctuating the specific activity for all copper
+   #          components together.
    ##########################################################################
-   def SetHandlingOfRadioassayData( self, fluctuate = False, limits_handling = "Delta" ):
+   def SetHandlingOfRadioassayData( self, fluctuate = False, correlate = True ):
        self.fluctuate_radioassay_during_grouping = fluctuate
-       self.radioassay_limits_handling = limits_handling 
+       self.fluctuations_correlated_by_material = correlate
 
 
    ##########################################################################
@@ -285,6 +285,8 @@ class nEXOFitWorkspace:
                thispdf['PDFName'] = pdf_name
                thispdf['Component'] = component['name']
                thispdf['Isotope'] = measurement['isotope'].split(' ')[0]
+               thispdf['Material'] = component['material']
+               thispdf['Radioassay ID'] = component['radioassayid']
                if use_mc_id_dict:
                   thispdf['MC ID'] = mc_id_dict.data[component['name']]
                else:
@@ -612,6 +614,8 @@ class nEXOFitWorkspace:
                                                     'Histogram',\
                                                     'TotalExpectedCounts'])
 
+       material_activities_dict = self.GetFluctuatedActivitiesByMaterial() 
+
        # Loop over rows in df_components, add histograms to the appropriate group.
        for index,row in self.df_components.iterrows():
 
@@ -633,7 +637,14 @@ class nEXOFitWorkspace:
          if row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts
          elif self.fluctuate_radioassay_during_grouping:
-             totalExpectedCounts = self.GetFluctuatedExpectedCounts( row ) 
+              if self.fluctuations_correlated_by_material:
+                 totalExpectedCounts = row['Total Mass or Area'] *\
+                         material_activities_dict[row['Material']][row['Radioassay ID']][row['Isotope']] / \
+                                  1000. * \
+                                  row['TotalHitEff_K'] / row['TotalHitEff_N'] *\
+                                  self.livetime
+              else:
+                 totalExpectedCounts = self.GetFluctuatedExpectedCounts( row )
          else:
              totalExpectedCounts = row['Total Mass or Area'] *\
                                 self.GetMeanSpecificActivity(row)/1000.*\
@@ -695,8 +706,7 @@ class nEXOFitWorkspace:
 
 
    ##########################################################################
-   # Apply fluctuation
-
+   # Apply fluctuations by row
    ##########################################################################
    def GetFluctuatedExpectedCounts( self, components_table_row ):
        
@@ -741,11 +751,83 @@ class nEXOFitWorkspace:
                              self.livetime
 
        return totalExpectedCounts
-        
+       
+   
+   ##########################################################################
+   # Apply fluctuations by material
+   ##########################################################################
+   def GetFluctuatedActivitiesByMaterial( self ):
+       if len(self.df_components) == 0:
+          print('\nERROR IN GetFluctuatedActivitiesByMaterial:')
+          print('----> No ComponentsTable loaded\n')
+          raise ValueError
+
+       fluctuated_activities_dict = {}
+       
+       for index,row in self.df_components.iterrows():
+
+           # Fluctuations are applied in two ways:
+           #    - If the radioassay result is a 90% upper limit, we draw from a 
+           #      gaussian centered at 0, with 1-sigma = value/sqrt(2)/erfinv(0.8)
+           #    - If the radioassay result is a measured value, we draw from a gaussian
+           #      centered at the measured value with the measured 1-sigma uncertainties. 
+           #    - If the fluctuated value is below 0, resample until you get a nonnegative result. 
+           # This strategy follows the recommendations in Raymond's paper: arXiv:1808.05307
+           # Apply the appropriate fluctuations           
+           if row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
+              row['SpecActivErrorType'] == 'limit':
+                   fluct_mean = 0.
+                   fluct_sigma = row['SpecActiv'] / np.sqrt(2) / 0.906194
+           elif row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
+                row['SpecActivErrorType'] == 'obs':
+                   fluct_mean = row['SpecActiv']
+                   fluct_sigma = row['SpecActivErr']
+           elif row['SpecActivErrorType'] == 'Asymmetric error':
+                    fluct_mean = row['SpecActiv']
+                    fluct_sigma = 0. 
+           else: 
+               print('\nComponent {} has undefined error type {}\n'.format(\
+                                row['PDFName'],\
+                                row['SpecActivErrorType'] ))
+               raise TypeError
+       
+           # If fluctuated activity is less than 0, use 0.
+           fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+           if fluctuated_spec_activity < 0.:
+                  fluctuated_spec_activity = 0.
+
+           ###########################################################
+           # Once the activity is properly fluctuated, we fill a nested
+           # dict structure with the appropriate values, to use as a
+           # look-up table during the grouping stage.
+           if row['Material'] not in fluctuated_activities_dict.keys():
+              fluctuated_activities_dict[row['Material']] = \
+                                         { row['Radioassay ID']: \
+                                           {row['Isotope']: fluctuated_spec_activity } }
+           else:
+              if row['Radioassay ID'] not in fluctuated_activities_dict[row['Material']].keys():
+                 fluctuated_activities_dict[row['Material']][row['Radioassay ID']] = \
+                                          { row['Isotope']: fluctuated_spec_activity }
+              else:
+                 if row['Isotope'] not in \
+                       fluctuated_activities_dict[row['Material']][row['Radioassay ID']].keys():
+                   
+                    fluctuated_activities_dict[row['Material']][row['Radioassay ID']][row['Isotope']] = \
+                                           fluctuated_spec_activity #row['SpecActiv']
+                 else:
+                    # If we fail this last 'if' statement, the fluctuated activity of this 
+                    # material is already set, so do nothing.
+                    continue                    
+
+       return fluctuated_activities_dict            
+      
+
+
+ 
    ##########################################################################
    # Compute the mean specific activity that we expect to see, given the
    # fluctuations strategy outlined above and the radioassay measurement
-   ##########################################################################
+   #########################################################################
    def GetMeanSpecificActivity( self, components_table_row ):
         if 'limit' in components_table_row['SpecActivErrorType']:
            spec_activ_mean = 0.

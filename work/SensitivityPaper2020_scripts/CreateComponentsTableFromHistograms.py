@@ -14,10 +14,10 @@ if len(sys.argv) == 6:
         if not os.path.exists(output_dir):
                 sys.exit('\nERROR: path to output_dir does not exist\n')
 else:
-        print('\n\nERROR: CreateComponentsTableFromHistograms.py requires 4 arguments')
+        print('\n\nERROR: CreateComponentsTableFromHistograms.py requires 5 arguments')
         print('Usage:')
         print('\tpython CreateComponentsTableFromHistograms.py ' + \
-                '<config_file> <label> <histograms_file> <output_dir>')
+                '<config_file> <label> <histograms_file> <output_dir> <geometry_tag>')
         sys.exit('\n')
 ######################################################################
 
