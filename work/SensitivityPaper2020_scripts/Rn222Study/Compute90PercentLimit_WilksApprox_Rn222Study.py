@@ -83,6 +83,7 @@ import nEXOFitLikelihood
 INCLUDE_EFFICIENCY_ERROR = False
 INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
+CONSTRAINTS = True
 DEBUG_PLOTTING = False
 
 
@@ -92,7 +93,6 @@ workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/
 #workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
 #            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
-workspace.SetHandlingOfRadioassayData(fluctuate=True)
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
@@ -104,8 +104,6 @@ workspace.DefineROI( roi_dict )
 
 
 # Create the likelihood object
-print('Axis names:')
-print(workspace.histogram_axis_names)
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
 likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs,workspace.histogram_axis_names)
 
@@ -169,13 +167,13 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = -15., \
 	                                  upper_limit = 100.)
-	    elif 'Background_Shape_Error' in var['Name']:
+	    elif 'FullTPCCo60' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = -100., \
-	                                  upper_limit = 100.)
+	                                  lower_limit = 0., \
+	                                  upper_limit = var['Value']*10.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = var['Value']*0.05, \
+	                                  lower_limit = var['Value']*0.1, \
 	                                  upper_limit = var['Value']*10.)
 
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
@@ -183,6 +181,7 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 
 ##########################################################################
 # Here's where the calculation loop begins.
+workspace.SetHandlingOfRadioassayData(fluctuate=True)
 
 num_hypotheses = 24
 xvals = np.array([])
@@ -215,6 +214,21 @@ for j in range(0,num_datasets):
 	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, \
                                            workspace.histogram_axis_names, \
                                            replace_existing_variables=False )
+#	# Adjust the parameters' limits to avoid situations where the radioassay
+#	# fluctuations push them outside of their boundaries
+#	if PAR_LIMITS:
+#		for var in likelihood.model.variable_list:
+#			if 'Bb0n' in var['Name']:
+#				continue
+#			else:
+#				if var['Limits'][0] > var['Value']*0.05:
+#					likelihood.SetVariableLimits( var['Name'], \
+#						lower_limit = var['Value']*0.05, \
+#						upper_limit = var['Limits'][1])
+#				if var['Limits'][1] < var['Value'] * 10.:
+#					likelihood.SetVariableLimits( var['Name'], \
+#						lower_limit = var['Limits'][0], \
+#						upper_limit = var['Value']*10.)
 
 	rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 	likelihood.model.variable_list[ rn222_idx ]['Value'] *= rn222_scale_factor 
@@ -227,8 +241,7 @@ for j in range(0,num_datasets):
         # Fix the Co60 parameter
 	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
-	RN_CONSTRAINTS=True
-	if RN_CONSTRAINTS:
+	if CONSTRAINTS:
 		rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 		# Fluctuate Rn222 constraint
 		rn222_constraint_val = (np.random.randn()*0.1 + 1)*initial_guess[rn222_idx]
@@ -236,6 +249,13 @@ for j in range(0,num_datasets):
 		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],\
 							 rn222_constraint_val, \
 	                	                         0.1 * initial_guess[rn222_idx])
+		b8_idx = likelihood.model.GetVariableIndexByName('B8')
+		# Fluctuate B8nu constraint
+		b8_constraint_val = (np.random.randn()*0.1 + 1)*initial_guess[b8_idx]
+		# Set B8nu constraint
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[b8_idx]['Name'],\
+							 b8_constraint_val, \
+	                	                         0.1 * initial_guess[b8_idx])
 
 	if INCLUDE_EFFICIENCY_ERROR:
                 eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
@@ -331,6 +351,7 @@ for j in range(0,num_datasets):
 	output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
 	output_row['best_fit_parameters']  = lambda_fit_result['best_fit_parameters']
 	output_row['best_fit_errors']      = lambda_fit_result['best_fit_errors']
+	output_row['best_fit_nll']         = lambda_fit_result['best_fit_nll']
 	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
 	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
 	output_row['input_parameters']     = initial_guess

@@ -5,12 +5,13 @@ execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/"
 #outputdir = "/p/lustre1/lenardo1/sensitivity_output/October28_Rn222_Study_Baseline2019/"
 #outputdir = "/p/lustre2/lenardo1/sensitivity_output/Nov11_Rn222_OptimizedBinningV1_RadioassayFluct/"
 #outputdir = "/p/lustre3/lenardo1/sensitivity_output/Dec29_Rn222Study_merged-v10b_OptimizedV1Binning/"
-outputdir = "/p/lustre2/lenardo1/sensitivity_output/Jan3_Rn222Study_merged-v10b_OptimizedV1Binning_D023/"
-outputname = "Dec29_Rn222Study_merged-v10b_OptimizedV1Binning"
+outputdir = "/p/lustre2/lenardo1/sensitivity_output/Jan19_Rn222Study_merged-v10b_OptimizedV1Binning_D023/"
+outputname = "Jan19_Rn222Study_merged-v10b_OptimizedV1Binning"
 executable_name = 'Compute90PercentLimit_WilksApprox_Rn222Study.py'
 #components_table = '/usr/workspace/wsa/nexo/lenardo1/baseline2019_third_pass/ComponentsTable_D-023_merged-v5_final_cuts.h5' 
 components_table = '/p/vast1/nexo/sensitivity2020/pdfs/component_tables/'+\
-                       'ComponentsTable_D-023_Optimized_DNN_Standoff_Binning_version1_merged-v10b_AllCo60.h5'
+                       'ComponentsTable_D-023_merged-v10b_Optimized_DNN_Standoff_Binning_version1.h5'
+#                       'ComponentsTable_D-023_Optimized_DNN_Standoff_Binning_version1_merged-v10b_AllCo60.h5'
 #                       'ComponentsTable_D-023_merged_10b_Optimized_DNN_Standoff_Binning_version1.h5'
 #                       'ComponentsTable_D-023_Optimized_DNN_Standoff_Binning_version1.h5'
 
