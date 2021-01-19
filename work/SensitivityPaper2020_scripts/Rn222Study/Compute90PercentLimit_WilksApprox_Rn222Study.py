@@ -167,7 +167,7 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = -15., \
 	                                  upper_limit = 100.)
-	    elif 'FullTPCCo60' in var['Name']:
+	    elif 'Co60' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
 	                                  upper_limit = var['Value']*10.)

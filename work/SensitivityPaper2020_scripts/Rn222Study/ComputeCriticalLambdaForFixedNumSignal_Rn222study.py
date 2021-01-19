@@ -46,7 +46,6 @@ from iminuit import Minuit
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(config='/p/vast1/nexo/sensitivity2020/pdfs/'+\
                    'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile(input_components_table)
-workspace.SetHandlingOfRadioassayData( fluctuate=True )
 workspace.CreateGroupedPDFs()
 
 
@@ -85,13 +84,13 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
 	                                  upper_limit = 100.)
-	    elif 'Background_Shape_Error' in var['Name']:
+	    elif 'Co60' in var['Name']:
                 likelihood.SetVariableLimits( var['Name'], \
-                                          lower_limit = -100., \
-                                          upper_limit = 100.)
+                                          lower_limit = 0., \
+                                          upper_limit = var['Value']*10.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0.05, \
+	                                  lower_limit = 0.1*var['Value'], \
 	                                  upper_limit = var['Value']*10.)
 
 
@@ -105,6 +104,8 @@ import time
 
 start_time = time.time()
 last_time = start_time
+
+workspace.SetHandlingOfRadioassayData( fluctuate=True )
 
 for j in range(0,num_datasets):
 

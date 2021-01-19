@@ -85,13 +85,13 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
 	                                  upper_limit = 100.)
-	    elif 'Background_Shape_Error' in var['Name']:
+	    elif 'Co60' in var['Name']:
                 likelihood.SetVariableLimits( var['Name'], \
-                                          lower_limit = -100., \
-                                          upper_limit = 100.)
+                                          lower_limit = 0., \
+                                          upper_limit = var['Value']*10.)
 	    else: 
 	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = 0.05, \
+	                                  lower_limit = 0.1*var['Value'], \
 	                                  upper_limit = var['Value']*10.)
 
 
