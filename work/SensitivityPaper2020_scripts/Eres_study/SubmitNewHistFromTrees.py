@@ -1,14 +1,15 @@
 #!/usr/local/bin/python
 import sys
 import os
-sys.path.append('../../modules')
+sys.path.append('../../../modules')
 
-res_facts = [(False, 0.008), (0.00412, 0.009), (0.006, .01), (0.00755, .011), (0.00894, .012), (0.01025, .013), (0.01149, .014), (0.01269, .015), (0.01386, .016)]
+res_facts = [( , 0.008), (0.00412, 0.009), (0.006, .01), (0.00755, .011), (0.00894, .012), (0.01025, .013),
+			 (0.01149, .014), (0.01269, .015), (0.01386, .016), (0.015, .017), (0.01612, .018)]
 working_dir = "/p/lustre2/czyz1/nexo_sensitivity/work/SensitivityPaper2020_scripts"
-config_file = '../config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml'
+config_file = "../config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml"
 base_label = 'Energy_Res='
 path_to_trees = "/p/vast1/nexo/data/merged-v10b-mcid-labels"
-date = "20_12_22"
+date = "21_01_20"
 output_dir = "/p/lustre2/nexouser/czyz1/workdir/histogram_files/" + date
 
 
@@ -35,8 +36,8 @@ for (resolution_factor, resolution) in res_facts:
 		"cd " + working_dir + "\n" + \
 		"export STARTTIME=`date +%s`\n" + \
 		"echo Start time $STARTTIME\n" + \
-		"python3 " + working_dir + "/BuildHistogramTableFromTrees.py {} {} {} {}\n".format(\
-								config_file, label, path_to_trees, output_dir) + \
+		"python3 " + working_dir + "/BuildHistogramTableFromTrees.py {} {} {} {} {}\n".format(\
+								config_file, label, path_to_trees, output_dir, resolution_factor) + \
 		"export STOPTIME=`date +%s`\n" + \
 		"echo Stop time $STOPTIME\n" + \
 		"export DT=`expr $STOPTIME - $STARTTIME`\n" + \

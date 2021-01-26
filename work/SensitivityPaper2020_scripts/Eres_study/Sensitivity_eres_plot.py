@@ -6,15 +6,19 @@ import histlite as hl
 
 dnn = 'DNN1'
 materialdb = "024"
-dates = ["20_12_22_{}_{}".format(dnn, materialdb), "20_12_22_{}_023".format(dnn)]
+dates = ["21_01_21_{}_{}".format(dnn, materialdb), "21_01_21_{}_023".format(dnn)]
 # dates = ["20_10_22", "20_10_21", "20_10_19"]
 # root_dir = '/p/lustre2/nexouser/czyz1/output/'
-root_dir = '/p/lustre2/nexouser/czyz1/output/'
+path_home = '/p/lustre2/czyz1/nexo_sensitivity/work'
+path_result = '/p/lustre2/nexouser/czyz1'
+# path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
+# path_result = '/Users/czyz1/lc-nexouser'
+root_dir = '{}/output/'.format(path_result)
 
-num_dataset = 10
+num_dataset = 100
 start_it = 0
-end_it = 500
-eres = ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']
+end_it = 50
+eres = ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016', '0.017', '0.018']
 
 def calc_atoms_136():
     """ Number of Xe136 atoms in nEXO fiducial volume """
@@ -44,12 +48,13 @@ if __name__ == "__main__":
     fig2, ax2 = plt.subplots()
 
     colors = ['b', 'r', 'g', 'k', 'm']
+    coppers = ['Electroform Copper', 'Aurubis Copper']
 
-    for date in dates:
+    for index, date in enumerate(dates):
         if date == '20_11_04_DNN1_024':     # special case where the code was ran differently
             end_its = 450
             num_datasets = 50
-        elif date == '20_11_30_DNN1_023':
+        elif date == '20_12_03_DNN1_023':
             eres = ['0.008']
         else:
             end_its = end_it
@@ -101,18 +106,18 @@ if __name__ == "__main__":
 
         fig.savefig('{}/sens_hist_{}_{}.png'.format(output_dir, dnn, materialdb), dpi=800)
 
-        eres_num = [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6]
-        if date == '20_11_30_DNN1_023':
+        eres_num = [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8]
+        if date == '20_11_30_DNN1_023' or date == '20_12_03_DNN1_023':
             eres_num = [0.8]
-        ax2.plot(eres_num, sensitivity, '-o')#, label='MatDB = {}, DNN = {}'.format(materialdb, dnn))
-        ax2.set_xlim([.6, 1.6])
-        ax2.set_ylim([7E27, 2E28])
+        ax2.plot(eres_num, sensitivity, '-o', label=coppers[index])
+        ax2.set_xlim([.7, 1.9])
+        ax2.set_ylim([5E27, 1.3E28])
         ax2.set_xlabel('Resolution $\sigma$Q$_{\\beta\\beta}$ [%]', fontsize=16)
         ax2.set_ylabel('$^{136}$Xe 0$\\nu\\beta\\beta$ T$_{1/2}$ [yr]', fontsize=16)
         ax2.set_yscale('linear')
         ax2.legend()
 
-    fig2.savefig('{}/sens_vs_res_{}_{}.png'.format(output_dir, dnn, materialdb), dpi=800)
+    fig2.savefig('{}/sens_vs_res_{}.png'.format(output_dir, date), dpi=800, bbox_inches='tight')
 
     fig.show()
     fig2.show()

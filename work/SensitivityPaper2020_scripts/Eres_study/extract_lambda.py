@@ -19,16 +19,16 @@ import nEXOFitLikelihood
 path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
 path_result = '/Users/czyz1/lc-nexouser'
 
-base = "{}/czyz1/workdir/lambda/20_12_22_DNN1_023/".format(path_result)
+base = "{}/workdir/lambda/20_12_02_DNN1_024/".format(path_result)
 # base = "/Users/czyz1/lc-nexouser/workdir/lambda/20_12_22_DNN1_023/"
-resolution_list = ['0.008']#, '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']
+resolution_list = ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']
 #resolution_list = ['0.013']
 lambdas = {}
 for resolution in resolution_list:
     lambdas[resolution] = []
     fixed_fit_covar = np.array([], dtype=bool)
 
-    for run in range(122):
+    for run in range(50):
         file = base + 'critical_lambda_eres_{}_resolution_{}.h5'.format(run, resolution)
         if not os.path.exists(file):
             temp = 0
