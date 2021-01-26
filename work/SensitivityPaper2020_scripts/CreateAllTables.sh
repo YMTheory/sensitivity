@@ -10,7 +10,7 @@
 version=merged-v10b
 
 # Location of the ROOT files 
-LOCATION=/p/vast1/nexo/data/$version-mcid-labels/
+LOCATION=/p/vast1/nexo/data/${version}-mcid-labels/
 
 # Location where the PDFs will be saved
 COMMON=/p/vast1/nexo/sensitivity2020/pdfs/
@@ -24,22 +24,23 @@ Tags=(
 
 # List of different Yaml config files to use for generating different sets of PDFs
 ConfigFiles=(
-  Binary_DNN_085
-  Binary_DNN_0915
+  Optimized_DNN_Standoff_Binning_version1
   BkgIndex_Binning
+  Optimized_DNN_Standoff_Binning_version2
+  Optimized_DNN_Standoff_Binning_version3
+  Optimized_DNN_Standoff_Binning_version4
+  Optimized_DNN_Standoff_Binning_version5
   Optimized_DNN_Standoff_Binning_version1_energy+dnn
   Optimized_DNN_Standoff_Binning_version1_energy+recon_standoff
   Optimized_DNN_Standoff_Binning_version1_energy_only
   Optimized_DNN_Standoff_Binning_version1_energy_only_with_binary_dnn_085
-  Optimized_DNN_Standoff_Binning_version1
-  Optimized_DNN_Standoff_Binning_version2
-  Optimized_DNN_Standoff_Binning_version3
-  Optimized_DNN_Standoff_Binning_version4
+  Binary_DNN_085
+  Binary_DNN_0915
 )
 
 # Running the code
 for Config in "${ConfigFiles[@]}"; do
-  echo $Config
+  echo ${Config}
 
   # First create the corresponding histogram files from the merged trees, this usually takes a long time
   python BuildHistogramTableFromTrees.py ../config/Sensitivity2020_${Config}.yaml ${version}_${Config} $LOCATION ./
