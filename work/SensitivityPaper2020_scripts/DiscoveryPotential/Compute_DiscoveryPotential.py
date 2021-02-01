@@ -1,6 +1,8 @@
 # Import sys, then tell python where to find the nEXO-specific classes
 import sys
-sys.path.append('/p/lustre1/jamil1/sensitivity/modules')
+# assuming this script in executed within the DiscoveryPotential directory
+sys.path.append('../../../modules')
+
 
 ######################################################################
 # Load the arguments:
