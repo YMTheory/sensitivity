@@ -829,12 +829,17 @@ class nEXOFitWorkspace:
    # fluctuations strategy outlined above and the radioassay measurement
    #########################################################################
    def GetMeanSpecificActivity( self, components_table_row ):
-        if 'limit' in components_table_row['SpecActivErrorType']:
-           spec_activ_mean = 0.
-           spec_activ_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
-        else:
-           spec_activ_mean = components_table_row['SpecActiv']
-           spec_activ_sigma = components_table_row['SpecActivErr']
+        if components_table_row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
+              components_table_row['SpecActivErrorType'] == 'limit':
+                   spec_activ_mean = 0.
+                   spec_activ_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
+        elif components_table_row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
+                components_table_row['SpecActivErrorType'] == 'obs':
+                   spec_activ_mean = components_table_row['SpecActiv']
+                   spec_activ_sigma = components_table_row['SpecActivErr']
+        elif components_table_row['SpecActivErrorType'] == 'Asymmetric error':
+                    spec_activ_mean = components_table_row['SpecActiv']
+                    spec_activ_sigma = 0. 
         xvals = np.linspace( spec_activ_mean - 5.*spec_activ_sigma,\
                              spec_activ_mean + 5.*spec_activ_sigma,\
                              3000. )
