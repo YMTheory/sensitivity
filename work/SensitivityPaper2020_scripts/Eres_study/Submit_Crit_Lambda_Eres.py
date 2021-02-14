@@ -2,9 +2,9 @@
 
 import os
 
-caldate = '20_12_22'
-compdate = '20_12_22'
-database = '023'
+caldate = '21_01_21'
+compdate = '21_01_20'
+database = '024'
 date = caldate + '_DNN1_' + database
 
 execdir = "/p/lustre2/czyz1/nexo_sensitivity/work/SensitivityPaper2020_scripts/"
@@ -20,7 +20,8 @@ num_datasets = 5000
 
 # offset = 10
 
-for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']:
+for resolution in ['0.008', '0.011', '0.015', '0.018']:
+# for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016', '0.017', '0.018']:
 	comp_loc = components_tables + "ComponentsTable_D-{}_Energy_Res={}.h5".format(database, resolution)
 
 	for num in range(0, 122):
@@ -47,6 +48,7 @@ for resolution in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014',
 			"#SBATCH -o " + outfilename + "\n" + \
 			"#SBATCH --mail-type=fail\n" + \
 			"#SBATCH -J " + base + "\n" + \
+			"#SBATCH -p pdebug \n" + \
 			"#SBATCH --export=ALL \n" + \
 			"source /usr/gapps/nexo/setup.sh \n" + \
 			"source /g/g12/czyz1/nexoenv/bin/activate \n" + \

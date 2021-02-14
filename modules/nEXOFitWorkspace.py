@@ -842,7 +842,7 @@ class nEXOFitWorkspace:
                     spec_activ_sigma = 0. 
         xvals = np.linspace( spec_activ_mean - 5.*spec_activ_sigma,\
                              spec_activ_mean + 5.*spec_activ_sigma,\
-                             3000. )
+                             3000)
         if spec_activ_sigma < 1.e-30:
            print('no sigma for {} ({})'.format(components_table_row['PDFName'],\
                                                components_table_row['Activity ID']))
