@@ -1,5 +1,5 @@
-axes.titlesize : 16
-axes.labelsize : 16
+axes.titlesize : 17
+axes.labelsize : 17
 lines.linewidth : 2
 lines.markersize : 10
 xtick.labelsize : 16
@@ -9,7 +9,7 @@ figure.figsize: 8,6
 figure.dpi : 600
 savefig.dpi : 600
 savefig.bbox : tight
-legend.fontsize : 12
+legend.fontsize : 16
 legend.loc : upper left
 errorbar.capsize : 5
 mathtext.fontset: cm
