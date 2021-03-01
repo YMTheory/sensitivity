@@ -593,6 +593,8 @@ class nEXOFitWorkspace:
              print('\n*********************** EXITING *******************************\n')
              sys.exit('') 
 
+          print('Fraction of events passing {} cut: {:5.5}'.format(cut['Title'],np.sum(this_mask)/len(this_mask)))
+
           global_mask = global_mask & this_mask
 
       return global_mask  
@@ -650,7 +652,7 @@ class nEXOFitWorkspace:
                                 self.GetMeanSpecificActivity(row)/1000.*\
                                 row['TotalHitEff_K'] / row['TotalHitEff_N'] *\
                                 self.livetime
-         
+
          if not (row['Group'] in self.df_group_pdfs['Group'].values):
 
              new_group_row = { 'Group' : row['Group'], \

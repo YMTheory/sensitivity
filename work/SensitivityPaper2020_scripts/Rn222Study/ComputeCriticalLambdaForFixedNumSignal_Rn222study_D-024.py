@@ -46,7 +46,6 @@ from iminuit import Minuit
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(config='/p/vast1/nexo/sensitivity2020/pdfs/'+\
                    'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile(input_components_table)
-workspace.SetHandlingOfRadioassayData( fluctuate=True )
 workspace.CreateGroupedPDFs()
 
 
@@ -64,9 +63,13 @@ if INCLUDE_BACKGROUND_SHAPE_ERROR:
 	bkg_shape_err = 2.5
 
 # Get the initial values; set the BB0n num_signal to the user-provided input
-initial_values = likelihood.GetVariableValues()
-initial_values[ likelihood.GetVariableIndex('Bb0n') ] = input_num_signal
+sig_idx = likelihood.model.GetVariableIndexByName('Bb0n')
+likelihood.model.variable_list[ sig_idx ]['Value'] = input_num_signal
 
+rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
+likelihood.model.variable_list[ rn222_idx ]['Value'] *= rn222_scale_factor
+
+initial_values = likelihood.GetVariableValues()
 
 # Initialize the model
 likelihood.model.UpdateVariables(initial_values)
@@ -97,6 +100,8 @@ if PAR_LIMITS:
 
 # Increase the step size for the Bb0n variable
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
+
+workspace.SetHandlingOfRadioassayData( fluctuate=True )
 
 output_row = dict()
 output_df_list = []

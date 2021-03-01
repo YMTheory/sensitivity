@@ -183,7 +183,7 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 # Here's where the calculation loop begins.
 workspace.SetHandlingOfRadioassayData(fluctuate=True)
 
-num_hypotheses = 21
+num_hypotheses = 25
 xvals = np.array([])
 
 lambdas = np.zeros(num_hypotheses)
@@ -284,11 +284,9 @@ for j in range(0,num_datasets):
 
 		# Fix the 0nu parameter to a specific hypothesis
 		if rn222_scale_factor > 9.:
-			signal_hypothesis = float(i)*2.5+0.000001
-		elif rn222_scale_factor < 0.3:
-			signal_hypothesis = float(i)*1.4+0.000001
+			signal_hypothesis = float(i)*2.+0.000001
 		else: 
-			signal_hypothesis = float(i)*2.0+0.000001
+			signal_hypothesis = float(i)*1.4+0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
 		initial_values[signal_idx] = signal_hypothesis
