@@ -20,7 +20,7 @@ output_dir = sys.argv[5]
 bb0n_count = int(sys.argv[6])
 livetime = float(sys.argv[7])
 yaml_card = sys.argv[8]
-bkg_scale_factor = float(sys.argv[9])
+rn222_scale_factor = float(sys.argv[9])
 
 
 num_hypotheses = 1
@@ -65,19 +65,9 @@ initial_guess = likelihood.GetVariableValues()
 # Get the initial values;
 initial_values = likelihood.GetVariableValues()
 
-# Scale the gamma ray background components.
-isotopes_to_leave_alone = ['Ar42','Xe137','bb2n','bb0n','B8nu'] # just for bookkeeping
-isotopes_to_scale = ['K40','Rn222','Co60','Al26','Th232','U238','Cs137']
-
-for index, row in workspace.df_components.iterrows():
-
-	# The format is <isotope>_<part>, e.g. "Th232_HVCables"
-
-	if row['PDFName'].split('_')[0] in isotopes_to_scale:
-		
-		print('Scaling {}...'.format(row['PDFName']))
-		workspace.df_components.loc[index,'SpecActiv'] = bkg_scale_factor * row['SpecActiv']
-		workspace.df_components.loc[index,'SpecActivErr'] = bkg_scale_factor * row['SpecActivErr']
+# Scale the Rn222 component according to the input value
+rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
+initial_guess[rn222_idx] *= rn222_scale_factor
 
 
 
@@ -141,6 +131,9 @@ for j in range(0,num_datasets):
 	if INCLUDE_BACKGROUND_SHAPE_ERROR: 
 		shape_idx = likelihood.model.GetVariableIndexByName('Background_Shape_Error')
 		likelihood.model.variable_list[shape_idx]['Value'] = 0
+
+	rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
+	likelihood.model.variable_list[ rn222_idx ]['Value'] *= rn222_scale_factor 
 
 	initial_guess = likelihood.GetVariableValues()
 	likelihood.model.GenerateModelDistribution()
@@ -248,9 +241,9 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/DiscoveryPotential_bb0n_{}ct_{}yrs_g{:03}_{:03}.h5'.format(output_dir, bb0n_count, livetime, bkg_scale_factor, job_id_num ),key='df')
+output_df.to_hdf('{}/DiscoveryPotential_bb0n_{}ct_{}yrs_g{:03}_{:03}.h5'.format(output_dir, bb0n_count, livetime, rn222_scale_factor, job_id_num ),key='df')
 
-print('Elapsed: {:4.4}s'.format(time.time()-start_time))
+print('Elapsed: {:4.4}s'.format(time.time()-start_time)) 
 
 
 
