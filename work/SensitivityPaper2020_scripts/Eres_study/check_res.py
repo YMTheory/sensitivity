@@ -25,7 +25,7 @@ def main():
     path_result = '/Users/czyz1/lc-nexouser'
 
     config_loc = "{}/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml".format(path_home)
-    date = '21_01_20'
+    date = '21_03_01'
     database_num = '023'
     # Set some switches
     lt_years = 10

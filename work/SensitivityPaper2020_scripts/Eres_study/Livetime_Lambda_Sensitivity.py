@@ -29,7 +29,7 @@ sys.path.append('../../modules')
 
 ######################################################################
 # Load the arguments:
-if len(sys.argv) != 12:
+if len(sys.argv) != 13:
     print('\nERROR: incorrect number of arguments.\n')
     print('Usage:')
     print('\tpython Compute90PercentLimit_L_Cluster.py ' + \
@@ -47,6 +47,7 @@ comp_loc = sys.argv[8]
 crit_lam_loc = sys.argv[9]
 resolution = sys.argv[10]
 USE_WILKS = sys.argv[11]
+lt_years = float(sys.argv[12])
 
 ##########################################################################
 def FindIntersectionByQuadraticInterpolation( xvals, yvals, SplineFunction=None, USE_WILKS=False ):
@@ -155,7 +156,6 @@ if USE_WILKS == 'True':
 	USE_WILKS = True
 else:
 	USE_WILKS = False
-# lt_years = 10
 lambda_x = []
 for i in range(122):
 	lambda_x.append(i*0.25)
@@ -366,7 +366,7 @@ for j in range(0,num_datasets):
 			plt.xlabel('Num signal')
 			plt.ylabel('Lambda')
 			plt.legend(loc='upper right')
-			plt.savefig('{}/example_fit_curve_DEBUGPLOT_{}.png'.format(output_dir, resolution), \
+			plt.savefig('{}/example_fit_curve_DEBUGPLOT_{}.png'.format(output_dir, lt), \
 						dpi=200, bbox_inches='tight')
 
 	output_row['num_signal'] = xvals
@@ -407,7 +407,7 @@ output_df = pd.DataFrame(output_df_list)
 print('Saving file to output directory: {}'.format(output_dir))
 if not os.path.exists(output_dir + '/h5/' + date):
 	os.makedirs(output_dir + '/h5/' + date)
-output_df.to_hdf('{}/h5/{}/sens_output_file_90CL_{}_resolution_{}.h5'.format(output_dir,date,iteration_num,resolution),
+output_df.to_hdf('{}/h5/{}/sens_output_file_90CL_{}_livetime_{}.h5'.format(output_dir,date,iteration_num,lt_years),
 				 key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

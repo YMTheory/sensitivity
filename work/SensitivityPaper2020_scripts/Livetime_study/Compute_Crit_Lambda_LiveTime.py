@@ -15,13 +15,13 @@ if len(sys.argv) == 10:
 	config_loc = sys.argv[5]
 	date = sys.argv[6]
 	comp_loc = sys.argv[7]
-	resolution = sys.argv[8]
+	lt_years = sys.argv[8]
 	num_its = sys.argv[9]
 
 	if not os.path.exists(output_dir):
 		sys.exit('\nERROR: path to output_dir does not exist\n')
 else:
-	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 8 arguments')
+	print('\n\nERROR: ComputeCriticalLambdaForNumSignal.py requires 9 arguments')
 	print('Usage:')
 	print('\tpython ComputeCriticalLambdaForNumSignal.py ' + \
 		'<iteration_num> <input_num_signal> <num_datasets_to_generate> </path/to/output/directory/> '+\
@@ -51,6 +51,7 @@ from iminuit import Minuit
 workspace = nEXOFitWorkspace.nEXOFitWorkspace(config='/p/lustre2/czyz1/nexo_sensitivity/work/config/' +
 											'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
 workspace.LoadComponentsTableFromFile(comp_loc)
+workspace.livetime = float(lt_years) * 365.25 * 24. * 60. * 60.
 workspace.SetHandlingOfRadioassayData( fluctuate=True )
 workspace.CreateGroupedPDFs()
 
@@ -226,7 +227,6 @@ output_df = pd.DataFrame(output_df_list)
 print('Saving file to output directory: {}'.format(output_dir + date))
 if not os.path.exists(output_dir + date):
 	os.makedirs(output_dir + date)
-output_df.to_hdf('{}{}/critical_lambda_eres_{}_resolution_{}_numits={}.h5'.format( \
-	output_dir, date, iteration_num, resolution, num_its), key='df')
+output_df.to_hdf('{}/critical_lambda_iteration_{}_lt_years_{}_numits={}.h5'.format(output_dir, iteration_num, lt_years, num_its), key='df')
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))
 
