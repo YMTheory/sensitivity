@@ -16,12 +16,15 @@ path_result = '/p/lustre2/nexouser/czyz1'
 # path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
 # path_result = '/Users/czyz1/lc-nexouser'
 
-date = '21_03_22'
+date = '21_03_31'
 db = '024'
 
 resolution = '0.008'
 lambdas = {}
-livetime_list = ['0.5', '1', '2', '5']
+# livetime_list = ['0.25']
+livetime_list = ['2']
+num_missing = 0
+subit_range = 100  # 10
 
 for livetime in livetime_list:
 
@@ -29,15 +32,16 @@ for livetime in livetime_list:
     lambdas = [] #np.array([])
     fixed_fit_covar = np.array([], dtype=bool)
 
-    for iteration in range(122):
+    for iteration in range(6):
 
         sub_lam = np.array([])
-        for subit in range(5):
+        for subit in range(subit_range):
 
             file = base + 'critical_lambda_iteration_{}_lt_years_{}_numits={}.h5'.format(iteration, livetime, subit)
             print('Livetime = {}, iteration = {}, subit = {}'.format(livetime, iteration, subit))
             if not os.path.exists(file):
-                pass
+                num_missing += 1
+                print('num_missing = {}'.format(num_missing))
                 # temp = 0
                 # for run_nest in [it-1, it+1]:
                 #     file = base + 'critical_lambda_eres_0_resolution_{}_numits={}.h5'.format(resolution, run_nest)

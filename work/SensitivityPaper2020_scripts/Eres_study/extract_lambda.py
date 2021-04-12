@@ -25,7 +25,7 @@ db_list = ['024']
 # resolution_list = ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']
 resolution_list = ['0.008']#, '0.011', '0.015', '0.018']
 #resolution_list = ['0.013']
-livetime_list = ['0.5', '1', '2', '5']
+livetime_list = ['0.25']
 lambdas = {}
 for db in db_list:
     resolution = '0.008'

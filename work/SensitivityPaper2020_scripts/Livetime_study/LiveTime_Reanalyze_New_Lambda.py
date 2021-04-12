@@ -86,7 +86,7 @@ dnn = 'DNN1'
 materialdb = "024"
 dates = ["21_03_11_{}_{}".format(dnn, materialdb)]
 lamdate = "21_03_22_{}_{}".format(dnn, materialdb)
-livetimes = ['0.5', '1.0', '2.0', '5.0', '10.0']
+livetimes = ['2.0']
 datasets = 100
 
 # path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
@@ -129,7 +129,8 @@ for index, lt in enumerate(livetimes):
                 print(input_data_file)
                 continue
 
-            spline_xn = np.array([1., 3, 6, 10, 15, 21, 30])  # defines the locations of the knots
+            # spline_xn = np.array([1., 3, 6, 10, 15, 21, 30])  # defines the locations of the knots
+            spline_xn = np.array([.75, 2.25, 4.5, 10, 15, 21, 30])  # defines the locations of the knots
             # SplineFunc = LSQUnivariateSpline(critical_lambda_data[:,0],critical_lambda_data[:,1],t = spline_xn,k=3)
             SplineFunc = LSQUnivariateSpline(xcrit, ycrit, t=spline_xn, k=3)
             # Set some switches
