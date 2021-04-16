@@ -14,7 +14,7 @@ root_dir = '/p/lustre2/nexouser/czyz1/output/'
 num_datasets = 100
 start_it = 0
 end_its = 100
-lts = ['0.5', '1.0', '2.0', '5.0', '10.0']
+lts = ['0.25', '0.5', '1.0', '2.0', '5.0', '10.0']
 
 def calc_atoms_136():
     """ Number of Xe136 atoms in nEXO fiducial volume """
@@ -31,7 +31,7 @@ def calc_atoms_136():
 
 def sensitivity_calc(atoms136, lt_years, cross_median):
     """Calculate the sensitivty of nEXO in terms of half-life (years)"""
-    eff = 0.963  # hit efficiency
+    eff = 0.9598  # hit efficiency
     sensitivity = eff * atoms136 * lt_years * np.log(2) / cross_median
 
     return sensitivity
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     atoms136 = calc_atoms_136()
     fig2, ax2 = plt.subplots()
 
-    colors = ['b', 'r', 'g', 'k', 'm']
+    colors = ['b', 'r', 'g', 'k', 'm', 'c']
 
     for date in dates:
 
@@ -111,9 +111,10 @@ if __name__ == "__main__":
 
             converged += len(crossing_masked)
             sensitivity.append(sensitivity_calc(atoms136, float(lt_years), np.median(crossing_masked)))
-            ax.axvline(np.median(crossing_masked), color=colors[plot_index], linestyle='--')
-            hteststats = hl.hist(crossing_masked, bins=np.linspace(0, 30, 31))
-            hl.plot1d(ax, hteststats,  color=colors[plot_index], label='LT = {} Y, T_1/2 = {:.3e} Y,\n Median = {:.3}'
+            ax.axvline(np.median(crossing_masked), color=colors[plot_index % len(colors)], linestyle='--')
+            hteststats = hl.hist(crossing_masked, bins=np.linspace(0, 30, 121))
+            hl.plot1d(ax, hteststats,  color=colors[plot_index % len(colors)], label='LT = {} Y, T_1/2 = {:.3e} Y,'
+                                                                              '\n Median = {:.3}'
                       .format(float(lt_years), sensitivity[-1], np.median(crossing_masked)))
             ax.set_xlabel('Upper limit on 0nuBB counts at 90% confidence limit', fontsize=16)
             ax.set_ylabel('Counts ({} toys, {} converged)'.format(num_toys, converged), fontsize=16)

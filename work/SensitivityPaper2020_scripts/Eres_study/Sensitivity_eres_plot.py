@@ -14,10 +14,10 @@ dates = ["21_03_01_{}_{}".format(dnn, "023"),
 # dates = ["21_01_21_{}_{}".format(dnn, materialdb)]#, "21_01_21_{}_023".format(dnn)]
 # dates = ["20_10_22", "20_10_21", "20_10_19"]
 # root_dir = '/p/lustre2/nexouser/czyz1/output/'
-# path_home = '/p/lustre2/czyz1/nexo_sensitivity/work'
-# path_result = '/p/lustre2/nexouser/czyz1'
-path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
-path_result = '/Users/czyz1/lc-nexouser'
+path_home = '/p/lustre2/czyz1/nexo_sensitivity/work'
+path_result = '/p/lustre2/nexouser/czyz1'
+# path_home = '/Users/czyz1/lc-home/nexo_sensitivity/work'
+# path_result = '/Users/czyz1/lc-nexouser'
 root_dir = '{}/output/'.format(path_result)
 
 
@@ -27,7 +27,7 @@ end_it = 100
 lres = '0.008'
 # eres = ['1']
 # eres = ['0.011', '0.015', '0.018']
-resols = ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016', '0.017', '0.018']
+resols = ['0.008']#, '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016', '0.017', '0.018']
 # resols = ['0.008', '0.01', '0.012', '0.014', '0.016', '0.018']
 
 def calc_atoms_136():
@@ -45,7 +45,7 @@ def calc_atoms_136():
 
 def sensitivity_calc(atoms136, lt_years, cross_median):
     """Calculate the sensitivty of nEXO in terms of half-life (years)"""
-    eff = 0.963  # hit efficiency
+    eff = 0.9598  # hit efficiency
     sensitivity = eff * atoms136 * lt_years * np.log(2) / cross_median
 
     return sensitivity
@@ -58,7 +58,7 @@ if __name__ == "__main__":
     fig2, ax2 = plt.subplots()
 
     colors = ['b', 'r', 'g', 'k', 'm']
-    coppers = ['Electroform Copper', 'Aurubis Copper', 'D025']
+    coppers = ['Aurubis Copper', 'Electroform Copper', 'D025']
 
     for index, date in enumerate(dates):
         if date == '20_11_04_DNN1_024':     # special case where the code was ran differently
@@ -145,8 +145,8 @@ if __name__ == "__main__":
                         else:
                             fix_acc_covar.append(True)
 
-                    if 'best_fit_nll' in df.columns:
-                        print('placeholder')
+                    # if 'best_fit_nll' in df.columns:
+                    #     print('placeholder')
 
 
                     crossing_masked = crossing_masked + [f for a, b, c, d, e, f in zip(df['best_fit_converged'],

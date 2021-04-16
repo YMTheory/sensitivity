@@ -2,9 +2,9 @@
 
 import os
 
-caldate = '21_03_22'
+caldate = '21_03_31'
 compdate = '21_03_01'
-num_its = 5
+num_its = 100
 
 for database in ['024']: #['023', '024', '025']:
 	date = caldate + '_DNN1_' + database
@@ -18,14 +18,14 @@ for database in ['024']: #['023', '024', '025']:
 
 
 	# Number of toy datasets to run for each hypothesis
-	num_datasets = 1000
+	num_datasets = 100
 	resolution = '0.008'
 
-	for livetime in ['0.5', '1', '2', '5']:
+	for livetime in ['1', '2']:
 		comp_loc = components_tables + "ComponentsTable_D-{}_Energy_Res={}.h5".format(database, resolution)
 
 		for iteration in range(num_its):
-			for num in range(0, 122):
+			for num in range(0, 6):
 
 				basename = base + 'step=' + str(num) + '_livetime=' + livetime + '_num_it=' + str(iteration)
 

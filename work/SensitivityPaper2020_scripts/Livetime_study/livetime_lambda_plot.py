@@ -47,15 +47,22 @@ if __name__ == '__main__':
     for i in range(122):
         X.append(i * .25)
 
-    colors = ['b','r','k','g','m','y']
-    labels = ['lt=0.5 yr', 'lt=1 yr', 'lt=2 yr', 'lt=5 yr', 'lt=10 yr', "Wilks' Approximation"]
+    colors = ['b','r','k','c','g','m','y']
+    labels = ['lt=0.25 yr', 'lt=0.5 yr', 'lt=1 yr', 'lt=2 yr', 'lt=5 yr', 'lt=10 yr', "Wilks' Approximation"]
+    # labels = ['lt=0.25 yr', 'lt=0.5 yr', "Wilks' Approximation"]
+    # labels = ['lt=1 yr', 'lt=2 yr', "Wilks' Approximation"]
+    # labels = ['lt=5 yr', 'lt=10 yr', "Wilks' Approximation"]
+
     for index, D in enumerate(['024']):
         Y=None
         # folder = "/Users/czyz1/lc-nexouser/workdir/lambda/21_01_21_DNN1_{}/".format(D)
         folder = "/Users/czyz1/lc-nexouser/workdir/lambda/21_03_22_DNN1_{}/".format(D)
         # for res in ['0.008', '0.011', '0.015', '0.018']:
         # for res in ['0.008', '0.009', '0.01', '0.011', '0.012', '0.013', '0.014', '0.015', '0.016']:
-        for lt in ['0.5', '1.0', '2.0', '5.0', '10.0']:
+        for lt in ['0.25', '0.5', '1.0', '2.0', '5.0', '10.0']:
+        # for lt in ['0.25', '0.5']:
+        # for lt in ['1.0', '2.0']:
+        # for lt in ['5.0', '10.0']:
             file = folder + "lambdas_lt={}.txt".format(lt)
             Y = np.genfromtxt(file)
             # file = folder + "lambdas_res={}.txt".format(res)
@@ -65,7 +72,11 @@ if __name__ == '__main__':
             # else:
             #     Y = Ynew
             # print(Y)
-            spline_xn = np.array([1., 3, 6, 10, 15, 21, 30])  # defines the locations of the knots
+            # spline_xn = np.array([.75, 2.25, 4.5, 7, 10, 15, 21, 30])  # defines the locations of the knots
+            spline_xn = np.array([.75, 2.5, 4.5, 10, 15, 21, 30])  # defines the locations of the knots
+
+            # spline_xn = np.array([1, 3, 6, 10, 15, 21, 30])  # defines the locations of the knots
+
             # spline_xn = np.array([1., 2, 3, 4, 5., 7., 10., 12.5, 15, 17.5, 20., 22.5, 25, 27.5, 30])  # defines the
             SplineFunc = LSQUnivariateSpline(X, Y, t=spline_xn, k=3)
             xfit, yfit, crossing, crossing_idx = FindIntersectionByQuadraticInterpolation(X,Y, SplineFunc)
@@ -73,10 +84,10 @@ if __name__ == '__main__':
             plt.plot(xfit, SplineFunc(xfit),label='Fit, LT (years) = '+lt)
             # elif index == 1:
             #     plt.plot(xfit, SplineFunc(xfit), '-.', label=labels[index] + '_' + res)
-            plt.plot(X,Y,label='Raw, LT (years) = '+lt)
+            # plt.plot(X,Y,label='Raw, LT (years) = '+lt)
         # plt.plot(xfit,yfit)
-        plt.ylim([.8, 4])
-        plt.xlim([0, 30])
+        plt.ylim([.5, 4])
+        plt.xlim([0, 10])
         # np.savetxt(folder + "lambdas_res=0.008.txt", Y)
     plt.plot(X, [2.706 for i in range(122)],label=labels[-1])
     plt.legend( loc='lower right')
