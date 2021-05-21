@@ -1,16 +1,16 @@
-axes.titlesize : 17
-axes.labelsize : 17
+axes.titlesize : 20
+axes.labelsize : 20
 lines.linewidth : 2
 lines.markersize : 10
-xtick.labelsize : 16
-ytick.labelsize : 16
+xtick.labelsize : 20
+ytick.labelsize : 20
 font.family : serif
 figure.figsize: 8,6
 figure.dpi : 200
 figure.facecolor: white
 savefig.dpi : 600
 savefig.bbox : tight
-legend.fontsize : 16
+legend.fontsize : 18
 legend.loc : upper left
 errorbar.capsize : 5
 mathtext.fontset: cm
