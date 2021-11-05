@@ -1,14 +1,11 @@
-import numpy as np
 import histlite as hl
-import pandas as pd
-import nEXOFitModel
-import copy
-import sys
-
 import matplotlib.pyplot as plt
+import numpy as np
 from cycler import cycler
-
 from iminuit import Minuit
+
+import nEXOFitModel
+
 
 class nEXOFitLikelihood:
 
@@ -88,19 +85,19 @@ class nEXOFitLikelihood:
        if initial_values is None:
           initial_values = self.GetVariableValues()             
 
-       self.fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
-                                   np.copy(initial_values),\
-                                   error = self.GetMinuitInputErrorTuple(), \
-                                   fix   = self.GetVariableFixTuple(), \
-                                   name  = self.GetVariableNamesTuple(), \
-                                   limit = self.GetVariableLimitsTuple(), \
-                                   errordef = 0.5,\
-                                   print_level = print_level)
+       self.fitter = Minuit(self.ComputeNegLogLikelihood,
+                            np.copy(initial_values),
+                            name=self.GetVariableNamesTuple())
+       self.fitter.errors = self.GetMinuitInputErrorTuple()
+       self.fitter.fixed = self.GetVariableFixTuple()
+       self.fitter.limits = self.GetVariableLimitsTuple()
+       self.fitter.errordef = Minuit.LIKELIHOOD  # 0.5
+       self.fitter.print_level = print_level
+
        self.fitter.migrad()
        #self.PrintVariableList()
        num_iterations = 1
-       while not (self.fitter.get_fmin()['is_valid']\
-             and self.fitter.get_fmin()['has_accurate_covar']):    
+       while not (self.fitter.valid and self.fitter.accurate):
                  if num_iterations > 9:
                     break
                  if print_level > 0:
@@ -117,14 +114,15 @@ class nEXOFitLikelihood:
                              fluctuated_input_values[i] = initial_values[i]
                  ##########################################################
           
-                 self.fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
-                                        np.copy(fluctuated_input_values),\
-                                        error = self.GetMinuitInputErrorTuple(), \
-                                        fix   = self.GetVariableFixTuple(), \
-                                        name  = self.GetVariableNamesTuple(), \
-                                        limit = self.GetVariableLimitsTuple(), \
-                                        errordef = 0.5,\
-                                        print_level = print_level)
+                 self.fitter = Minuit(self.ComputeNegLogLikelihood,
+                                      np.copy(fluctuated_input_values),
+                                      name=self.GetVariableNamesTuple())
+                 self.fitter.errors = self.GetMinuitInputErrorTuple()
+                 self.fitter.fixed = self.GetVariableFixTuple()
+                 self.fitter.limits = self.GetVariableLimitsTuple()
+                 self.fitter.errordef = Minuit.LIKELIHOOD  # 0.5
+                 self.fitter.print_level = print_level
+
                  self.fitter.migrad()
                  num_iterations += 1
                  #self.PrintVariableList()
@@ -135,39 +133,36 @@ class nEXOFitLikelihood:
        # sure it finds the absolute minimum.
        if False:
           print('Attempting to refine the fit...')
-          if self.fitter.get_fmin()['is_valid'] \
-             and self.fitter.get_fmin()['has_accurate_covar']:
+          if self.fitter.valid and self.fitter.accurate:
                     fluctuated_input_values = self.GetVariableValues() + \
                                         np.random.randn(len(initial_values)) * \
                                         0.5 * self.fitter.np_errors()
                     for i in range(0,len(self.model.variable_list)):
                              if self.model.variable_list[i]['IsFixed']:
                                 fluctuated_input_values[i] = initial_values[i]
-                    second_pass_fitter = Minuit.from_array_func( self.ComputeNegLogLikelihood, \
-                                           np.copy(fluctuated_input_values),\
-                                           error = self.GetMinuitInputErrorTuple(), \
-                                           fix   = self.GetVariableFixTuple(), \
-                                           name  = self.GetVariableNamesTuple(), \
-                                           limit = self.GetVariableLimitsTuple(), \
-                                           errordef = 0.5,\
-                                           print_level = print_level)
+                    second_pass_fitter = Minuit(self.ComputeNegLogLikelihood,
+                                         np.copy(fluctuated_input_values),
+                                         name=self.GetVariableNamesTuple())
+                    second_pass_fitter.errors = self.GetMinuitInputErrorTuple()
+                    second_pass_fitter.fixed = self.GetVariableFixTuple()
+                    second_pass_fitter.limits = self.GetVariableLimitsTuple()
+                    second_pass_fitter.errordef = Minuit.LIKELIHOOD  # 0.5
+                    second_pass_fitter.print_level = print_level
+
                     second_pass_fitter.migrad()
    
                     # If the new fit is an improvement, replace the old one 
                     if second_pass_fitter.fval < self.fitter.fval \
-                       and second_pass_fitter.get_fmin()['is_valid'] \
-                       and second_pass_fitter.get_fmin()['has_accurate_covar']:
+                       and second_pass_fitter.valid \
+                       and second_pass_fitter.accurate:
                        self.fitter = second_pass_fitter 
        ############################################################################
               
        fit_errors = self.fitter.errors
        for var in self.model.variable_list:
            var['FitError'] = fit_errors[ var['Name'] ]
-           
 
-       return self.fitter.get_fmin()['is_valid'],\
-              self.fitter.get_fmin()['has_accurate_covar'],\
-              num_iterations 
+       return self.fitter.valid, self.fitter.accurate, num_iterations
 
    ##############################################################################################
    def ComputeLambda( self, initial_values=None, signal_name='Bb0n', print_level=0,\
@@ -198,8 +193,8 @@ class nEXOFitLikelihood:
           # The action happens here!
           best_fit_converged, best_fit_covar, best_fit_iterations = \
                            self.CreateAndRunMinuitFit( initial_values_best, print_level=print_level )
-          best_fit_parameters = dict( self.fitter.values ) 
-          best_fit_errors = dict( self.fitter.errors )
+          best_fit_parameters = dict(zip(self.fitter.parameters, self.fitter.values))
+          best_fit_errors = dict(zip(self.fitter.errors, self.fitter.errors))
   
           self.best_fit_result = dict() 
           self.best_fit_result['best_fit_converged'] = best_fit_converged
@@ -222,8 +217,8 @@ class nEXOFitLikelihood:
        # The action happens here!
        fixed_fit_converged, fixed_fit_covar, fixed_fit_iterations = \
                         self.CreateAndRunMinuitFit( initial_values_fixed, print_level=print_level )
-       fixed_fit_parameters = dict( self.fitter.values )
-       fixed_fit_errors = dict( self.fitter.errors ) 
+       fixed_fit_parameters = dict(zip(self.fitter.parameters, self.fitter.values))
+       fixed_fit_errors = dict(zip(self.fitter.errors, self.fitter.errors))
 
        # Note, the 2 is positive here becuase fval is the *negative* log-likelihood
        # Lambda is defined as -2 * ln( L_fixed / L_best )
@@ -285,8 +280,8 @@ class nEXOFitLikelihood:
             print('\nRunning best fit...\n')
             best_fit_converged, best_fit_covar, best_fit_iterations = \
                              self.CreateAndRunMinuitFit( initial_values_best, print_level=print_level )
-            best_fit_parameters = dict( self.fitter.values ) 
-            best_fit_errors = dict( self.fitter.errors )
+            best_fit_parameters = dict(zip(self.fitter.parameters, self.fitter.values))
+            best_fit_errors = dict(zip(self.fitter.errors, self.fitter.errors))
   
             self.best_fit_result = dict() 
             self.best_fit_result['best_fit_converged'] = best_fit_converged
@@ -314,8 +309,8 @@ class nEXOFitLikelihood:
                  initial_values_best[signal_idx] = 0.
                  zero_fit_converged, zero_fit_covar, zero_fit_iterations = \
                                   self.CreateAndRunMinuitFit( initial_values_best, print_level=print_level )
-                 zero_fit_parameters = dict( self.fitter.values ) 
-                 zero_fit_errors = dict( self.fitter.errors )
+                 zero_fit_parameters = dict(zip(self.fitter.parameters, self.fitter.values))
+                 zero_fit_errors = dict(zip(self.fitter.errors, self.fitter.errors))
                  self.zero_fit_result = dict() 
                  self.zero_fit_result['zero_fit_converged'] = zero_fit_converged
                  self.zero_fit_result['zero_fit_covar'] = zero_fit_covar
@@ -339,8 +334,8 @@ class nEXOFitLikelihood:
 
        fixed_fit_converged, fixed_fit_covar, fixed_fit_iterations = \
                         self.CreateAndRunMinuitFit( initial_values_fixed, print_level=print_level )
-       fixed_fit_parameters = dict( self.fitter.values )
-       fixed_fit_errors = dict( self.fitter.errors ) 
+       fixed_fit_parameters = dict(zip(self.fitter.parameters, self.fitter.values))
+       fixed_fit_errors = dict(zip(self.fitter.errors, self.fitter.errors))
 
        # Note, the 2 is positive here becuase fval is the *negative* log-likelihood
        # Lambda is defined as -2 * ln( L_fixed / L_best )
