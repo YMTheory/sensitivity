@@ -23,8 +23,10 @@ def get_parser():
     parser.add_argument("input_table", type=pathlib.Path, help='Input table')
     parser.add_argument("output_dir", type=pathlib.Path, help='Output directory')
     parser.add_argument("-e", "--energy_res", type=float, default=0.008, help='Energy resolution')
-    parser.add_argument("-b", "--bkg_scale_factor", type=float, default=1, help='Gamma background scale factor')
+    parser.add_argument("-b", "--bkg_scale_factor", type=float, default=1,
+                        help='Gamma background scale factor (Rn222 excluded)')
     parser.add_argument("-x", "--xe137_scale_factor", type=float, default=1, help='Xe-137 scale factor')
+    parser.add_argument("-r", "--rn222_scale_factor", type=float, default=1, help='Rn-222 scale factor')
     parser.add_argument("-c", "--workspace_config", type=pathlib.Path,
                         default='/p/vast1/nexo/sensitivity2020/pdfs/config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml',
                         help="nEXOFitWorkspace configuration file")
@@ -91,18 +93,17 @@ if __name__ == "__main__":
     # from tabulate import tabulate
     # print(tabulate(workspace.df_components, headers='keys', tablefmt='psql'))
 
-    # Scale the gamma ray background components.
-    isotopes_to_leave_alone = ['Ar42', 'Xe137', 'bb2n', 'bb0n', 'B8nu']  # just for bookkeeping
-    isotopes_to_scale = ['K40', 'Rn222', 'Co60', 'Al26', 'Th232', 'U238', 'Cs137']
     for index, row in workspace.df_components.iterrows():
+        # Scale the gamma ray background components, except radon
+        isotopes_to_leave_alone = ['Ar42', 'Xe137', 'bb2n', 'bb0n', 'B8nu', 'Rn222', ]  # just for bookkeeping
+        isotopes_to_scale = ['K40', 'Co60', 'Al26', 'Th232', 'U238', 'Cs137']
         # The format is <isotope>_<part>, e.g. "Th232_HVCables"
         if row['PDFName'].split('_')[0] in isotopes_to_scale:
             print(f'Scaling {row["PDFName"]}...')
             workspace.df_components.loc[index, 'SpecActiv'] = args.bkg_scale_factor * row['SpecActiv']
             workspace.df_components.loc[index, 'SpecActivErr'] = args.bkg_scale_factor * row['SpecActivErr']
 
-    # Scale the Xe137 component.
-    for index, row in workspace.df_components.iterrows():
+        # Scale the Xe137 component.
         if 'Xe137' in row['PDFName']:
             workspace.df_components.loc[index, 'SpecActiv'] = args.xe137_scale_factor * row['SpecActiv']
             workspace.df_components.loc[index, 'SpecActivErr'] = args.xe137_scale_factor * row['SpecActivErr']
@@ -125,6 +126,10 @@ if __name__ == "__main__":
         likelihood.model.IncludeBackgroundShapeVariableInFit(True)
 
     initial_guess = likelihood.GetVariableValues()
+
+    # Scale the Rn222 component according to the input value
+    rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
+    initial_guess[rn222_idx] *= args.rn222_scale_factor
 
     # Update the model in the likelihood object
     likelihood.model.UpdateVariables(initial_guess)
@@ -203,6 +208,10 @@ if __name__ == "__main__":
         likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs,
                                           workspace.histogram_axis_names,
                                           replace_existing_variables=False)
+
+        rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
+        likelihood.model.variable_list[rn222_idx]['Value'] *= args.rn222_scale_factor
+
         initial_guess = likelihood.GetVariableValues()
         likelihood.model.GenerateModelDistribution()
         likelihood.AddDataset(likelihood.model.GenerateDataset())
