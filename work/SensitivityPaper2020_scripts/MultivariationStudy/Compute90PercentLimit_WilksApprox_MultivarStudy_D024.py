@@ -1,9 +1,10 @@
 # Import sys, then tell python where to find the nEXO-specific classes
 import sys
+sys.path.append('../../../modules')
 
-sys.path.append('../../modules')
-
-# Import useful libraries for analysis
+# Import useful libraries
+import argparse
+import pathlib
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
@@ -13,22 +14,21 @@ import time
 import nEXOFitWorkspace
 import nEXOFitLikelihood
 
-# Load the arguments:
-if len(sys.argv) != 7:
-    print('\nERROR: incorrect number of arguments.\n')
-    print('Usage:')
-    print('\tpython Compute90PercentLimit_PythonCode.py ' +
-          '<job_id_num> <bkg_shape_err_parameter> ' +
-          '<num_datasets_to_generate> <input_table> <output_directory> ' +
-          '<xe137_scale_factor>\n\n')
-    sys.exit()
 
-job_id_num = int(sys.argv[1])
-bkg_shape_err = float(sys.argv[2])
-num_datasets = int(sys.argv[3])
-input_table = sys.argv[4]
-output_dir = sys.argv[5]
-xe137_scale_factor = float(sys.argv[6])
+def get_parser():
+    parser = argparse.ArgumentParser(description='Compute 90% limit with Wilks Approximation')
+    parser.add_argument("job_id_num", type=int, help='job ID number')
+    parser.add_argument("--bkg_shape_err", type=float, default=0., help='background shape error parameter')
+    parser.add_argument("-n", "--num_datasets", type=int, default=100, help='Number of datasets to generate')
+    parser.add_argument("input_table", type=pathlib.Path, help='Input table')
+    parser.add_argument("output_dir", type=pathlib.Path, help='Output directory')
+    parser.add_argument("-e", "--energy_res", type=float, default=0.008, help='Energy resolution')
+    parser.add_argument("-b", "--bkg_scale_factor", type=float, default=1, help='Gamma background scale factor')
+    parser.add_argument("-x", "--xe137_scale_factor", type=float, default=1, help='Xe-137 scale factor')
+    parser.add_argument("-c", "--workspace_config", type=pathlib.Path,
+                        default='/p/vast1/nexo/sensitivity2020/pdfs/config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml',
+                        help="nEXOFitWorkspace configuration file")
+    return parser
 
 
 def FindIntersectionByQuadraticInterpolationWilks(xvals, yvals):
@@ -53,11 +53,11 @@ def FindIntersectionByQuadraticInterpolationWilks(xvals, yvals):
     if len(xvals[mask]) > 0:
         try:
             p = np.polyfit(xvals[mask], yvals[mask], 2)
-            print('Quadratic fit: {}'.format(p))
+            print(f'Quadratic fit: {p}')
             yfit = p[0] * xfit ** 2 + p[1] * xfit + p[2]
         except np.RankWarning:
             p = np.polyfit(xvals[mask], yvals[mask], 1)
-            print('Linear fit: {}'.format(p))
+            print(f'Linear fit: {p}')
             yfit = p[0] * xfit + p[1]
         ythreshold = np.ones(len(yfit)) * 2.706  # This is the Wilks' approx.
         crossing_idx = np.where((yfit - ythreshold) > 0.)[0][0]
@@ -70,257 +70,274 @@ def FindIntersectionByQuadraticInterpolationWilks(xvals, yvals):
     return xfit, yfit, crossing, crossing_idx
 
 
-# Set some switches
-INCLUDE_EFFICIENCY_ERROR = False
-INCLUDE_BACKGROUND_SHAPE_ERROR = False
-PAR_LIMITS = True
-CONSTRAINTS = True
-DEBUG_PLOTTING = False
+if __name__ == "__main__":
+    arg_parser = get_parser()
+    args = arg_parser.parse_args()
+    for arg in vars(args):
+        print(arg, getattr(args, arg))
 
-# Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/config_files/' +
-                                              'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')
-workspace.LoadComponentsTableFromFile(input_table)
+    # Set some switches
+    INCLUDE_EFFICIENCY_ERROR = False
+    INCLUDE_BACKGROUND_SHAPE_ERROR = False
+    PAR_LIMITS = True
+    CONSTRAINTS = True
+    DEBUG_PLOTTING = False
 
-# Scale the Xe137 component. Note that this is done at the ComponentsTable level,
-# since (unlike Rn222) the Xe137 doesn't have its own group.
-for index, row in workspace.df_components.iterrows():
-    if 'Xe137' in row['PDFName']:
-        workspace.df_components.loc[index, 'SpecActiv'] = \
-            xe137_scale_factor * row['SpecActiv']
-        workspace.df_components.loc[index, 'SpecActivErr'] = \
-            xe137_scale_factor * row['SpecActivErr']
+    # Create the workspace and load smeared energy resolution components table
+    workspace = nEXOFitWorkspace.nEXOFitWorkspace(args.workspace_config)
+    workspace.LoadComponentsTableFromFile(args.input_table)
+    # workspace.LoadComponentsTableFromFile(args.input_table + args.energy_res + '.h5')
 
-workspace.CreateGroupedPDFs()
+    # from tabulate import tabulate
+    # print(tabulate(workspace.df_components, headers='keys', tablefmt='psql'))
 
-# Define the ROI within the workspace
-roi_dict = {'DNN': [0.85, 1.],
-            'Energy (keV)': [2434., 2480.],
-            'Standoff (mm)': [104.5, 650.]}
-workspace.DefineROI(roi_dict)
+    # Scale the gamma ray background components.
+    isotopes_to_leave_alone = ['Ar42', 'Xe137', 'bb2n', 'bb0n', 'B8nu']  # just for bookkeeping
+    isotopes_to_scale = ['K40', 'Rn222', 'Co60', 'Al26', 'Th232', 'U238', 'Cs137']
+    for index, row in workspace.df_components.iterrows():
+        # The format is <isotope>_<part>, e.g. "Th232_HVCables"
+        if row['PDFName'].split('_')[0] in isotopes_to_scale:
+            print(f'Scaling {row["PDFName"]}...')
+            workspace.df_components.loc[index, 'SpecActiv'] = args.bkg_scale_factor * row['SpecActiv']
+            workspace.df_components.loc[index, 'SpecActivErr'] = args.bkg_scale_factor * row['SpecActivErr']
 
-# Create the likelihood object
-likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
-likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names)
+    # Scale the Xe137 component.
+    for index, row in workspace.df_components.iterrows():
+        if 'Xe137' in row['PDFName']:
+            workspace.df_components.loc[index, 'SpecActiv'] = args.xe137_scale_factor * row['SpecActiv']
+            workspace.df_components.loc[index, 'SpecActivErr'] = args.xe137_scale_factor * row['SpecActivErr']
 
-if INCLUDE_EFFICIENCY_ERROR:
-    likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
-if INCLUDE_BACKGROUND_SHAPE_ERROR:
-    likelihood.model.IncludeBackgroundShapeVariableInFit(True)
-
-initial_guess = likelihood.GetVariableValues()
-
-# Update the model in the likelihood object
-likelihood.model.UpdateVariables(initial_guess)
-likelihood.model.GenerateModelDistribution()
-
-# Print out the number of events in the ROI
-total_bkg_in_roi = likelihood.model.GetIntegralInBinRange(workspace.GetROIBinIndices())
-print('\n****************************************************************************************')
-print('Variable list after scaling Xe137 component:')
-likelihood.PrintVariableList()
-print('\n\nTotal ROI background: {:4.4} events\n'.format(
-    likelihood.model.GetIntegralInBinRange(workspace.GetROIBinIndices())))
-print('Contribution from each component in ROI:')
-for component in likelihood.model.variable_list:
-    if 'Shape' in component['Name']:
-        continue
-    num_counts_in_roi = likelihood.model.GetComponentIntegralInBinRange(
-        component['Name'], workspace.GetROIBinIndices())
-    print('{:<20}\t{:>10.4}\t{:>10.4}%'.format(component['Name'] + ':', num_counts_in_roi,
-                                               int(1000 * num_counts_in_roi / total_bkg_in_roi) / 10.))
-print('****************************************************************************************\n')
-
-# Add an initial dataset
-likelihood.AddDataset(likelihood.model.GenerateDataset())
-
-# Set limits so that none of the PDFs can go negative in the fit.
-# (except the signal PDF)
-if PAR_LIMITS:
-    for var in likelihood.model.variable_list:
-        if 'Bb0n' in var['Name']:
-            likelihood.SetVariableLimits(var['Name'],
-                                         lower_limit=-15.,
-                                         upper_limit=100.)
-        elif 'Co60' in var['Name']:
-            likelihood.SetVariableLimits(var['Name'],
-                                         lower_limit=0.,
-                                         upper_limit=var['Value'] * 10.)
-        else:
-            likelihood.SetVariableLimits(var['Name'],
-                                         lower_limit=var['Value'] * 0.1,
-                                         upper_limit=var['Value'] * 10.)
-
-likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01 / 0.0001)
-
-##########################################################################
-# Here's where the calculation loop begins.
-workspace.SetHandlingOfRadioassayData(fluctuate=True)
-
-num_hypotheses = 25
-xvals = np.array([])
-
-lambdas = np.zeros(num_hypotheses)
-num_iterations = np.zeros(num_hypotheses)
-best_fit_converged = True
-crossing = -1
-output_df_list = []
-
-start_time = time.time()
-last_time = start_time
-
-for j in range(0, num_datasets):
-
-    # Initialize (or reset) all my output variables.
-    converged = True
-    num_iterations = np.ones(num_hypotheses)
-    lambdas = np.zeros(num_hypotheses)
-    xvals = np.zeros(num_hypotheses)
-    fixed_fit_converged = np.array([], dtype=bool)
-    fixed_fit_covar = np.array([], dtype=bool)
-    crossing = -1
-    output_row = dict()
-
-    # Redo the grouping, which fluctuates the radioassay values within their uncertainties.
     workspace.CreateGroupedPDFs()
-    likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs,
-                                      workspace.histogram_axis_names,
-                                      replace_existing_variables=False)
-    initial_guess = likelihood.GetVariableValues()
-    likelihood.model.GenerateModelDistribution()
-    likelihood.AddDataset(likelihood.model.GenerateDataset())
 
-    likelihood.SetAllVariablesFloating()
+    # Define the ROI within the workspace
+    roi_dict = {'DNN': [0.85, 1.],
+                'Energy (keV)': [2434., 2480.],
+                'Standoff (mm)': [104.5, 650.]}
+    workspace.DefineROI(roi_dict)
 
-    # Fix the Co60 parameter
-    # likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
-
-    if CONSTRAINTS:
-        rn222_idx = likelihood.GetVariableIndex('Rn222')
-        # Fluctuate Rn222 constraint
-        rn222_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[rn222_idx]
-        # Set Rn222 constraint
-        likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],
-                                                 rn222_constraint_val,
-                                                 0.1 * initial_guess[rn222_idx])
-        b8_idx = likelihood.GetVariableIndex('B8')
-        # Fluctuate B8nu constraint
-        b8_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[b8_idx]
-        # Set B8nu constraint
-        likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[b8_idx]['Name'],
-                                                 b8_constraint_val,
-                                                 0.1 * initial_guess[b8_idx])
+    # Create the likelihood object
+    likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
+    likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs, workspace.histogram_axis_names)
 
     if INCLUDE_EFFICIENCY_ERROR:
-        eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
-        eff_constraint_val = (np.random.randn() * eff_err + 1) * initial_guess[eff_idx]
-        likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],
-                                                 eff_constraint_val,
-                                                 eff_err)
+        likelihood.model.IncludeSignalEfficiencyVariableInFit(True)
     if INCLUDE_BACKGROUND_SHAPE_ERROR:
-        bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
-        bkg_shape_constraint_val = np.random.randn() * bkg_shape_err
-        likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'],
-                                                 bkg_shape_constraint_val,
-                                                 bkg_shape_err)
+        likelihood.model.IncludeBackgroundShapeVariableInFit(True)
 
-    print('\n\nRunning dataset {}...\n'.format(j))
+    initial_guess = likelihood.GetVariableValues()
+
+    # Update the model in the likelihood object
+    likelihood.model.UpdateVariables(initial_guess)
+    likelihood.model.GenerateModelDistribution()
+
+    # Print out the number of events in the ROI
+    total_bkg_in_roi = likelihood.model.GetIntegralInBinRange(workspace.GetROIBinIndices())
+    print('\n****************************************************************************************')
+    print('Variable list after changes to components and resolution:')
     likelihood.PrintVariableList()
+    print(f'\n\nTotal ROI background: '
+          f'{likelihood.model.GetIntegralInBinRange(workspace.GetROIBinIndices()):4.4} events\n')
+    print('Contribution from each component in ROI:')
+    for component in likelihood.model.variable_list:
+        if 'Shape' in component['Name']:
+            continue
+        num_counts_in_roi = likelihood.model.GetComponentIntegralInBinRange(
+            component['Name'], workspace.GetROIBinIndices())
+        print(f'{component["Name"] + ":":<20}\t'
+              f'{num_counts_in_roi:>10.4}\t'
+              f'{int(1000 * num_counts_in_roi / total_bkg_in_roi) / 10.:>10.4}%')
+    print('****************************************************************************************\n')
 
-    print('\nConstraints:')
-    for constraint in likelihood.model.constraints:
-        print('\t{}'.format(constraint))
-    print('\n')
+    # Add an initial dataset
+    likelihood.AddDataset(likelihood.model.GenerateDataset())
 
-    # Fix the signal parameter to different values, and calculate lambda
-    for i in (range(0, num_hypotheses)):
+    # Set limits so that none of the PDFs can go negative in the fit.
+    # (except the signal PDF)
+    if PAR_LIMITS:
+        for var in likelihood.model.variable_list:
+            if 'Bb0n' in var['Name']:
+                likelihood.SetVariableLimits(var['Name'],
+                                             lower_limit=-15.,
+                                             upper_limit=100.)
+            elif 'Co60' in var['Name']:
+                likelihood.SetVariableLimits(var['Name'],
+                                             lower_limit=0.,
+                                             upper_limit=var['Value'] * 10.)
+            else:
+                likelihood.SetVariableLimits(var['Name'],
+                                             lower_limit=var['Value'] * 0.1,
+                                             upper_limit=var['Value'] * 10.)
 
-        # Fix the 0nu parameter to a specific hypothesis
-        if xe137_scale_factor > 9.:
-            signal_hypothesis = float(i) * 2.2 + 0.000001
-        else:
-            signal_hypothesis = float(i) * 1.4 + 0.000001
-        signal_idx = likelihood.GetVariableIndex('Bb0n')
-        initial_values = np.copy(initial_guess)
-        initial_values[signal_idx] = signal_hypothesis
-        xvals[i] = signal_hypothesis
+    likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01 / 0.0001)
 
-        ###########################################################################
-        # All the exciting stuff happens here!
-        lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal(
-            initial_values=initial_values,
-            signal_name='Bb0n',
-            signal_expectation=0.,
-            print_level=1,
-            fixed_fit_signal_value=signal_hypothesis)
-        ###########################################################################
+    ##########################################################################
+    # Here's where the calculation loop begins.
+    workspace.SetHandlingOfRadioassayData(fluctuate=True)
 
-        # Store all the important quantities
-        lambdas[i] = lambda_fit_result['lambda']
-        fixed_fit_converged = np.append(fixed_fit_converged, lambda_fit_result['fixed_fit_converged'])
-        fixed_fit_covar = np.append(fixed_fit_covar, lambda_fit_result['fixed_fit_covar'])
-        num_iterations[i] = lambda_fit_result['fixed_fit_iterations']
+    num_hypotheses = 25
+    xvals = np.array([])
 
-        print('After fit ends:')
+    lambdas = np.zeros(num_hypotheses)
+    num_iterations = np.zeros(num_hypotheses)
+    best_fit_converged = True
+    crossing = -1
+    output_df_list = []
+
+    start_time = time.time()
+    last_time = start_time
+
+    for j in range(0, args.num_datasets):
+
+        # Initialize (or reset) all my output variables.
+        converged = True
+        num_iterations = np.ones(num_hypotheses)
+        lambdas = np.zeros(num_hypotheses)
+        xvals = np.zeros(num_hypotheses)
+        fixed_fit_converged = np.array([], dtype=bool)
+        fixed_fit_covar = np.array([], dtype=bool)
+        crossing = -1
+        output_row = dict()
+
+        # Redo the grouping, which fluctuates the radioassay values within their uncertainties.
+        workspace.CreateGroupedPDFs()
+        likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs,
+                                          workspace.histogram_axis_names,
+                                          replace_existing_variables=False)
+        initial_guess = likelihood.GetVariableValues()
+        likelihood.model.GenerateModelDistribution()
+        likelihood.AddDataset(likelihood.model.GenerateDataset())
+
+        likelihood.SetAllVariablesFloating()
+
+        # Fix the Co60 parameter
+        # likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+
+        if CONSTRAINTS:
+            rn222_idx = likelihood.GetVariableIndex('Rn222')
+            # Fluctuate Rn222 constraint
+            rn222_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[rn222_idx]
+            # Set Rn222 constraint
+            likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],
+                                                     rn222_constraint_val,
+                                                     0.1 * initial_guess[rn222_idx])
+            b8_idx = likelihood.GetVariableIndex('B8')
+            # Fluctuate B8nu constraint
+            b8_constraint_val = (np.random.randn() * 0.1 + 1) * initial_guess[b8_idx]
+            # Set B8nu constraint
+            likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[b8_idx]['Name'],
+                                                     b8_constraint_val,
+                                                     0.1 * initial_guess[b8_idx])
+
+        if INCLUDE_EFFICIENCY_ERROR:
+            eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
+            eff_constraint_val = (np.random.randn() * eff_err + 1) * initial_guess[eff_idx]
+            likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[eff_idx]['Name'],
+                                                     eff_constraint_val,
+                                                     eff_err)
+        if INCLUDE_BACKGROUND_SHAPE_ERROR:
+            bkg_shape_idx = likelihood.GetVariableIndex('Background_Shape_Error')
+            bkg_shape_constraint_val = np.random.randn() * args.bkg_shape_err
+            likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[bkg_shape_idx]['Name'],
+                                                     bkg_shape_constraint_val,
+                                                     args.bkg_shape_err)
+
+        print(f'\n\nRunning dataset {j}...\n')
         likelihood.PrintVariableList()
+
+        print('\nConstraints:')
+        for constraint in likelihood.model.constraints:
+            print(f'\t{constraint}')
         print('\n')
 
-    # Next, find the hypothesis value for which lambda crosses the critical lambda curve
-    if lambda_fit_result['best_fit_covar']:
-        xfit, yfit, crossing, crossing_idx = FindIntersectionByQuadraticInterpolationWilks(
-            xvals[fixed_fit_covar],
-            lambdas[fixed_fit_covar])
+        # Fix the signal parameter to different values, and calculate lambda
+        for i in (range(0, num_hypotheses)):
 
-        if DEBUG_PLOTTING:
-            plt.clf()
-            plt.plot(xfit, np.ones(len(xfit)) * 2.706, '-b', label='90%CL spline')
-            plt.plot(xfit, yfit, '-r', label='Quadratic approx')
-            plt.plot(xvals[fixed_fit_converged],
-                     lambdas[fixed_fit_converged],
-                     '-o', color='tab:blue', label='Actual fits')
-            # plt.plot(xvals,lambdas,label='Actual fits')
-            plt.plot(crossing, yfit[crossing_idx], 'ok')
-            plt.xlim(0., 30.)
-            plt.ylim(0., 7.)
-            plt.xlabel('Num signal')
-            plt.ylabel('Lambda')
-            plt.legend(loc='upper right')
-            plt.savefig('{}/example_fit_curve_DEBUGPLOT_{}.png'.format(output_dir, j),
-                        dpi=200, bbox_inches='tight')
+            # Fix the 0nu parameter to a specific hypothesis
+            if args.xe137_scale_factor > 9. or args.bkg_shape_err > 9.:
+                signal_hypothesis = float(i) * 2.2 + 0.000001
+            else:
+                signal_hypothesis = float(i) * 1.4 + 0.000001
+            signal_idx = likelihood.GetVariableIndex('Bb0n')
+            initial_values = np.copy(initial_guess)
+            initial_values[signal_idx] = signal_hypothesis
+            xvals[i] = signal_hypothesis
 
-    output_row['num_signal'] = xvals
-    output_row['lambda'] = lambdas
-    output_row['fixed_fit_converged'] = fixed_fit_converged
-    output_row['fixed_fit_acc_covar'] = fixed_fit_covar
-    output_row['90CL_crossing'] = crossing
-    output_row['num_iterations'] = num_iterations
-    # The "best_fit" quantities in lambda_fit_result should be the same for
-    # every lambda calculation, so it's okay if we use the most recent one
-    output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
-    output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
-    output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
-    output_row['best_fit_parameters'] = lambda_fit_result['best_fit_parameters']
-    output_row['best_fit_errors'] = lambda_fit_result['best_fit_errors']
-    output_row['best_fit_nll'] = lambda_fit_result['best_fit_nll']
-    output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
-    output_row['fixed_fit_errors'] = lambda_fit_result['fixed_fit_errors']
-    output_row['input_parameters'] = initial_guess
-    # output_row['dataset'] = likelihood.dataset
+            ###########################################################################
+            # All the exciting stuff happens here!
+            lambda_fit_result = likelihood.ComputeLambdaForPositiveSignal(
+                initial_values=initial_values,
+                signal_name='Bb0n',
+                signal_expectation=0.,
+                print_level=1,
+                fixed_fit_signal_value=signal_hypothesis)
+            ###########################################################################
 
-    output_df_list.append(output_row)
+            # Store all the important quantities
+            lambdas[i] = lambda_fit_result['lambda']
+            fixed_fit_converged = np.append(fixed_fit_converged, lambda_fit_result['fixed_fit_converged'])
+            fixed_fit_covar = np.append(fixed_fit_covar, lambda_fit_result['fixed_fit_covar'])
+            num_iterations[i] = lambda_fit_result['fixed_fit_iterations']
 
-    print('\nDataset {} finished at {:4.4}s'.format(j, time.time() - last_time))
-    print('Total time elapsed: {:4.4}s ({:4.4} min)\n\n\n'.format(
-        (time.time() - start_time),
-        (time.time() - start_time) / 60.))
-    last_time = time.time()
+            print('After fit ends:')
+            likelihood.PrintVariableList()
+            print('\n')
 
-# Write the output dataframe to a file
-output_df = pd.DataFrame(output_df_list)
-# print(output_df.head())
-print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_xe137study_{:0>4.4}x_90CL_{:03}_D024.h5'.format(
-    output_dir, xe137_scale_factor, job_id_num),
-    key='df')
+        # Next, find the hypothesis value for which lambda crosses the critical lambda curve
+        if lambda_fit_result['best_fit_covar']:
+            xfit, yfit, crossing, crossing_idx = FindIntersectionByQuadraticInterpolationWilks(
+                xvals[fixed_fit_covar],
+                lambdas[fixed_fit_covar])
 
-print('Elapsed: {:4.4}s'.format(time.time() - start_time))
+            if DEBUG_PLOTTING:
+                plt.clf()
+                plt.plot(xfit, np.ones(len(xfit)) * 2.706, '-b', label='90%CL spline')
+                plt.plot(xfit, yfit, '-r', label='Quadratic approx')
+                plt.plot(xvals[fixed_fit_converged],
+                         lambdas[fixed_fit_converged],
+                         '-o', color='tab:blue', label='Actual fits')
+                # plt.plot(xvals,lambdas,label='Actual fits')
+                plt.plot(crossing, yfit[crossing_idx], 'ok')
+                plt.xlim(0., 30.)
+                plt.ylim(0., 7.)
+                plt.xlabel('Num signal')
+                plt.ylabel('Lambda')
+                plt.legend(loc='upper right')
+                plt.savefig(f'{args.output_dir}/example_fit_curve_DEBUGPLOT_{j}.png',
+                            dpi=200, bbox_inches='tight')
+
+        output_row['num_signal'] = xvals
+        output_row['lambda'] = lambdas
+        output_row['fixed_fit_converged'] = fixed_fit_converged
+        output_row['fixed_fit_acc_covar'] = fixed_fit_covar
+        output_row['90CL_crossing'] = crossing
+        output_row['num_iterations'] = num_iterations
+        # The "best_fit" quantities in lambda_fit_result should be the same for
+        # every lambda calculation, so it's okay if we use the most recent one
+        output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
+        output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
+        output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
+        output_row['best_fit_parameters'] = lambda_fit_result['best_fit_parameters']
+        output_row['best_fit_errors'] = lambda_fit_result['best_fit_errors']
+        output_row['best_fit_nll'] = lambda_fit_result['best_fit_nll']
+        output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
+        output_row['fixed_fit_errors'] = lambda_fit_result['fixed_fit_errors']
+        output_row['input_parameters'] = initial_guess
+        # output_row['dataset'] = likelihood.dataset
+
+        output_df_list.append(output_row)
+
+        print(f'\nDataset {j} finished at {time.time() - last_time:4.4}s')
+        print(f'Total time elapsed: {(time.time() - start_time):4.4}s '
+              f'({(time.time() - start_time) / 60.:4.4} min)\n\n\n')
+        last_time = time.time()
+
+    # Write the output dataframe to a file
+    output_df = pd.DataFrame(output_df_list)
+    # print(output_df.head())
+    print(f'Saving file to output directory: {args.output_dir}')
+    output_df.to_hdf(f'{args.output_dir}/'
+                     f'sens_output_file_xe137study_{args.xe137_scale_factor:0>4.4}'
+                     f'x_90CL_{args.job_id_num:03}_D024.h5',
+                     key='df')
+
+    print(f'Elapsed: {time.time() - start_time:4.4}s')
