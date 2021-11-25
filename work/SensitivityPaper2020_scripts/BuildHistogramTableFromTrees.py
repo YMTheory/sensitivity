@@ -22,17 +22,17 @@ if __name__ == "__main__":
     for arg in vars(args):
         print(arg, getattr(args, arg))
 
-        # Import the nEXO sensitivity classes
-        import nEXOFitWorkspace
+    # Import the nEXO sensitivity classes
+    import nEXOFitWorkspace
 
-        workspace = nEXOFitWorkspace.nEXOFitWorkspace(config=args.config_file)
+    workspace = nEXOFitWorkspace.nEXOFitWorkspace(config=args.config_file)
 
-        output_hdf5_filename = args.output_dir / pathlib.Path(f'Baseline2019_Histograms_{args.label}.h5')
+    output_hdf5_filename = args.output_dir / pathlib.Path(f'Baseline2019_Histograms_{args.label}.h5')
 
-        workspace.CreateHistogramsFromRawTrees(path_to_trees=args.path_to_trees,
-                                               output_hdf5_filename=output_hdf5_filename,
-                                               resolution_factor=args.resolution_factor,
-                                               dnn_smoothing_factor=args.dnn_smoothing_factor
-                                               )
+    workspace.CreateHistogramsFromRawTrees(path_to_trees=str(args.path_to_trees),
+                                           output_hdf5_filename=output_hdf5_filename,
+                                           resolution_factor=args.resolution_factor,
+                                           dnn_smoothing_factor=args.dnn_smoothing_factor
+                                           )
 
 

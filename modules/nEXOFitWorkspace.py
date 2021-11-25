@@ -447,7 +447,7 @@ class nEXOFitWorkspace:
           var_list = self.GetReconVariableList()         
 
           try:
-             input_df = input_tree.arrays( var_list, outputtype=pd.DataFrame )
+             input_df = input_tree.arrays( var_list, library='pd' )
           except KeyError as e:
              print('\n\n************** ERROR: PROBLEM WITH AXIS NAMES **************')
              print('The input TTree does not contain all of the variables listed')
@@ -505,6 +505,7 @@ class nEXOFitWorkspace:
                 exit()
 
           if dnn_smoothing_factor:
+              print(f"Applying DNN smoothing factor of {dnn_smoothing_factor}...")
               rng = np.random.default_rng()
               # This approach to smearing is not efficient, but ensure any correlation with energy/standoff is kept
               for i, v in data_list['m_DNNvalue'].iteritems():
