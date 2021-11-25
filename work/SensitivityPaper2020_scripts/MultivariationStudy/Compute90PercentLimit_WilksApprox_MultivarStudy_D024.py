@@ -19,14 +19,14 @@ def get_parser():
     parser = argparse.ArgumentParser(description='Compute 90% limit with Wilks Approximation')
     parser.add_argument("job_id_num", type=int, help='job ID number')
     parser.add_argument("--bkg_shape_err", type=float, default=0., help='background shape error parameter')
-    parser.add_argument("-n", "--num_datasets", type=int, default=100, help='Number of datasets to generate')
+    parser.add_argument("-n", "--num_datasets", type=int, default=10, help='Number of datasets to generate')
     parser.add_argument("input_table", type=pathlib.Path, help='Input table')
     parser.add_argument("output_dir", type=pathlib.Path, help='Output directory')
     parser.add_argument("-e", "--energy_res", type=float, default=0.008, help='Energy resolution')
-    parser.add_argument("-b", "--bkg_scale_factor", type=float, default=1,
+    parser.add_argument("-b", "--bkg_scale_factor", type=float, default=1.,
                         help='Gamma background scale factor (Rn222 excluded)')
-    parser.add_argument("-x", "--xe137_scale_factor", type=float, default=1, help='Xe-137 scale factor')
-    parser.add_argument("-r", "--rn222_scale_factor", type=float, default=1, help='Rn-222 scale factor')
+    parser.add_argument("-x", "--xe137_scale_factor", type=float, default=1., help='Xe-137 scale factor')
+    parser.add_argument("-r", "--rn222_scale_factor", type=float, default=1., help='Rn-222 scale factor')
     parser.add_argument("-c", "--workspace_config", type=pathlib.Path,
                         default='/p/vast1/nexo/sensitivity2020/pdfs/config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml',
                         help="nEXOFitWorkspace configuration file")
@@ -345,7 +345,7 @@ if __name__ == "__main__":
     # print(output_df.head())
     print(f'Saving file to output directory: {args.output_dir}')
     output_df.to_hdf(f'{args.output_dir}/'
-                     f'sens_output_file_xe137study_{args.xe137_scale_factor:0>4.4}'
+                     f'sens_output_file_multivarstudy_{args.xe137_scale_factor:0>4.4f}'
                      f'x_90CL_{args.job_id_num:03}_D024.h5',
                      key='df')
 

@@ -116,6 +116,8 @@ class nEXOFitWorkspace:
                'Please ensure they are set in the config file, or we might run ' +\
                'into problems.')
 
+      # TODO: update the grouping according to the config file?
+
       return
    ################# End of LoadComponentsTableFromFile() ###################
 
@@ -411,7 +413,7 @@ class nEXOFitWorkspace:
    # Stores the histograms as histlite objects, then writes these to an HDF5
    # file.
    ##########################################################################
-   def CreateHistogramsFromRawTrees( self, path_to_trees, output_hdf5_filename, resolution_factor=None):
+   def CreateHistogramsFromRawTrees(self, path_to_trees, output_hdf5_filename, resolution_factor=0, dnn_smoothing_factor=0):
 
       start_time = time.time()      
 
@@ -486,14 +488,14 @@ class nEXOFitWorkspace:
              print('\tEvents passing cuts: {} evts of {} ({:4.4}%)'.format(\
                      np.sum(mask), len(mask), 100*float(np.sum(mask))/float(len(mask))))
  
-          data_list = [ input_df[ axis['VariableName'] ].loc[mask] for axis in self.config['FitAxes'] ]
+          data_list = { axis['VariableName']:input_df[ axis['VariableName'] ].loc[mask] for axis in self.config['FitAxes'] }
 
           if resolution_factor:
              try:
-                for idx, (bin, data) in enumerate(data_list[1].iteritems()):
-                    data_list[1][bin] = np.random.normal(data, float(resolution_factor) * data, 1)[0]
-                    if len(data_list[1]) > 5 and not idx % int(len(data_list[1]) / 5):
-                        print("{} is {:.2f}% complete.".format(filename, idx/len(data_list[1])*100))
+                for idx, (bin, data) in enumerate(data_list['energy'].iteritems()):
+                    data_list['energy'][bin] = np.random.normal(data, float(resolution_factor) * data, 1)[0]
+                    if len(data_list['energy']) > 5 and not idx % int(len(data_list['energy']) / 5):
+                        print("{} is {:.2f}% complete.".format(filename, idx/len(data_list['energy'])*100))
              except:
                 print("data = " + str(data) + "\n")
                 print("bin = " + str(bin) + "\n")
@@ -502,7 +504,17 @@ class nEXOFitWorkspace:
                    print("res * data = " + str(float(resolution_factor) * data) + "\n")
                 exit()
 
-          hh = hl.hist( tuple(data_list), weights=input_df['weight'].loc[mask], bins=tuple(binspecs_list) )
+          if dnn_smoothing_factor:
+              rng = np.random.default_rng()
+              # This approach to smearing is not efficient, but ensure any correlation with energy/standoff is kept
+              for i, v in data_list['m_DNNvalue'].iteritems():
+                  while True:
+                      rnd = rng.normal(v, dnn_smoothing_factor, 1)[0]
+                      if 0 <= rnd <= 1:
+                          data_list['m_DNNvalue'][i] = rnd
+                          break
+
+          hh = hl.hist( tuple(data_list.values()), weights=input_df['weight'].loc[mask], bins=tuple(binspecs_list) )
           thisrow = { 'Filename': filename,\
                       'Histogram': hh,\
                       'HistogramAxisNames': [ axis['Title'] for axis in self.config['FitAxes'] ] }
