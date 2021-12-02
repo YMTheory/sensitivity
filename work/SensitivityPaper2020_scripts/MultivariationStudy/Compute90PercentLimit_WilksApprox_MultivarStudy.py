@@ -357,10 +357,11 @@ if __name__ == "__main__":
     print(f'Saving file to output directory: {args.output_dir}')
     output_df.to_hdf(f'{args.output_dir}/'
                      f'sens_output_file_multivarstudy_{s_hash}'
-                     f'x_90CL_{args.job_id_num:03}_D024.h5',
+                     f'x_90CL_{args.job_id_num:03}.h5',
                      key='df')
 
     with open(f'{args.output_dir}/{s_hash}.txt', 'a') as file:
         print(f'{args.job_id_num:03}', s, file=file)
+        print(f'{args.job_id_num:03}', ' '.join(f'{k}={v}' for k, v in vars(args).items()), file=file)
 
     print(f'Elapsed: {time.time() - start_time:4.4}s')
