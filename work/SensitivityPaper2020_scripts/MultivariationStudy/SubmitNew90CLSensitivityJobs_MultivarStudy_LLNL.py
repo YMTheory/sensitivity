@@ -6,8 +6,8 @@ import itertools
 execdir = "/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy"
 outputdir = "/p/lustre2/nexouser/samuele/multivarstudy"
 executable_name = 'Compute90PercentLimit_WilksApprox_MultivarStudy.py'
-components_table_dir = '/p/lustre2/nexouser/samuele/multivarstudy/ComponentsTables/'
-components_table_basename = 'ComponentsTable_D-024_'
+components_table_dir = '/p/lustre2/nexouser/samuele/multivarstudy/ComponentsTables'
+components_table_basename = 'ComponentsTable_D-024'
 config_file = '/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml'
 
 dnn_factors = [0., 0.15, 0.2]
@@ -49,7 +49,7 @@ for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, 
         os.system(f"rm -f {scriptfilename}")
         os.system(f"rm -f {outputdir}/logs/{basename}.*")
 
-        submit_statement = executable_name + f'{iter_num} {components_table_dir}/{components_table} ' + \
+        submit_statement = f'{executable_name} {iter_num} {components_table_dir}/{components_table} ' + \
                            f'{outputdir}/output/ -c {config_file} -n {num_datasets_per_job} -e {energy_res} ' + \
                            f'-d {dnn_scale_factor} -b {bkg_scale_factor} -x {xe137_scale_factor} -r {rn222_scale_factor}'
 
@@ -66,7 +66,7 @@ for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, 
                     "cd " + execdir + "\n" + \
                     "export STARTTIME=`date +%s`\n" + \
                     "echo Start time $STARTTIME\n" + \
-                    "python3" + submit_statement + \
+                    f"python3 {submit_statement}\n" + \
                     "export STOPTIME=`date +%s`\n" + \
                     "echo Stop time $STOPTIME\n" + \
                     "export DT=`expr $STOPTIME - $STARTTIME`\n" + \
