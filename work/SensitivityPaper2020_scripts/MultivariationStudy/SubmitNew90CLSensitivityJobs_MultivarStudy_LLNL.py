@@ -3,8 +3,8 @@ import hashlib
 import os
 import itertools
 
-execdir = "/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy/"
-outputdir = "/p/lustre2/nexouser/samuele/multivarstudy/"
+execdir = "/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy"
+outputdir = "/p/lustre2/nexouser/samuele/multivarstudy"
 executable_name = 'Compute90PercentLimit_WilksApprox_MultivarStudy.py'
 components_table_dir = '/p/lustre2/nexouser/samuele/multivarstudy/ComponentsTables/'
 components_table_basename = 'ComponentsTable_D-024_'
@@ -40,20 +40,24 @@ for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, 
     print(f'\n\nSubmitting jobs for hash {s_hash} with parameters: {s}.\n\n')
     for iter_num in range(jobs_offset, num_jobs + jobs_offset):
 
-        scriptfilename = outputdir + base + s_hash + f"_{iter_num:03}.sh"
-        os.system("rm -f " + scriptfilename)
-        outfile_basename = outputdir + base + s_hash + f"_{iter_num:03}"
-        os.system("rm -f " + outfilename)
+        basename = base + s_hash + f"_{iter_num:03}"
+        scriptfilename = f'{outputdir}/jobs/{basename}.sh'
+
+        os.makedirs(f'{outputdir}/logs/', exist_ok=True)
+        os.makedirs(f'{outputdir}/jobs/', exist_ok=True)
+        os.makedirs(f'{outputdir}/output/', exist_ok=True)
+        os.system(f"rm -f {scriptfilename}")
+        os.system(f"rm -f {outputdir}/logs/{basename}.*")
 
         submit_statement = executable_name + f'{iter_num} {components_table_dir}/{components_table} ' + \
-                           f'{outputdir} -c {config_file} -n {num_datasets_per_job} -e {energy_res} ' + \
+                           f'{outputdir}/output/ -c {config_file} -n {num_datasets_per_job} -e {energy_res} ' + \
                            f'-d {dnn_scale_factor} -b {bkg_scale_factor} -x {xe137_scale_factor} -r {rn222_scale_factor}'
 
         thescript = "#!/bin/bash\n" + \
                     "#SBATCH -t 14:00:00\n" + \
                     "#SBATCH -A nuphys\n" + \
-                    f"#SBATCH -e {outfile_basename}.err\n" + \
-                    f"#SBATCH -o {outfile_basename}.out\n" + \
+                    f"#SBATCH -e {outputdir}/logs/{basename}.err\n" + \
+                    f"#SBATCH -o {outputdir}/logs/{basename}.out\n" + \
                     "#SBATCH --mail-type=fail\n" + \
                     f"#SBATCH -J {s_hash}\n" + \
                     "#SBATCH --export=ALL \n" + \
@@ -68,8 +72,7 @@ for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, 
                     "export DT=`expr $STOPTIME - $STARTTIME`\n" + \
                     "echo CPU time: $DT seconds\n"
 
-        scriptfile = open(scriptfilename, 'w')
-        scriptfile.write(thescript)
-        scriptfile.close()
+        with open(scriptfilename, 'w') as scriptfile:
+            scriptfile.write(thescript)
 
         os.system("sbatch " + scriptfilename)
