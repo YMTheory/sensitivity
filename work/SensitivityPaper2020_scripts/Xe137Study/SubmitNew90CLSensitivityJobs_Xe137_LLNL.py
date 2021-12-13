@@ -2,31 +2,32 @@
 
 import os
 execdir = "/g/g20/lenardo1/nEXO/sensitivity/work/"
-outputdir = "/p/lustre1/lenardo1/sensitivity_output/June23_2020_Xe137_test/"
+outputdir = "/p/lustre2/lenardo1/sensitivity_output/Nov20_Xe137_Study_Baseline2019/"
 outputname = ""
-executable_name = 'Compute90PercentLimit_WilksApprox_Xe137Study.py'
-components_table = '/g/g20/lenardo1/nEXO/sensitivity/tables/ComponentsTable_D-005.h5' 
+executable_name = 'Compute90PercentLimit_WilksApprox_Xe137Study_2020.py'
+#components_table = '/g/g20/lenardo1/nEXO/sensitivity/tables/ComponentsTable_D-005.h5' 
+#components_table = '/usr/workspace/nexo/lenardo1/baseline2019_third_pass/ComponentsTable_D-023_merged-v5_final_cuts.h5'
+components_table = '/p/vast1/nexo/sensitivity2020/pdfs/component_tables/ComponentsTable_D-023_Optimized_DNN_Standoff_Binning_version1.h5'
 
-xe137_scale_factor = 10.
+xe137_scale_factor = 0.01
 
-iter_num = 1
-bkg_shape_err = 1.
+bkg_shape_err = 0.
 num_datasets = 5000
-num_jobs = 50
+num_jobs = 100
 num_datasets_per_job = int(num_datasets/num_jobs)
 
 base = "Run_xe137_x"
 
-for iter_num in range(num_jobs):
+for iter_num in range(100,num_jobs+100):
 		
-		scriptfilename = outputdir +  base + str(int(xe137_scale_factor)) + "_{:03}.sub".format(iter_num)
+		scriptfilename = outputdir +  base + '{:0>4.4}'.format(xe137_scale_factor) + "_{:03}.sub".format(iter_num)
 		os.system( "rm -f " + scriptfilename )
-		outfilename = outputdir + base + str(int(xe137_scale_factor)) + "_{:03}.out".format(iter_num)
+		outfilename = outputdir + base + '{:0>4.4}'.format(xe137_scale_factor) + "_{:03}.out".format(iter_num)
 		os.system( "rm -f " + outfilename )
 	
 		
 		thescript = "#!/bin/bash\n" + \
-			"#SBATCH -t 04:00:00\n" + \
+			"#SBATCH -t 06:00:00\n" + \
 			"#SBATCH -A nuphys\n" + \
 			"#SBATCH -e " + outfilename + "\n" + \
 			"#SBATCH -o " + outfilename + "\n" + \

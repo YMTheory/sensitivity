@@ -8,12 +8,12 @@ if len(sys.argv) != 7:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<iteration_num> <bkg_shape_err_parameter> ' + \
+		'<job_id_num> <bkg_shape_err_parameter> ' + \
                 '<num_datasets_to_generate> <input_table> <output_directory> ' + \
                 '<rn222_scale_factor>\n\n')
 	sys.exit()
 
-iteration_num = int(sys.argv[1])
+job_id_num = int(sys.argv[1])
 bkg_shape_err = float(sys.argv[2])
 num_datasets = int(sys.argv[3])
 input_table = sys.argv[4]
@@ -42,7 +42,7 @@ def FindIntersectionByQuadraticInterpolationWilks( xvals, yvals ):
 	# Next, select only values near the critical lambda threshold (~2.7)
 	mask = mask&(yvals>0.5)&(yvals<6.)
 
-	xfit = np.linspace(0.,60.,1200)
+	xfit = np.linspace(0.,100.,10000)
 
 	if len( xvals[mask] ) > 0:
 		try:
@@ -81,27 +81,31 @@ import nEXOFitLikelihood
 
 # Set some switches
 INCLUDE_EFFICIENCY_ERROR = False
-INCLUDE_BACKGROUND_SHAPE_ERROR = True
+INCLUDE_BACKGROUND_SHAPE_ERROR = False
 PAR_LIMITS = True
+CONSTRAINTS = True
 DEBUG_PLOTTING = False
 
 
 # Create the workspace
-workspace = nEXOFitWorkspace.nEXOFitWorkspace('./config/TUTORIAL_config.yaml')
+workspace = nEXOFitWorkspace.nEXOFitWorkspace('/g/g20/lenardo1/nEXO/sensitivity/work/config/'+\
+            'Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml')     
+#workspace = nEXOFitWorkspace.nEXOFitWorkspace('/p/vast1/nexo/sensitivity2020/pdfs/'+\
+#            'config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_v9wAr42.yaml')
 workspace.LoadComponentsTableFromFile( input_table )
 workspace.CreateGroupedPDFs()
 
 # Define the ROI within the workspace
-roi_dict = { 'SS/MS':         [0.,1.],
-             'Energy (keV)':  [ 2428.89, 2486.77 ], 
-             'Standoff (mm)': [ 120., 650. ] }
+roi_dict = { 'DNN':         [0.85,1.],
+             'Energy (keV)':  [ 2434., 2480. ], 
+             'Standoff (mm)': [ 104.5, 650. ] }
 workspace.DefineROI( roi_dict )
 
 
 
 # Create the likelihood object
 likelihood = nEXOFitLikelihood.nEXOFitLikelihood()
-likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs)
+likelihood.AddPDFDataframeToModel(workspace.df_group_pdfs,workspace.histogram_axis_names)
 
 
 if INCLUDE_EFFICIENCY_ERROR:
@@ -112,7 +116,7 @@ if INCLUDE_BACKGROUND_SHAPE_ERROR:
 
 initial_guess = likelihood.GetVariableValues()
 
-# Scale the Xe13 component according to the input value
+# Scale the Rn222 component according to the input value
 rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 initial_guess[rn222_idx] *= rn222_scale_factor
 
@@ -139,6 +143,22 @@ print('*************************************************************************
 # Add an initial dataset
 likelihood.AddDataset( likelihood.model.GenerateDataset() )
 
+PLOT_DISTRIBUTIONS = False
+
+if PLOT_DISTRIBUTIONS:
+	ss_cut_dict = {'DNN':(0.85,1.),\
+			'Energy (keV)': (1000.,3500.),\
+			'Standoff (mm)': (20.,650.)
+			}
+	ms_cut_dict = {'DNN':(0.,0.85),\
+			'Energy (keV)': (1000.,3500.),\
+			'Standoff (mm)': (20.,650.)
+			}
+	
+	likelihood.PlotModelDistributions(ss_cut_dict,ms_cut_dict,\
+					output_filename='rn222_distributions_plot.png',\
+					plot_data=True,save=True)
+
 # Set limits so that none of the PDFs can go negative in the fit.
 # (except the signal PDF)
 if PAR_LIMITS:
@@ -147,13 +167,13 @@ if PAR_LIMITS:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = -15., \
 	                                  upper_limit = 100.)
-	    elif 'Background_Shape_Error' in var['Name']:
-	        likelihood.SetVariableLimits( var['Name'], \
-	                                  lower_limit = -100., \
-	                                  upper_limit = 100.)
-	    else: 
+	    elif 'Co60' in var['Name']:
 	        likelihood.SetVariableLimits( var['Name'], \
 	                                  lower_limit = 0., \
+	                                  upper_limit = var['Value']*10.)
+	    else: 
+	        likelihood.SetVariableLimits( var['Name'], \
+	                                  lower_limit = var['Value']*0.1, \
 	                                  upper_limit = var['Value']*10.)
 
 likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
@@ -161,8 +181,9 @@ likelihood.SetFractionalMinuitInputError('Num_FullLXeBb0n', 0.01/0.0001)
 
 ##########################################################################
 # Here's where the calculation loop begins.
+workspace.SetHandlingOfRadioassayData(fluctuate=True)
 
-num_hypotheses = 30
+num_hypotheses = 24
 xvals = np.array([])
 
 lambdas = np.zeros(num_hypotheses)
@@ -188,24 +209,53 @@ for j in range(0,num_datasets):
 	crossing = -1
 	output_row = dict()
 
-	likelihood.model.UpdateVariables(initial_guess)
+	# Redo the grouping, which fluctuates the radioassay values within their uncertainties.
+	workspace.CreateGroupedPDFs()
+	likelihood.AddPDFDataframeToModel( workspace.df_group_pdfs, \
+                                           workspace.histogram_axis_names, \
+                                           replace_existing_variables=False )
+#	# Adjust the parameters' limits to avoid situations where the radioassay
+#	# fluctuations push them outside of their boundaries
+#	if PAR_LIMITS:
+#		for var in likelihood.model.variable_list:
+#			if 'Bb0n' in var['Name']:
+#				continue
+#			else:
+#				if var['Limits'][0] > var['Value']*0.05:
+#					likelihood.SetVariableLimits( var['Name'], \
+#						lower_limit = var['Value']*0.05, \
+#						upper_limit = var['Limits'][1])
+#				if var['Limits'][1] < var['Value'] * 10.:
+#					likelihood.SetVariableLimits( var['Name'], \
+#						lower_limit = var['Limits'][0], \
+#						upper_limit = var['Value']*10.)
+
+	rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
+	likelihood.model.variable_list[ rn222_idx ]['Value'] *= rn222_scale_factor 
+	initial_guess = likelihood.GetVariableValues()
 	likelihood.model.GenerateModelDistribution()
 	likelihood.AddDataset( likelihood.model.GenerateDataset() )
 	
 	likelihood.SetAllVariablesFloating()
 
         # Fix the Co60 parameter
-	likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
+	#likelihood.SetVariableFixStatus('Num_FullTPC_Co60',True)
 
-	RN_CONSTRAINTS=True
-	if RN_CONSTRAINTS:
-		rn222_idx = likelihood.GetVariableIndex('Rn222')
+	if CONSTRAINTS:
+		rn222_idx = likelihood.model.GetVariableIndexByName('Rn222')
 		# Fluctuate Rn222 constraint
 		rn222_constraint_val = (np.random.randn()*0.1 + 1)*initial_guess[rn222_idx]
 		# Set Rn222 constraint
 		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[rn222_idx]['Name'],\
 							 rn222_constraint_val, \
 	                	                         0.1 * initial_guess[rn222_idx])
+		b8_idx = likelihood.model.GetVariableIndexByName('B8')
+		# Fluctuate B8nu constraint
+		b8_constraint_val = (np.random.randn()*0.1 + 1)*initial_guess[b8_idx]
+		# Set B8nu constraint
+		likelihood.SetGaussianConstraintAbsolute(likelihood.model.variable_list[b8_idx]['Name'],\
+							 b8_constraint_val, \
+	                	                         0.1 * initial_guess[b8_idx])
 
 	if INCLUDE_EFFICIENCY_ERROR:
                 eff_idx = likelihood.GetVariableIndex('Signal_Efficiency')
@@ -233,7 +283,12 @@ for j in range(0,num_datasets):
 	for i in (range(0,num_hypotheses)):
 
 		# Fix the 0nu parameter to a specific hypothesis
-		signal_hypothesis = float(i)*2.+0.000001
+		if rn222_scale_factor > 9.:
+			signal_hypothesis = float(i)*2.5+0.000001
+		elif rn222_scale_factor < 0.3:
+			signal_hypothesis = float(i)*1.4+0.000001
+		else: 
+			signal_hypothesis = float(i)*2.0+0.000001
 		signal_idx = likelihood.GetVariableIndex('Bb0n')
 		initial_values = np.copy(initial_guess)
 		initial_values[signal_idx] = signal_hypothesis
@@ -294,6 +349,12 @@ for j in range(0,num_datasets):
 	output_row['best_fit_converged'] = lambda_fit_result['best_fit_converged']
 	output_row['best_fit_covar'] = lambda_fit_result['best_fit_covar']
 	output_row['best_fit_iterations'] = lambda_fit_result['best_fit_iterations']
+	output_row['best_fit_parameters']  = lambda_fit_result['best_fit_parameters']
+	output_row['best_fit_errors']      = lambda_fit_result['best_fit_errors']
+	output_row['best_fit_nll']         = lambda_fit_result['best_fit_nll']
+	output_row['fixed_fit_parameters'] = lambda_fit_result['fixed_fit_parameters']
+	output_row['fixed_fit_errors']     = lambda_fit_result['fixed_fit_errors']
+	output_row['input_parameters']     = initial_guess
 	#output_row['dataset'] = likelihood.dataset
 
 	output_df_list.append(output_row)
@@ -313,8 +374,8 @@ for j in range(0,num_datasets):
 output_df = pd.DataFrame(output_df_list)
 #print(output_df.head())
 print('Saving file to output directory: {}'.format(output_dir))
-output_df.to_hdf('{}/sens_output_file_rn222study_{}x_90CL_{:03}.h5'.format(\
-                         output_dir, int(rn222_scale_factor), iteration_num ),\
+output_df.to_hdf('{}/sens_output_file_rn222study_{:0>4.4}x_90CL_{:03}_D023.h5'.format(\
+                         output_dir, rn222_scale_factor, job_id_num ),\
                          key='df')
 
 print('Elapsed: {:4.4}s'.format(time.time()-start_time))

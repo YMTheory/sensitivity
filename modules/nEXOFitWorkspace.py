@@ -12,6 +12,8 @@ from scipy.special import erfinv
 import nEXOExcelTableReader
 import nEXOMaterialsDBInterface
 
+# from MC_ID_Dict_2019Baseline import MC_ID_Dict
+
 class nEXOFitWorkspace:
 
    ##########################################################################
@@ -28,6 +30,9 @@ class nEXOFitWorkspace:
       #     'df_group_pdfs' will be a pandas dataframe
       #              which contains the distributions for
       #              each group, weighted appropriately
+      #     'df_materials' will be a pandas dataframe which
+      #              contains the radioassay data for each
+      #              material. This is used for fluctuations.
       #     'neg_log_likelihood' will be a customized
       #              object which computes a likelihood
       #              between the grouped PDFs and some toy
@@ -47,9 +52,9 @@ class nEXOFitWorkspace:
       #              an earlier stage in the data processing -
       #              the present code should be totally agnostic
       #              to the variables/binning/etc. 
-
       self.df_components = pd.DataFrame()       
       self.df_group_pdfs = pd.DataFrame()
+      self.materials_dict = {} #pd.DataFrame()
       self.neg_log_likelihood = None
       self.minimizer = None
       self.signal_counts=0.0001
@@ -61,7 +66,7 @@ class nEXOFitWorkspace:
       self.materialsDB = None
 
       self.fluctuate_radioassay_during_grouping = False
-      self.radioassay_limits_handling = "Delta"
+      self.fluctuations_correlated_by_material = True
 
       config_file = open(config,'r')
       self.config = yaml.load( config_file, Loader=yaml.SafeLoader )
@@ -85,6 +90,7 @@ class nEXOFitWorkspace:
          self.df_components = pd.read_hdf(input_filename,key='Components')
       except OSError as e:
           print('\nERROR: The input file must be an HDF5 file.\n')
+          print(e)
           #sys.exit()
           return
       except KeyError as e:
@@ -123,17 +129,14 @@ class nEXOFitWorkspace:
    #          result from a gaussian distribution centered at the central 
    #          value, but it will truncate the distribution at 0 (so we 
    #          don't have negative counts).
-   #      -  'limits_handling' governs how we deal with radioassay results
-   #          that only report an upper limit. The default is "Delta", where
-   #          we simply use the upper limit as the result, and apply no
-   #          fluctuations. The other option is "TruncatedGaussianAtZero",
-   #          where we assume the central value is 0, then sample from a 
-   #          gaussian that has a sigma given by assuming the reported value
-   #          is the 90% CL. 
+   #      -  'correlate' tells the code whether or not to apply fluctuations
+   #          to each component individually, or to apply fluctuations by
+   #          material; i.e. fluctuating the specific activity for all copper
+   #          components together.
    ##########################################################################
-   def SetHandlingOfRadioassayData( fluctuate = False, limits_handling = "Delta" ):
+   def SetHandlingOfRadioassayData( self, fluctuate = False, correlate = True ):
        self.fluctuate_radioassay_during_grouping = fluctuate
-       self.radioassay_limits_handling = limits_handling 
+       self.fluctuations_correlated_by_material = correlate
 
 
    ##########################################################################
@@ -191,14 +194,18 @@ class nEXOFitWorkspace:
    # Geometry tag is the number associated with a particular model, e.g.
    # 'D-023' for the Baseline 2019 geometry
    ##########################################################################
-   def CreateComponentsTableFromMaterialsDB( self, geometry_tag,\
+   def CreateComponentsTableFromMaterialsDB( self, geometry_tag, label='',\
                                              histograms_file = None,\
                                              create_histograms_from_trees = False,\
                                              trees_directory = None,\
                                              download_mc_data = False,\
-                                              ):
+                                             use_mc_id_dict = False,\
+                                             output_dir=''):
 
        start_time = time.time()
+
+       if use_mc_id_dict:
+          mc_id_dict = MC_ID_Dict()
 
        if histograms_file is None and\
           not create_histograms_from_trees and\
@@ -278,7 +285,12 @@ class nEXOFitWorkspace:
                thispdf['PDFName'] = pdf_name
                thispdf['Component'] = component['name']
                thispdf['Isotope'] = measurement['isotope'].split(' ')[0]
-               thispdf['MC ID'] = component['montecarloid']
+               thispdf['Material'] = component['material']
+               thispdf['Radioassay ID'] = component['radioassayid']
+               if use_mc_id_dict:
+                  thispdf['MC ID'] = mc_id_dict.data[component['name']]
+               else:
+                  thispdf['MC ID'] = component['montecarloid']
                thispdf['Total Mass or Area'] = float( component['mass'] ) * float( component['quantity'] )
                thispdf['Activity ID'] = component['radioassayid'] 
 
@@ -373,7 +385,7 @@ class nEXOFitWorkspace:
  
        # Store the components table in a file in case you want to
        # go back and look at it later.
-       outTableName = 'ComponentsTable_' + geometry_tag + '.h5'
+       outTableName = output_dir + 'ComponentsTable_' + geometry_tag + '_{}'.format(label) + '.h5'
        print('\n\nWriting table to file {}\n'.format(outTableName))
        self.df_components.to_hdf( outTableName, key='Components' )
  
@@ -399,7 +411,7 @@ class nEXOFitWorkspace:
    # Stores the histograms as histlite objects, then writes these to an HDF5
    # file.
    ##########################################################################
-   def CreateHistogramsFromRawTrees( self, path_to_trees, output_hdf5_filename ):
+   def CreateHistogramsFromRawTrees( self, path_to_trees, output_hdf5_filename, resolution_factor=None):
 
       start_time = time.time()      
 
@@ -428,24 +440,69 @@ class nEXOFitWorkspace:
              print('\n*********************** EXITING *******************************\n')
              sys.exit('')
 
+          # Grab the correct variables from the tree, and also grab the 'weight' column
+          #var_list = [axis['VariableName'] for axis in self.config['FitAxes']].append('weight')
+          var_list = self.GetReconVariableList()         
+
           try:
-             input_df = input_tree.arrays( [axis['VariableName'] for axis in self.config['FitAxes']], \
-                                           outputtype=pd.DataFrame )
+             input_df = input_tree.arrays( var_list, outputtype=pd.DataFrame )
           except KeyError as e:
              print('\n\n************** ERROR: PROBLEM WITH AXIS NAMES **************')
              print('The input TTree does not contain all of the variables listed')
              print('in the FitAxes. See error message below for details:\n')
              print(e)
              print('\n*********************** EXITING *******************************\n')
-             sys.exit('') 
+             sys.exit('')
 
-          binspecs_list = [ np.linspace( axis['Min'],\
-                                         axis['Max'],\
-                                         axis['NumBins']+1 )\
-                            for axis in self.config['FitAxes'] ]
-          
-          data_list = [ input_df[ axis['VariableName'] ] for axis in self.config['FitAxes'] ]
-          hh = hl.hist( tuple(data_list), bins=tuple(binspecs_list) )
+          # Define binning
+          binspecs_list = []
+          for axis in self.config['FitAxes']:
+              if 'BinningOption' not in axis.keys():
+                  print('\n\n************** ERROR: PLEASE SEPCIFY A BINNING OPTION **************')
+                  print('Supported options are:')
+                  print('      \'Linear\': requires a min, max, and number of bins')
+                  print('      \'Custom\': requires a list of the bin edges')
+                  print('\n*********************** EXITING *******************************\n')
+                  sys.exit('') 
+
+              if 'Linear' in axis['BinningOption']:
+                  binspecs_list.append( np.linspace( axis['Min'],\
+                                                    axis['Max'],\
+                                                    axis['NumBins']+1 ) )
+              elif 'Custom' in axis['BinningOption']:
+                  binspecs_list.append( np.array(axis['BinEdges']) )
+              else:   
+                  print('\n\n************** ERROR: {} IS NOT A SUPPORTED BINNING OPTION **************'.format(axis['BinningOption']))
+                  print('Supported options are:')
+                  print('      \'Linear\': requires a min, max, and number of bins')
+                  print('      \'Custom\': requires a list of the bin edges')
+                  print('\n*********************** EXITING *******************************\n')
+                  sys.exit('') 
+
+
+          # Define cuts
+          mask = self.GetCutMask( input_df )
+          if len(mask) > 0:
+             print('\tEvents passing cuts: {} evts of {} ({:4.4}%)'.format(\
+                     np.sum(mask), len(mask), 100*float(np.sum(mask))/float(len(mask))))
+ 
+          data_list = [ input_df[ axis['VariableName'] ].loc[mask] for axis in self.config['FitAxes'] ]
+
+          if resolution_factor:
+             try:
+                for idx, (bin, data) in enumerate(data_list[1].iteritems()):
+                    data_list[1][bin] = np.random.normal(data, float(resolution_factor) * data, 1)[0]
+                    if len(data_list[1]) > 5 and not idx % int(len(data_list[1]) / 5):
+                        print("{} is {:.2f}% complete.".format(filename, idx/len(data_list[1])*100))
+             except:
+                print("data = " + str(data) + "\n")
+                print("bin = " + str(bin) + "\n")
+                if resolution_factor:
+                   print("resolution_factor = " + str(resolution_factor) + "\n")
+                   print("res * data = " + str(float(resolution_factor) * data) + "\n")
+                exit()
+
+          hh = hl.hist( tuple(data_list), weights=input_df['weight'].loc[mask], bins=tuple(binspecs_list) )
           thisrow = { 'Filename': filename,\
                       'Histogram': hh,\
                       'HistogramAxisNames': [ axis['Title'] for axis in self.config['FitAxes'] ] }
@@ -460,7 +517,88 @@ class nEXOFitWorkspace:
    
 
 
+   ##########################################################################
+   # Returns a list containing the names of all the variables you need to
+   # grab from the reconstructed data.
+   ##########################################################################
+   def GetReconVariableList( self ):
+      recon_variable_list = []
+      
+      # Add whatever variables will go on the axes of your PDFs
+      for axis in self.config['FitAxes']:
+          recon_variable_list.append( axis['VariableName'] )
 
+      # Add whatever variables you will need to cut on
+      for cut in self.config['Cuts']:
+          for propertyname, value in cut.items():
+              if 'Variable' in propertyname:
+                 recon_variable_list.append( value )
+
+      # Make sure you also grab the weights
+      recon_variable_list.append( 'weight' )
+    
+      # Remove any duplicate variable names
+      recon_variable_list = list( dict.fromkeys( recon_variable_list ) )
+
+      return recon_variable_list
+     
+
+   ##########################################################################
+   # Generates a boolean numpy array that represents the sum of all the cuts
+   # to apply to the reconstructed data while making the PDFs.
+   ##########################################################################
+   def GetCutMask( self, input_df ):
+
+      global_mask = np.ones( len(input_df), dtype=bool)
+
+      for cut in self.config['Cuts']:
+
+          if cut['Type'] == 'Boolean':
+             this_mask = input_df[ cut['Variable'] ].values
+
+          elif cut['Type'] == 'InvertedBoolean':
+             this_mask = np.invert( input_df[ cut['Variable'] ].values )
+
+          elif cut['Type'] == '1D':
+             if cut['Bound'] == 'Upper':
+                this_mask = input_df[cut['Variable']].values < cut['Value']
+             elif cut['Bound'] == 'Lower':
+                this_mask = input_df[cut['Variable']].values > cut['Value']
+             else:
+                print('\n\n************** ERROR: UNSUPPORTED CUT BOUND **************')
+                print('\'Bound\' type {} is not supported. '.format(cut['Bound']) +\
+                      'Please choose either \'Upper\' or \'Lower\'.')
+                print('\n*********************** EXITING *******************************\n')
+                sys.exit('') 
+                
+
+          elif cut['Type'] == '2DLinear':
+             if cut['Bound'] == 'Upper':
+                this_mask = input_df[cut['YVariable']].values < \
+                              cut['Slope'] * input_df[cut['XVariable']].values + cut['Intercept']
+             elif cut['Bound'] == 'Lower':
+                this_mask = input_df[cut['YVariable']].values > \
+                              cut['Slope'] * input_df[cut['XVariable']].values + cut['Intercept']
+             else:
+                print('\n\n************** ERROR: UNSUPPORTED CUT BOUND **************')
+                print('\'Bound\' type {} is not supported. '.format(cut['Bound']) +\
+                      'Please choose either \'Upper\' or \'Lower\'.')
+                print('\n*********************** EXITING *******************************\n')
+                sys.exit('')
+ 
+          else:
+             print('\n\n************** ERROR: UNSUPPORTED CUT **************')
+             print('Cut type {} is not yet supported. ' +\
+                   'See nEXOFitWorkspace.GetCutMask for more details.'.format(cut['Type']))
+             print('\n*********************** EXITING *******************************\n')
+             sys.exit('') 
+
+          print('Fraction of events passing {} cut: {:5.5}'.format(cut['Title'],np.sum(this_mask)/len(this_mask)))
+
+          global_mask = global_mask & this_mask
+
+      return global_mask  
+          
  
    ##########################################################################
    # Creates grouped PDFs from the information contained in the input
@@ -478,31 +616,47 @@ class nEXOFitWorkspace:
                                                     'Histogram',\
                                                     'TotalExpectedCounts'])
 
+       material_activities_dict = self.GetFluctuatedActivitiesByMaterial() 
+
        # Loop over rows in df_components, add histograms to the appropriate group.
        for index,row in self.df_components.iterrows():
 
-
          if row['Group'] == 'Off':
             continue
-            #totalExpectedCounts = 0.
-         elif row['Isotope']=='bb0n':
+
+         # If the histogram is non-zero, normalize it. Note that running
+         # `.normalize` on a histogram with all zeros returns a histogram filled with nan
+         try:
+            if np.sum( row['Histogram'].values ) > 0.:
+               histogram_axes = tuple([x for x in range(len(row['Histogram'].values.shape))])
+               normalized_histogram = row['Histogram'].normalize( histogram_axes, integrate=False ) 
+            else:
+               normalized_histogram = row['Histogram']
+         except AttributeError:
+            print('\nERROR: No histogram available for {}'.format(row['PDFName']))
+            continue
+
+         if row['Isotope']=='bb0n':
              totalExpectedCounts = self.signal_counts
          elif self.fluctuate_radioassay_during_grouping:
-             totalExpectedCounts = self.GetFluctuatedExpectedCounts( row ) 
+              if self.fluctuations_correlated_by_material:
+                 totalExpectedCounts = row['Total Mass or Area'] *\
+                         material_activities_dict[row['Material']][row['Radioassay ID']][row['Isotope']] / \
+                                  1000. * \
+                                  row['TotalHitEff_K'] / row['TotalHitEff_N'] *\
+                                  self.livetime
+              else:
+                 totalExpectedCounts = self.GetFluctuatedExpectedCounts( row )
          else:
-             if row['SpecActiv'] > 0.:
-                totalExpectedCounts = row['Total Mass or Area'] * \
-                                      row['SpecActiv']/1000. * \
-                                      row['TotalHitEff_K'] / row['TotalHitEff_N'] * \
-                                      self.livetime
-             else:
-                totalExpectedCounts = 0
-         
-         
+             totalExpectedCounts = row['Total Mass or Area'] *\
+                                self.GetMeanSpecificActivity(row)/1000.*\
+                                row['TotalHitEff_K'] / row['TotalHitEff_N'] *\
+                                self.livetime
+
          if not (row['Group'] in self.df_group_pdfs['Group'].values):
 
              new_group_row = { 'Group' : row['Group'], \
-                               'Histogram' : row['Histogram'].normalize((0,1,2),integrate=False) * \
+                               'Histogram' : normalized_histogram * \
                                              totalExpectedCounts, \
                                'TotalExpectedCounts' : totalExpectedCounts }
 
@@ -512,12 +666,12 @@ class nEXOFitWorkspace:
 
              group_mask = row['Group']==self.df_group_pdfs['Group']            
  
-             self.df_group_pdfs['Histogram'].loc[ group_mask ] = \
+             self.df_group_pdfs.loc[ group_mask, 'Histogram' ] = \
                   self.df_group_pdfs['Histogram'].loc[ group_mask ] + \
-                  row['Histogram'].normalize( (0,1,2), integrate=False) * \
+                  normalized_histogram * \
                   totalExpectedCounts
-             
-             self.df_group_pdfs['TotalExpectedCounts'].loc[ group_mask ] = \
+
+             self.df_group_pdfs.loc[ group_mask,'TotalExpectedCounts'] = \
                   self.df_group_pdfs['TotalExpectedCounts'].loc[ group_mask ] + \
                   totalExpectedCounts
 
@@ -528,7 +682,8 @@ class nEXOFitWorkspace:
        total_sum_row = {}
        for index,row in self.df_group_pdfs.iterrows():
 
-         self.df_group_pdfs['Histogram'].loc[index] = row['Histogram'].normalize( (0,1,2), integrate=False )
+         if np.sum( row['Histogram'].values ) > 0.:
+            self.df_group_pdfs.loc[ index, 'Histogram'] = row['Histogram'].normalize( histogram_axes, integrate=False )
 
          # TOFIX: Need better handling of negative totals, and need to figure out why 'Far' gives
          # me weird stuff. For now, I'm ignoring these.
@@ -544,17 +699,16 @@ class nEXOFitWorkspace:
        self.df_group_pdfs = self.df_group_pdfs.append(total_sum_row,ignore_index=True)
 
        # Print out all the groups and their expected counts.
-       print('\t{:<10} \t{:>15}'.format('Group:','Expected Counts:'))
+       print('\t{:<35} \t{:>15}'.format('Group:','Expected Counts:'))
        for index,row in self.df_group_pdfs.iterrows():
-           print('\t{:<10} \t{:>15.2f}'.format( row['Group'], row['TotalExpectedCounts']))
+           print('\t{:<35} \t{:>15.4f}'.format( row['Group'], row['TotalExpectedCounts']))
 
        return 
    ######################## End of CreateGroupPDFs() ########################
 
 
    ##########################################################################
-   # Apply fluctuation
-
+   # Apply fluctuations by row
    ##########################################################################
    def GetFluctuatedExpectedCounts( self, components_table_row ):
        
@@ -568,32 +722,143 @@ class nEXOFitWorkspace:
 
        fluctuated_spec_activity = None
 
-       if components_table_row['SpecErrorType'] == 'Upper limit (90% C.L.)' or \
-          components_table_row['SpecErrorType'] == 'limit':
-           fluct_mean = 0.
-           fluct_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
-       elif components_table_row['SpecErrorType'] == 'Symmetric error (68% C.L.)' or \
-            components_table_row['SpecErrorType'] == 'obs':
+       if components_table_row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
+          components_table_row['SpecActivErrorType'] == 'limit':
+               fluct_mean = 0.
+               fluct_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
+       elif components_table_row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
+            components_table_row['SpecActivErrorType'] == 'obs':
                fluct_mean = components_table_row['SpecActiv']
                fluct_sigma = components_table_row['SpecActivErr']
+       elif components_table_row['SpecActivErrorType'] == 'Asymmetric error':
+                fluct_mean = components_table_row['SpecActiv']
+                fluct_sigma = 0.
+       
        else: 
            print('\nComponent {} has undefined error type {}\n'.format(\
-                            components_table_row['SpecErrorType'],\
-                            components_table_row['SpecErrorType'] ))
+                            components_table_row['PDFName'],\
+                            components_table_row['SpecActivErrorType'] ))
            raise TypeError
    
-       # keep trying until you get a nonnegative number
+       # If fluctuated activity is less than 0, use 0.
        fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
-       while fluctuated_spec_activity < 0.:
-              fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+       if fluctuated_spec_activity < 0.:
+              fluctuated_spec_activity = 0.
+              #fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
 
-       totalExpectedCounts = row['Total Mass or Area'] * \
+       totalExpectedCounts = components_table_row['Total Mass or Area'] * \
                              fluctuated_spec_activity/1000. * \
-                             row['TotalHitEff_K'] / row['TotalHitEff_N'] * \
+                             components_table_row['TotalHitEff_K'] / \
+                             components_table_row['TotalHitEff_N'] * \
                              self.livetime
 
        return totalExpectedCounts
-        
+       
+   
+   ##########################################################################
+   # Apply fluctuations by material
+   ##########################################################################
+   def GetFluctuatedActivitiesByMaterial( self ):
+       if len(self.df_components) == 0:
+          print('\nERROR IN GetFluctuatedActivitiesByMaterial:')
+          print('----> No ComponentsTable loaded\n')
+          raise ValueError
+
+       fluctuated_activities_dict = {}
+       
+       for index,row in self.df_components.iterrows():
+
+           # Fluctuations are applied in two ways:
+           #    - If the radioassay result is a 90% upper limit, we draw from a 
+           #      gaussian centered at 0, with 1-sigma = value/sqrt(2)/erfinv(0.8)
+           #    - If the radioassay result is a measured value, we draw from a gaussian
+           #      centered at the measured value with the measured 1-sigma uncertainties. 
+           #    - If the fluctuated value is below 0, resample until you get a nonnegative result. 
+           # This strategy follows the recommendations in Raymond's paper: arXiv:1808.05307
+           # Apply the appropriate fluctuations           
+           if row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
+              row['SpecActivErrorType'] == 'limit':
+                   fluct_mean = 0.
+                   fluct_sigma = row['SpecActiv'] / np.sqrt(2) / 0.906194
+           elif row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
+                row['SpecActivErrorType'] == 'obs':
+                   fluct_mean = row['SpecActiv']
+                   fluct_sigma = row['SpecActivErr']
+           elif row['SpecActivErrorType'] == 'Asymmetric error':
+                    fluct_mean = row['SpecActiv']
+                    fluct_sigma = 0. 
+           else: 
+               print('\nComponent {} has undefined error type {}\n'.format(\
+                                row['PDFName'],\
+                                row['SpecActivErrorType'] ))
+               raise TypeError
+       
+           # If fluctuated activity is less than 0, use 0.
+           fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+           if fluctuated_spec_activity < 0.:
+                  fluctuated_spec_activity = 0.
+
+           ###########################################################
+           # Once the activity is properly fluctuated, we fill a nested
+           # dict structure with the appropriate values, to use as a
+           # look-up table during the grouping stage.
+           if row['Material'] not in fluctuated_activities_dict.keys():
+              fluctuated_activities_dict[row['Material']] = \
+                                         { row['Radioassay ID']: \
+                                           {row['Isotope']: fluctuated_spec_activity } }
+           else:
+              if row['Radioassay ID'] not in fluctuated_activities_dict[row['Material']].keys():
+                 fluctuated_activities_dict[row['Material']][row['Radioassay ID']] = \
+                                          { row['Isotope']: fluctuated_spec_activity }
+              else:
+                 if row['Isotope'] not in \
+                       fluctuated_activities_dict[row['Material']][row['Radioassay ID']].keys():
+                   
+                    fluctuated_activities_dict[row['Material']][row['Radioassay ID']][row['Isotope']] = \
+                                           fluctuated_spec_activity #row['SpecActiv']
+                 else:
+                    # If we fail this last 'if' statement, the fluctuated activity of this 
+                    # material is already set, so do nothing.
+                    continue                    
+
+       return fluctuated_activities_dict            
+      
+
+
+ 
+   ##########################################################################
+   # Compute the mean specific activity that we expect to see, given the
+   # fluctuations strategy outlined above and the radioassay measurement
+   #########################################################################
+   def GetMeanSpecificActivity( self, components_table_row ):
+        if components_table_row['SpecActivErrorType'] == 'Upper limit (90% C.L.)' or \
+              components_table_row['SpecActivErrorType'] == 'limit':
+                   spec_activ_mean = 0.
+                   spec_activ_sigma = components_table_row['SpecActiv'] / np.sqrt(2) / 0.906194
+        elif components_table_row['SpecActivErrorType'] == 'Symmetric error (68% C.L.)' or \
+                components_table_row['SpecActivErrorType'] == 'obs':
+                   spec_activ_mean = components_table_row['SpecActiv']
+                   spec_activ_sigma = components_table_row['SpecActivErr']
+        elif components_table_row['SpecActivErrorType'] == 'Asymmetric error':
+                    spec_activ_mean = components_table_row['SpecActiv']
+                    spec_activ_sigma = 0. 
+        xvals = np.linspace( spec_activ_mean - 5.*spec_activ_sigma,\
+                             spec_activ_mean + 5.*spec_activ_sigma,\
+                             3000)
+        if spec_activ_sigma < 1.e-30:
+           print('no sigma for {} ({})'.format(components_table_row['PDFName'],\
+                                               components_table_row['Activity ID']))
+           if spec_activ_mean < 0.:
+              return 0.
+           else:
+              return spec_activ_mean
+        yvals = NormalDistribution(xvals,spec_activ_mean,spec_activ_sigma)
+        dx = xvals[1]-xvals[0]
+
+        xvals[xvals<0.] = np.zeros(len(xvals[xvals<0.]))
+        return np.sum(xvals * yvals)*dx
+
+
 
    ##########################################################################
    # Defines the ROI. The ROI boundaries are given as a dict, where the
@@ -609,7 +874,7 @@ class nEXOFitWorkspace:
        # First, make sure the right axes are being called.
        for axis in input_roi_dict.keys():
            if not axis in self.histogram_axis_names:
-              print('ERROR: {} does not match any of the fit axes.')
+              print('ERROR: {} does not match any of the fit axes.'.format(axis))
               print('       Choices are:')
               for name in self.histogram_axis_names:
                   print('                 {}'.format(name))
@@ -627,10 +892,10 @@ class nEXOFitWorkspace:
            axis_name = self.histogram_axis_names[i]
            axis_bins = pdf_bins[i]
 
-           match_edges_lower_limit = np.where( axis_bins >= input_roi_dict[axis_name][0] )
-           match_edges_upper_limit = np.where( axis_bins <= input_roi_dict[axis_name][1] )
-   
-           match_edges = np.intersect1d( match_edges_lower_limit, match_edges_upper_limit )
+           match_edges_lower_limit = np.argmin( (axis_bins - input_roi_dict[axis_name][0] )**2 )
+           match_edges_upper_limit = np.argmin( (axis_bins - input_roi_dict[axis_name][1] )**2 )  
+
+           match_edges = range(match_edges_lower_limit,match_edges_upper_limit+1)
            match_indices = match_edges[:-1]
  
            self.roi_edges[axis_name] = np.array( axis_bins[match_edges] )
@@ -693,5 +958,8 @@ class nEXOFitWorkspace:
    #def CreateNegLogLikelihood( self ):
        
 
-
+####################################################################
+def NormalDistribution(x,mu,sigma):
+    return 1./np.sqrt(2*np.pi*sigma**2) * np.exp(-(x-mu)**2/(2.*sigma**2))
+###################################################################
 

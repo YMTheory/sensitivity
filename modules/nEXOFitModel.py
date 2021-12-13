@@ -21,35 +21,44 @@ class nEXOFitModel:
        self.background_shape_var_flag = False
        self.initial_variable_list = []
        self.signal_name = None
+       self.axis_names = None
 
    #########################################################################
-   def AddPDFsFromDataframe( self, input_df, append=False ):
+   def AddPDFsFromDataframe( self, input_df, axis_names, append=False, replace_existing_variables=True ):
 
        self.df_pdfs = input_df
-       if not append:
-          self.pdfs = []
-          self.variable_list = []
+       self.axis_names = axis_names
 
-       for index, row in input_df.iterrows():
-           if (row['Group']=='Total Sum')|\
-              (row['Group']=='Off'):
-              #(row['Group']=='Far'):
-                  continue
-           self.pdfs.append( row['Histogram'] )
+       if replace_existing_variables:
+           if not append:
+              self.pdfs = []
+              self.variable_list = []
+    
+           for index, row in input_df.iterrows():
+               if (row['Group']=='Total Sum') | (row['Group']=='Off'):
+                      continue
+               self.pdfs.append( row['Histogram'] )
+    
+               this_variable_dict = {}
+               this_variable_dict['Name'] = 'Num_{}'.format( row['Group'] ) 
+               this_variable_dict['Value'] = row['TotalExpectedCounts']
+               self.variable_list.append( this_variable_dict )
+           for var in self.variable_list:
+               var['IsFixed'] = False
+               var['FitError'] = None
+               var['MinuitInputError'] = np.sqrt(var['Value'])
+               var['IsConstrained'] = False
+               var['Limits'] = (None,None)
+    
+           self.initial_variable_list = copy.deepcopy( self.variable_list )
 
-           this_variable_dict = {}
-           this_variable_dict['Name'] = 'Num_{}'.format( row['Group'] ) 
-           this_variable_dict['Value'] = row['TotalExpectedCounts']
-           self.variable_list.append( this_variable_dict )
-       for var in self.variable_list:
-           var['IsFixed'] = False
-           var['FitError'] = None
-           var['MinuitInputError'] = np.sqrt(var['Value'])
-           var['IsConstrained'] = False
-           var['Limits'] = (None,None)
-
-       self.initial_variable_list = copy.deepcopy( self.variable_list )
-
+       else:
+           for index, row in input_df.iterrows():
+               if (row['Group']=='Total Sum') | (row['Group']=='Off'):
+                   continue
+               var_idx = self.GetVariableIndexByName( 'Num_{}'.format(row['Group']) )
+               self.pdfs[var_idx] = row['Histogram'] 
+               self.variable_list[var_idx]['Value'] = row['TotalExpectedCounts'] 
 
    #########################################################################
    def GenerateModelDistribution( self, fast=False ):
@@ -167,15 +176,36 @@ class nEXOFitModel:
 
    #########################################################################
    def GenerateDataset( self ):
-       if self.full_distribution==None:
+       if self.full_distribution is None:
           self.GenerateModelDistribution()
  
+       negative_mask = self.full_distribution.values < 0.
+       nonnegative_distribution = self.full_distribution.values
+       nonnegative_distribution[negative_mask] = \
+                      np.zeros( nonnegative_distribution[negative_mask].shape )
        # Generates a Poisson sample of each bin
-       fake_data_values = np.random.poisson( self.full_distribution.values )   
+       fake_data_values = np.random.poisson( nonnegative_distribution )   
        # Creates a Histlite histogram with the sampled values and errors     
        self.dataset = hl.Hist( self.full_distribution.bins,\
                                  fake_data_values,\
                                  np.sqrt(fake_data_values) )
+       return self.dataset
+
+   #########################################################################
+   def GenerateAsimovDataset( self ):
+       if self.full_distribution is None:
+          self.GenerateModelDistribution()
+ 
+       negative_mask = self.full_distribution.values < 0.
+       nonnegative_distribution = self.full_distribution.values
+       nonnegative_distribution[negative_mask] = \
+                      np.zeros( nonnegative_distribution[negative_mask].shape )
+       # Generates a Poisson sample of each bin
+       fake_data_values = np.random.poisson( nonnegative_distribution )   
+       # Creates a Histlite histogram with the sampled values and errors     
+       self.dataset = hl.Hist( self.full_distribution.bins,\
+                                 nonnegative_distribution,\
+                                 np.sqrt(nonnegative_distribution) )
        return self.dataset
 
 
@@ -202,7 +232,7 @@ class nEXOFitModel:
        # num_dimensions. Each sub-array contains the indices over
        # which you want to integrate
 
-       if self.full_distribution==None:
+       if self.full_distribution is None:
           self.GenerateModelDistribution()
 
        if num_dimensions != len(self.full_distribution.values.shape):
@@ -238,6 +268,71 @@ class nEXOFitModel:
            temp_sum = np.sum( temp_sum[ bin_range_numpy_array[i] ], axis=0 )
 
        return temp_sum
+
+
+   #########################################################################
+   def GetSlicedDistribution( self, cut_dict, renormalize = False, \
+                              var_name = None, verbose=True ):
+
+       # Check to make sure the cut_dict contains the right axes
+       for axis_name in cut_dict.keys():
+           if axis_name not in self.axis_names:
+              print('\nERROR: \"{}\" is not a valid axis '.format(axis_name) + \
+                    'for the PDFs in this model.' )
+              print('       Please choose from:')
+              for i in range( len(self.axis_names) ):
+                  print('          {}'.format(self.axis_names[i]))
+              return None
+       for axis_name in self.axis_names:
+            if axis_name not in list(cut_dict.keys()):
+               print('\nERROR: The PDF axis \"{}\"'.format(axis_name) + \
+                     ' is not included in the input dict.' )
+               print('       Please choose from:')
+               for i in range( len(self.axis_names) ):
+                   print('          {}'.format(self.axis_names[i]))
+               return None
+ 
+       if var_name is not None:
+          var_idx = self.GetVariableIndexByName( var_name )
+          this_distribution = self.pdfs[var_idx]
+       else:
+          this_distribution = self.full_distribution
+ 
+       bin_edges = this_distribution.bins
+       bin_values = this_distribution.values
+ 
+       new_edges = []
+       new_slices = []     
+ 
+       for i in range(len(bin_edges)):
+ 
+            axis_name = self.axis_names[i]
+            axis_bins = bin_edges[i]
+ 
+            match_edges_lower_limit = np.argmin( (axis_bins - cut_dict[axis_name][0] )**2 )
+            match_edges_upper_limit = np.argmin( (axis_bins - cut_dict[axis_name][1] )**2 )  
+
+            match_edges = range(match_edges_lower_limit,match_edges_upper_limit+1)
+            match_indices = match_edges[:-1]
+  
+            new_edges.append( np.array( axis_bins[match_edges] ) )
+            new_slices.append( slice(match_indices[0],match_indices[-1]+1) )
+
+            if verbose:
+               print('{}:'.format(axis_name))
+               print('\tInput cut boundaries:  {:>8.5}, {:>8.5}'.format(\
+                      float(cut_dict[axis_name][0]), float(cut_dict[axis_name][1]) ) ) 
+               print('\tActual ROI boundaries: {:>8.5}, {:>8.5}'.format(\
+                      float(new_edges[i][0]), float(new_edges[i][-1]) ) ) 
+   
+       sliced_hist = hl.Hist( bins=new_edges, values=bin_values[ tuple(new_slices)  ] )
+
+       if renormalize:
+          sliced_hist = sliced_hist.normalize( (0,1,2), integrate=False )
+
+       return sliced_hist
+
+
 
 
 
