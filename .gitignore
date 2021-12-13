@@ -12,6 +12,7 @@
 *.so
 *.dylib
 *.dll
+*.pyc
 
 # Fortran module files
 *.mod
@@ -35,6 +36,12 @@
 # PNG or JPG plots
 *.png
 *.jpg
+
+# H5 files
+*.h5
+
+# Any ipynb checkpoints
+*ipynb_checkpoints*
 
 tables/
 quick/
