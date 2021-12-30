@@ -42,12 +42,13 @@ for (resolution_factor, resolution) in res_factors:
                     f"#SBATCH -o {output_dir}/logs/{label}.out\n" + \
                     "#SBATCH -J " + label + "\n" + \
                     "#SBATCH --export=ALL \n" + \
-                    "spacktivate nexo \n" + \
-                    "source /usr/workspace/samuele/mypyenv/bin/activate \n" + \
+                    "source /usr/workspace/samuele/spack/share/spack/setup-env.sh \n"
+                    "spack env activate nexo \n" + \
+                    "source /usr/workspace/samuele/nexo_venv/bin/activate \n" + \
                     "cd " + working_dir + "\n" + \
                     "export STARTTIME=`date +%s`\n" + \
                     "echo Start time $STARTTIME\n" + \
-                    "python3 " + submit_statement + "\n"\
+                    "python3 -u " + submit_statement + "\n"\
                     "export STOPTIME=`date +%s`\n" + \
                     "echo Stop time $STOPTIME\n" + \
                     "export DT=`expr $STOPTIME - $STARTTIME`\n" + \
