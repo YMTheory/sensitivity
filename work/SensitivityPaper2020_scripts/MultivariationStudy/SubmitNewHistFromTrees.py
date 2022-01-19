@@ -8,12 +8,12 @@ sys.path.append('../../../modules')
 #               (0.01149, .014), (0.01269, .015), (0.01386, .016), (0.015, .017), (0.01612, .018)]
 # dnn_factors = [0., 0.15, 0.2, 0.25]
 
-res_factors = [(0.006, .01), (0.00894, .012)]
-dnn_factors = [0.0, 0.2, ]
+res_factors = [(None, 0.008), (0.006, .01), (0.00894, .012), (0.01149, .014)]
+dnn_factors = [0.177, ]
 working_dir = "/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts"
 config_file = "../config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml"
 path_to_trees = "/p/vast1/nexo/data/merged-v11-mcid-labels"
-date = "21_12_29"
+date = "22_01_14"
 output_dir = "/p/lustre2/nexouser/samuele/histogram_files/" + date
 
 # Note: the DNN smoothing takes about ~2 hours just by itself for all files
@@ -36,13 +36,13 @@ for (resolution_factor, resolution) in res_factors:
 
         thescript = "#!/bin/bash\n" + \
                     "#SBATCH -t 48:00:00\n" + \
-                    "#SBATCH -A nuphys\n" + \
+                    "#SBATCH -A mlodd\n" + \
                     "#SBATCH --mail-type=fail\n" + \
                     f"#SBATCH -e {output_dir}/logs/{label}.err\n" + \
                     f"#SBATCH -o {output_dir}/logs/{label}.out\n" + \
                     "#SBATCH -J " + label + "\n" + \
                     "#SBATCH --export=ALL \n" + \
-                    "source /usr/workspace/samuele/spack/share/spack/setup-env.sh \n"
+                    "source /usr/workspace/samuele/spack/share/spack/setup-env.sh \n" + \
                     "spack env activate nexo \n" + \
                     "source /usr/workspace/samuele/nexo_venv/bin/activate \n" + \
                     "cd " + working_dir + "\n" + \

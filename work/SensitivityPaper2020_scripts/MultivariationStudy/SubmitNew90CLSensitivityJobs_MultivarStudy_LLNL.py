@@ -10,15 +10,18 @@ components_table_dir = '/p/lustre2/nexouser/samuele/multivarstudy/ComponentsTabl
 components_table_basename = 'ComponentsTable_D-024'
 config_file = '/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml'
 
-dnn_factors = [0., 0.15, 0.2]
+dnn_factors = [0., 0.15, 0.177, 0.2]
+#dnn_factors = [0.177]
 # xe137_scale_factors = [1.,0.01,0.1,0.3,3.,10.,30.,100.]
-xe137_scale_factors = [1., ]
-rn222_scale_factors = [1., ]
-bkg_scale_factors = [1., ]
-energy_res_factors = [0.008, ]
+xe137_scale_factors = [1.2, ]
+rn222_scale_factors = [1.2, ]
+bkg_scale_factors = [1.2, ]
+#energy_res_factors = [0.008, 0.01, 0.012, 0.014]
+energy_res_factors = [0.008, 0.01, 0.014]
 
+# one full calculation for 5000 toys takes about 4-5 hours
 bkg_shape_err = 0.
-num_datasets = 5000
+num_datasets = 7000
 num_jobs = 100
 jobs_offset = 0
 num_datasets_per_job = int(num_datasets / num_jobs)
@@ -28,6 +31,8 @@ base = "Run_multivar_"
 for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, energy_res \
         in itertools.product(dnn_factors, xe137_scale_factors, rn222_scale_factors, bkg_scale_factors,
                              energy_res_factors):
+    # This should match the hash string used in Compute90PercentLimit script 
+    # FIXME: hash should not be calculated both here and Compute90PercentLimit
     s = f'Xe137:{xe137_scale_factor:0>4.4f} ' + \
         f'Rn222:{rn222_scale_factor:0>4.4f} ' + \
         f'DNN:{dnn_scale_factor:0>4.4f} ' + \
@@ -54,19 +59,20 @@ for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, 
                            f'-d {dnn_scale_factor} -b {bkg_scale_factor} -x {xe137_scale_factor} -r {rn222_scale_factor}'
 
         thescript = "#!/bin/bash\n" + \
-                    "#SBATCH -t 14:00:00\n" + \
-                    "#SBATCH -A nuphys\n" + \
+                    "#SBATCH -t 12:00:00\n" + \
+                    "#SBATCH -A mlodd\n" + \
                     f"#SBATCH -e {outputdir}/logs/{basename}.err\n" + \
                     f"#SBATCH -o {outputdir}/logs/{basename}.out\n" + \
                     "#SBATCH --mail-type=fail\n" + \
                     f"#SBATCH -J {s_hash}\n" + \
                     "#SBATCH --export=ALL \n" + \
-                    "source /usr/gapps/nexo/setup.sh \n" + \
+                    "source /usr/workspace/samuele/spack/share/spack/setup-env.sh \n" + \
+                    "spack env activate nexo \n" + \
                     "source /usr/workspace/samuele/nexo_venv/bin/activate \n" + \
                     "cd " + execdir + "\n" + \
                     "export STARTTIME=`date +%s`\n" + \
                     "echo Start time $STARTTIME\n" + \
-                    f"python3 {submit_statement}\n" + \
+                    f"python3 -u {submit_statement}\n" + \
                     "export STOPTIME=`date +%s`\n" + \
                     "echo Stop time $STOPTIME\n" + \
                     "export DT=`expr $STOPTIME - $STARTTIME`\n" + \
