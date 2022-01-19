@@ -372,26 +372,38 @@ class RootTreeWriter():
                            #"ChargeTilesElectronics",\
                            "ChargeModuleSupport",\
                            "ChargeModuleBacking",\
+                           "ChargeModuleCables",\
+                           "ChargeModuleElectronics",\
                            "HVPlunger" ]
 
         self.groups['InternalU-238'] = ['U238_%s'%(group_comp) for group_comp in group_internal]
         self.groups['InternalTh-232'] = ['Th232_%s'%(group_comp) for group_comp in group_internal]
         
-        group_tpc_k40 = ["SupportRodsandSpacers","SiPMModuleInterposer","ChargeTilesBacking"]
+        group_tpc_k40 = ["SupportRodsandSpacers","SiPMModuleInterposer","ChargeModuleBacking"]
         self.groups['FullTpcK-40'] = ['K40_%s'%(group_comp) for group_comp in group_tpc_k40]
         
-        group_tpc_co60 = ["ChargeTilesCables","ChargeTilesElectronics","ChargeTilesSupport","ChargeTilesBacking","HVPlunger"]
+        group_tpc_co60 = ["ChargeModuleCables","ChargeModuleElectronics","ChargeModuleSupport","ChargeModuleBacking","HVPlunger"]
         self.groups['FullTpcCo-60'] = ['Co60_%s'%(group_comp) for group_comp in group_tpc_co60]
         
-        self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
-        self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
-        self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
-        self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
+        #self.groups['ActiveLXeRn-222'] = ["Rn222_ActiveLXe"]
+        #self.groups['InactiveLXeRn-222'] = ["Rn222_InactiveLXe","Rn222_CathodeRadon"]
+        self.groups['Rn-222'] = ["Rn222_ActiveLXe","Rn222_InactiveLXe","Rn222_CathodeRadon"]
+        #self.groups['InactiveLXeXe-137'] = ["Xe137_InactiveLXe"]
+        #self.groups['ActiveLXeXe-137'] = ["Xe137_ActiveLXe"]
+        self.groups['Xe-137'] = ["Xe137_InactiveLXe","Xe137_ActiveLXe"]
         self.groups['FullLXeBb2n'] = ["bb2n_FullLXe"]
         self.groups['FullLXeBb0n'] = ["bb0n_FullLXe"]
     
-        self.groups['GhostComponents'] = ['K40_%s'%(group_comp) for group_comp in group_internal]
-        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal])
+        self.groups['GhostComponents'] = ['K40_%s'%(group_comp) for group_comp in group_internal \
+           if ('SupportRodsAndSpacers' not in group_comp) and \
+              ('SiPMModuleInterposer' not in group_comp) and \
+              ('ChargeModuleBacking' not in group_comp) ]
+        self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_internal \
+           if ('ChargeModuleSupport' not in group_comp) and \
+              ('ChargeModuleBacking' not in group_comp) and \
+              ('ChargeModuleCables' not in group_comp) and \
+              ('ChargeModuleElectronics' not in group_comp) and \
+              ('HVPlunger' not in group_comp) ])
         self.groups['GhostComponents'].extend(['K40_%s'%(group_comp) for group_comp in group_vessel])
         self.groups['GhostComponents'].extend(['Co60_%s'%(group_comp) for group_comp in group_vessel])
         self.groups['GhostComponents'].extend(['U238_SolderAnode']) 
@@ -406,11 +418,11 @@ class RootTreeWriter():
         self.groups['GhostComponents'].extend(['Ag110m_SolderSiPM']) 
         self.groups['GhostComponents'].extend(['B8nu_FullLXe'])
         self.groups['GhostComponents'].extend(['Al26_SupportRodsandSpacers'])
-        self.groups['GhostComponents'].extend(['Cs137_FieldRings'])    
-        self.groups['GhostComponents'].extend(['U238_ChargeModuleCables'])
-        self.groups['GhostComponents'].extend(['Th232_ChargeModuleCables'])
-        self.groups['GhostComponents'].extend(['Th232_ChargeModuleElectronics'])
-        self.groups['GhostComponents'].extend(['U238_ChargeModuleElectronics'])
+        self.groups['GhostComponents'].extend(['Cs137_FieldRings'])
+        #self.groups['GhostComponents'].extend(['U238_ChargeModuleCables'])
+        #self.groups['GhostComponents'].extend(['Th232_ChargeModuleCables'])
+        #self.groups['GhostComponents'].extend(['Th232_ChargeModuleElectronics'])
+        #self.groups['GhostComponents'].extend(['U238_ChargeModuleElectronics'])
 
     def FindGroup(self, pdf):
 

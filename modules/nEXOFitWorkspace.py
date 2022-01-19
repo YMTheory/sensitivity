@@ -14,6 +14,9 @@ import nEXOMaterialsDBInterface
 
 # from MC_ID_Dict_2019Baseline import MC_ID_Dict
 
+UPROOT_VERSION = (uproot.__version__).split('.')[0]
+
+
 class nEXOFitWorkspace:
 
    ##########################################################################
@@ -447,7 +450,10 @@ class nEXOFitWorkspace:
           var_list = self.GetReconVariableList()         
 
           try:
-             input_df = input_tree.arrays( var_list, library='pd' )
+             if UPROOT_VERSION == '4':
+                input_df = input_tree.arrays( var_list, library="pd" )
+             else:
+                input_df = input_tree.arrays( var_list, outputtype=pd.DataFrame )
           except KeyError as e:
              print('\n\n************** ERROR: PROBLEM WITH AXIS NAMES **************')
              print('The input TTree does not contain all of the variables listed')
