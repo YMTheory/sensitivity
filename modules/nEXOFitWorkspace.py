@@ -82,7 +82,9 @@ class nEXOFitWorkspace:
    # ConvertExcel2DataFrame.py script
    ##########################################################################
    def LoadComponentsTableFromFile( self, input_filename ):
-
+      
+      input_filename = str(input_filename)
+        
       print('\nLoading input data froma previously-generated components table....')
 
       if not (self.df_components.empty):
@@ -90,9 +92,14 @@ class nEXOFitWorkspace:
                'will be overwritten.')
 
       try:
-         self.df_components = pd.read_hdf(input_filename,key='Components')
+         if input_filename.endswith(".h5"):
+                self.df_components = pd.read_hdf(input_filename,key='Components')
+         elif input_filename.endswith(".pkl") or input_filename.endswith(".pkl.gz"):
+                self.df_components = pd.read_pickle(input_filename)
+         else:
+            raise OSError("File format not recognized")
       except OSError as e:
-          print('\nERROR: The input file must be an HDF5 file.\n')
+          print('\nERROR: The input file must be an HDF5 or a pickle file.\n')
           print(e)
           #sys.exit()
           return
@@ -222,8 +229,15 @@ class nEXOFitWorkspace:
           print('\nAborting without creating a ComponentsTable...\n')
           return
        elif not create_histograms_from_trees and not download_mc_data:
-          df_mc_histograms = pd.read_hdf( histograms_file, key='SimulationHistograms' )
-
+          if histograms_file.endswith(".h5"):
+              df_mc_histograms = pd.read_hdf( histograms_file, key='SimulationHistograms' )
+          elif histograms_file.endswith(".pkl.gz") or histograms_file.endswith(".pkl"):
+              df_mc_histograms = pd.read_pickle(histograms_file)
+          else:
+              print('\n Histogram file format not recognized. Use HDF5 or pickled files.')
+              print('\nAborting without creating a ComponentsTable...\n')
+              return
+            
        if create_histograms_from_trees and trees_directory is None:
           print('\ncreate_histograms_from_trees is True, but no trees_directory is specified')
           print('Please specify the path to the data trees')
@@ -390,9 +404,10 @@ class nEXOFitWorkspace:
  
        # Store the components table in a file in case you want to
        # go back and look at it later.
-       outTableName = output_dir + 'ComponentsTable_' + geometry_tag + '_{}'.format(label) + '.h5'
+       outTableName = output_dir + 'ComponentsTable_' + geometry_tag + '_{}'.format(label)
        print('\n\nWriting table to file {}\n'.format(outTableName))
-       self.df_components.to_hdf( outTableName, key='Components' )
+#        self.df_components.to_hdf( outTableName + '.h5', key='Components' )
+       self.df_components.to_pickle( outTableName + '.pkl.gz' )
  
        end_time = time.time()
        print('Elapsed time = {:3.3} seconds ({:3.3} minutes).'.format( \
@@ -416,7 +431,7 @@ class nEXOFitWorkspace:
    # Stores the histograms as histlite objects, then writes these to an HDF5
    # file.
    ##########################################################################
-   def CreateHistogramsFromRawTrees(self, path_to_trees, output_hdf5_filename, resolution_factor=0, dnn_smoothing_factor=0):
+   def CreateHistogramsFromRawTrees(self, path_to_trees, output_hist_basename, resolution_factor=0, dnn_smoothing_factor=0):
 
       start_time = time.time()      
 
@@ -528,7 +543,8 @@ class nEXOFitWorkspace:
           rows_list.append(thisrow)
 
       df_pdf = pd.DataFrame(rows_list)
-      df_pdf.to_hdf( output_hdf5_filename, key='SimulationHistograms' )
+      df_pdf.to_pickle(str(output_hist_basename) + ".pkl.gz")
+#       df_pdf.to_hdf(str(output_hist_basename) + ".h5", key='SimulationHistograms')
 
       end_time = time.time()
       print('Elapsed time = {} seconds ({} minutes).'.format( end_time-start_time, \
@@ -611,8 +627,11 @@ class nEXOFitWorkspace:
                    'See nEXOFitWorkspace.GetCutMask for more details.'.format(cut['Type']))
              print('\n*********************** EXITING *******************************\n')
              sys.exit('') 
-
-          print('Fraction of events passing {} cut: {:5.5}'.format(cut['Title'],np.sum(this_mask)/len(this_mask)))
+          
+          if len(this_mask):
+              print('Fraction of events passing {} cut: {:5.5}'.format(cut['Title'],np.sum(this_mask)/len(this_mask)))
+          else:
+              print('No events passing cut {}'.format(cut['Title']))
 
           global_mask = global_mask & this_mask
 
