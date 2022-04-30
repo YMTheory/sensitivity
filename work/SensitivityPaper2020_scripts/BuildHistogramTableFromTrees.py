@@ -27,10 +27,10 @@ if __name__ == "__main__":
 
     workspace = nEXOFitWorkspace.nEXOFitWorkspace(config=args.config_file)
 
-    output_hdf5_filename = args.output_dir / pathlib.Path(f'Baseline2019_Histograms_{args.label}.h5')
+    output_hist_basename = args.output_dir / pathlib.Path(f'Baseline2019_Histograms_{args.label}')
 
     workspace.CreateHistogramsFromRawTrees(path_to_trees=str(args.path_to_trees),
-                                           output_hdf5_filename=output_hdf5_filename,
+                                           output_hist_basename=output_hist_basename,
                                            resolution_factor=args.resolution_factor,
                                            dnn_smoothing_factor=args.dnn_smoothing_factor
                                            )
