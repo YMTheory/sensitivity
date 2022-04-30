@@ -10,14 +10,14 @@ components_table_dir = '/p/lustre2/nexouser/samuele/multivarstudy/ComponentsTabl
 components_table_basename = 'ComponentsTable_D-024'
 config_file = '/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml'
 
-dnn_factors = [0., 0.15, 0.177, 0.2]
-#dnn_factors = [0.177]
+# dnn_factors = [0., 0.15, 0.177, 0.2,]
+dnn_factors = [0., 0.15]
 # xe137_scale_factors = [1.,0.01,0.1,0.3,3.,10.,30.,100.]
-xe137_scale_factors = [1.2, ]
-rn222_scale_factors = [1.2, ]
-bkg_scale_factors = [1.2, ]
+xe137_scale_factors = [1., ]
+rn222_scale_factors = [1., ]
+bkg_scale_factors = [1., ]
 #energy_res_factors = [0.008, 0.01, 0.012, 0.014]
-energy_res_factors = [0.008, 0.01, 0.014]
+energy_res_factors = [0.011]
 
 # one full calculation for 5000 toys takes about 4-5 hours
 bkg_shape_err = 0.
