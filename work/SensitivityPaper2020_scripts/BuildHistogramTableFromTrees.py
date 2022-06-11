@@ -1,37 +1,38 @@
 # Import sys, then tell python where to find the nEXO-specific classes
 import sys
-import os
+import argparse
+import pathlib
 sys.path.append('../../modules')
 
-######################################################################
-# Check arguments and load inputs
-if (len(sys.argv) == 5 or len(sys.argv) == 6):
-        config_file = sys.argv[1]
-        label = sys.argv[2]
-        path_to_trees = sys.argv[3]
-        output_dir = sys.argv[4]
-        if len(sys.argv) == 6:
-                resolution_factor = sys.argv[5]
-        else:
-                resolution_factor = None
-        if not os.path.exists(output_dir):
-                sys.exit('\nERROR: path to output_dir does not exist\n')
-else:
-        print('\n\nERROR: BuildHistogramsFromTrees.py requires 4 or 5 arguments')
-        print('Usage:')
-        print('\tpython BuildHistogramsFromTrees.py ' + \
-                '<config_file> <label> <path/to/merged/ROOT/trees> <output_dir>')
-        sys.exit('\n')
-######################################################################
 
-# Import the nEXO sensitivity classes
-import nEXOFitWorkspace
+def get_parser():
+    parser = argparse.ArgumentParser(description='Build HDF5 Histogram Table from Raw TTrees')
+    parser.add_argument("config_file", type=pathlib.Path, help='nEXOFitWorkspace configuration file')
+    parser.add_argument("label", type=str, help='Label')
+    parser.add_argument("path_to_trees", type=pathlib.Path, help='path/to/merged/ROOT/trees')
+    parser.add_argument("output_dir", type=pathlib.Path, help='Path where the HDF5 file will be saved')
+    parser.add_argument("-r", "--resolution_factor", type=float, default=0, help='Energy resolution smearing factor')
+    parser.add_argument("-d", "--dnn_smoothing_factor", type=float, default=0, help='DNN smoothing factor')
+    return parser
 
-workspace = nEXOFitWorkspace.nEXOFitWorkspace( config = config_file )
 
-output_hdf5_filename = '{}/Baseline2019_Histograms_{}.h5'.format(output_dir,label)
+if __name__ == "__main__":
+    arg_parser = get_parser()
+    args = arg_parser.parse_args()
+    for arg in vars(args):
+        print(arg, getattr(args, arg))
 
-workspace.CreateHistogramsFromRawTrees( path_to_trees = path_to_trees, \
-                             output_hdf5_filename = output_hdf5_filename, resolution_factor=resolution_factor )
+    # Import the nEXO sensitivity classes
+    import nEXOFitWorkspace
+
+    workspace = nEXOFitWorkspace.nEXOFitWorkspace(config=args.config_file)
+
+    output_hist_basename = args.output_dir / pathlib.Path(f'Baseline2019_Histograms_{args.label}')
+
+    workspace.CreateHistogramsFromRawTrees(path_to_trees=str(args.path_to_trees),
+                                           output_hist_basename=output_hist_basename,
+                                           resolution_factor=args.resolution_factor,
+                                           dnn_smoothing_factor=args.dnn_smoothing_factor
+                                           )
 
 
