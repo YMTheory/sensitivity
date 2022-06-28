@@ -11,13 +11,13 @@ components_table_basename = 'ComponentsTable_D-024'
 config_file = '/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/MultivariationStudy/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml'
 
 # dnn_factors = [0., 0.15, 0.177, 0.2,]
-dnn_factors = [0., 0.15]
-# xe137_scale_factors = [1.,0.01,0.1,0.3,3.,10.,30.,100.]
-xe137_scale_factors = [1., ]
-rn222_scale_factors = [1., ]
-bkg_scale_factors = [1., ]
-#energy_res_factors = [0.008, 0.01, 0.012, 0.014]
-energy_res_factors = [0.011]
+dnn_factors = [0., 0.15, 0.177, 0.2]
+# Xe137 scaling factor applies to Ar42 as well
+xe137_scale_factors = [2., ]
+rn222_scale_factors = [2., ]
+bkg_scale_factors = [2., ]
+energy_res_factors = [0.008, 0.01, 0.011, 0.012, 0.014]
+# energy_res_factors = [0.011]
 
 # one full calculation for 5000 toys takes about 4-5 hours
 bkg_shape_err = 0.
@@ -66,8 +66,6 @@ for dnn_scale_factor, xe137_scale_factor, rn222_scale_factor, bkg_scale_factor, 
                     "#SBATCH --mail-type=fail\n" + \
                     f"#SBATCH -J {s_hash}\n" + \
                     "#SBATCH --export=ALL \n" + \
-                    "source /usr/workspace/samuele/spack/share/spack/setup-env.sh \n" + \
-                    "spack env activate nexo \n" + \
                     "source /usr/workspace/samuele/nexo_venv/bin/activate \n" + \
                     "cd " + execdir + "\n" + \
                     "export STARTTIME=`date +%s`\n" + \

@@ -27,7 +27,7 @@ def get_parser():
     parser.add_argument("-d", "--dnn_scale_factor", type=float, default=0., help='DNN distribution smearing factor')
     parser.add_argument("-b", "--bkg_scale_factor", type=float, default=1.,
                         help='Gamma background scale factor (Rn222 excluded)')
-    parser.add_argument("-x", "--xe137_scale_factor", type=float, default=1., help='Xe-137 scale factor')
+    parser.add_argument("-x", "--xe137_scale_factor", type=float, default=1., help='Xe-137/Ar-42 scale factor')
     parser.add_argument("-r", "--rn222_scale_factor", type=float, default=1., help='Rn-222 scale factor')
     parser.add_argument("-c", "--workspace_config", type=pathlib.Path,
                         default='/p/vast1/nexo/sensitivity2020/pdfs/config_files/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml',
@@ -106,8 +106,9 @@ if __name__ == "__main__":
             workspace.df_components.loc[index, 'SpecActiv'] = args.bkg_scale_factor * row['SpecActiv']
             workspace.df_components.loc[index, 'SpecActivErr'] = args.bkg_scale_factor * row['SpecActivErr']
 
-        # Scale the Xe137 component.
-        if 'Xe137' in row['PDFName']:
+        # Scale the Xe137 and Ar42 components.
+        if 'Xe137' in row['PDFName'] or 'Ar42' in row['PDFName']:
+            print(f'Scaling {row["PDFName"]}...')
             workspace.df_components.loc[index, 'SpecActiv'] = args.xe137_scale_factor * row['SpecActiv']
             workspace.df_components.loc[index, 'SpecActivErr'] = args.xe137_scale_factor * row['SpecActivErr']
 
