@@ -7,13 +7,13 @@ This repository contains the code used to calculate the sensitivity of nEXO. It 
 
 # Dependencies
 The code requires the following external libraries
-* [uproot][https://github.com/scikit-hep/uproot3] -- Currently compatible with uproot4.
-* [pandas][https://pandas.pydata.org/] - Tested up to v0.24
-* [xlrd][https://xlrd.readthedocs.io/en/latest/] - Tested up to v1.2
-* [iminuit][https://pypi.org/project/iminuit/] - Tested up to v2.8.4
-* [histlite][https://histlite.readthedocs.io/en/latest/]
-* [cloudant][https://github.com/cloudant/python-cloudant]
-* [pyyaml][https://pyyaml.org/]
+* [uproot](https://github.com/scikit-hep/uproot5) -- Main branch is currently compatible with uproot4.
+* [pandas](https://pandas.pydata.org/) - Tested up to v0.24
+* [xlrd](https://xlrd.readthedocs.io/en/latest/) - Tested up to v1.2
+* [iminuit](https://pypi.org/project/iminuit/) - Tested up to v2.8.4
+* [histlite](https://histlite.readthedocs.io/en/latest/)
+* [cloudant](https://github.com/cloudant/python-cloudant)
+* [pyyaml](https://pyyaml.org/)
 * tables (if you are on a recent mac, see https://github.com/PyTables/PyTables/issues/828)  
 
 All of the above can be installed using `pip install`
@@ -24,7 +24,6 @@ This can be found in [https://github.com/nEXO-collaboration/sensitivity/blob/mai
 The tutorial is designed to walk through how the sensitivity calculation works, step-by-step. 
 
 If you're familiar with how the calculation works, you'll next want to run large ensembles of fits to toy datasets.
-Example scripts for submitting batch jobs can be found here:
 
 
 # About this repository

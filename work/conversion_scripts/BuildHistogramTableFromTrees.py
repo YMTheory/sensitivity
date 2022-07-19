@@ -1,7 +1,7 @@
 # Import sys, then tell python where to find the nEXO-specific classes
 import sys
-import os
 import argparse
+import pathlib
 sys.path.append('../../modules')
 
 # Import the nEXO sensitivity classes
@@ -18,12 +18,14 @@ def get_parser():
                         default = None, help = 'config file')
     parser.add_argument('-l', '--label', type=str, \
                         default = None, help = 'user-defined label')
-    parser.add_argument('-p', '--path_to_data', type=str, \
+    parser.add_argument('-p', '--path_to_data', type=pathlib.Path, \
                         default = None, help = 'path to the merged ROOT data')
-    parser.add_argument('-o', '--output_dir', type=str, \
+    parser.add_argument('-o', '--output_dir', type=pathlib.Path, \
                         default = None, help = 'output directory')
-    parser.add_argument('-r', '--resolution_factor', type=str, \
-                        default = None, help = 'smearing factor for energy resolution')
+    parser.add_argument('-r', '--resolution_factor', type=float, \
+                        default = 0, help = 'smearing factor for energy resolution')
+    parser.add_argument('-d', '--dnn_smoothing_factor', type=float, \
+                        default=0, help='DNN smoothing factor')
     return parser
 ######################################################################
 
@@ -31,19 +33,23 @@ def get_parser():
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
-    print(args)
+    for arg in vars(args):
+        print(arg, getattr(args, arg))
      
     for arg, val in vars(args).items():
-        if val is None and not arg is "resolution_factor":
+        if val is None:
            parser.print_help()
            sys.exit()   
 
     workspace = nEXOFitWorkspace.nEXOFitWorkspace( config = args.config )
 
-    output_hdf5_filename = '{}/Histograms_{}.h5'.format( args.output_dir, args.label)
 
-    workspace.CreateHistogramsFromRawTrees( path_to_trees = args.path_to_data, \
-                             output_hdf5_filename = output_hdf5_filename, \
-                             resolution_factor = args.resolution_factor )
+    output_hist_basename = args.output_dir / pathlib.Path(f'Baseline2019_Histograms_{args.label}')
+
+    workspace.CreateHistogramsFromRawTrees(path_to_trees=str(args.path_to_trees),
+                                           output_hist_basename=output_hist_basename,
+                                           resolution_factor=args.resolution_factor,
+                                           dnn_smoothing_factor=args.dnn_smoothing_factor
+                                           )
 
 
