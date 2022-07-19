@@ -15,6 +15,8 @@ If you're running a brand new calculation, the steps are basically as follows:
 
 Details about each of these steps is provided below. 
 
+<br/><br/> 
+
 ## The YAML config file
 
 The YAML file contains information that configures the fit. As an example, we can look at the configuration file used for the baseline sensitivity estimates in the 2020 publication: [```Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml```](https://github.com/nEXO-collaboration/sensitivity/blob/main/work/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1.yaml)
@@ -23,10 +25,10 @@ Let's go section by section and break down what's in the file.
 | **Section** | **Description** |
 | ----------- | --------------- |
 | `SummaryInputFile` and `RawPDFInputDir` | These sections are actually deprecated, and you can ignore them. I've retained them here for backwards compatibility with the 2017 analysis. (BL, July 2022) |
-|  `FitAxes` | This section defines the "variable space" where we actually fit the data. In the 2020 sensitivity paper, this was a 3D space where "DNN", "Energy" and "Standoff" defined the three axes. Each axis needs to be explicitly defined here. You can see a few options here, that should be mostly self-explanatory. The two that are maybe not so obvious are: <ul><li> `Title`: this is where you, as a user, can choose the name of the variable as it will be referred to in the sensitivity code. </li><li> `VariableName`: this is the name of the variable *as it is defined in the ROOT data structure that is produced by the analysis framework*. This is required for building the histograms that then become the PDFs.</li></ul> <br/> The binning along each axis can either be `Linear` or `Custom`, the latter of which allows the user to manually set the edges of each bin. <br/> **Note:** While the standard (as of July 2022) is to use the three variables DNN, Standoff, and Energy, there are some examples of fits with different numbers of variables in the repository; for instance, when we studied [how our sensitivity changes using only a 2D fit](https://github.com/nEXO-collaboration/sensitivity/blob/documentation_update/work/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_energy%2Bdnn.yaml). |
-| `Cuts` | This section defines the cut that get applied to the data when constructing the PDFs. As of July 2022, there are three supported types of cuts: <ul><li> **Boolean**, which is just a yes/no (for instance, did the event pass some threshold) </li><li> **1D**, which is just what it sounds like (is variable `X` below or above a certain value for this event?) </li><li> **2DLinear**, which defines a linear cut along two different dimensions (we use this for e.g. the charge/light ratio cuts to remove skin events) <li></ul> |
+|  `FitAxes` | This section defines the "variable space" where we actually fit the data. In the 2020 sensitivity paper, this was a 3D space where "DNN", "Energy" and "Standoff" defined the three axes. Each axis needs to be explicitly defined here. You can see a few options here, that should be mostly self-explanatory. The two that are maybe not so obvious are: <ul><li> `Title`: this is where you, as a user, can choose the name of the variable as it will be referred to in the sensitivity code. </li><li> `VariableName`: this is the name of the variable *as it is defined in the ROOT data structure that is produced by the analysis framework*. This is required for building the histograms that then become the PDFs.</li></ul> <br/> The binning along each axis can either be `Linear` or `Custom`, the latter of which allows the user to manually set the edges of each bin. <br/><br/> **Note:** While the standard (as of July 2022) is to use the three variables DNN, Standoff, and Energy, there are some examples of fits with different numbers of variables in the repository; for instance, when we studied [how our sensitivity changes using only a 2D fit](https://github.com/nEXO-collaboration/sensitivity/blob/documentation_update/work/config/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_energy%2Bdnn.yaml). |
+| `Cuts` | This section defines the cut that get applied to the data when constructing the PDFs. As of July 2022, there are three supported types of cuts: <ul><li> **Boolean**, which is just a yes/no (for instance, did the event pass some threshold) </li><li> **1D**, which is just what it sounds like (is variable `X` below or above a certain value for this event?) </li><li> **2DLinear**, which defines a linear cut along two different dimensions (we use this for e.g. the charge/light ratio cuts to remove skin events) </li></ul> |
 | `CustomScalingFactors` and `CustomSpecificActivities` | Deprecated; ignore these. (BL, July 2022) |
-| `Group Assignments` | This section assigns each of the **components** to a **group**, out of which we will build the PDFs for fitting. For instance, all the components that make up the Outer Cryostat are assigned to the "Far" group, while all the components that make up the <sup>238</sup>U background from the SiPM arrays are assigned to the "Internals_U238" group. <br><br> Components can be explicitly omitted from the analysis by assigning them to the "Off" group. For instance, in the 2020 sensitivity calculation we ignored any contributions from <sup>137</sup>Cs, so all of these components were "Off". <br/> **Note:** *all* components in the background model need to be assigned to a group. If there is a component in the materials DB that does not get assigned a group in the YAML file, the code will crash when trying to create the ComponentsTable. |
+| `Group Assignments` | This section assigns each of the **components** to a **group**, out of which we will build the PDFs for fitting. For instance, all the components that make up the Outer Cryostat are assigned to the "Far" group, while all the components that make up the <sup>238</sup>U background from the SiPM arrays are assigned to the "Internals_U238" group. <br><br> Components can be explicitly omitted from the analysis by assigning them to the "Off" group. For instance, in the 2020 sensitivity calculation we ignored any contributions from <sup>137</sup>Cs, so all of these components were "Off". <br/><br/> **Note:** *all* components in the background model need to be assigned to a group. If there is a component in the materials DB that does not get assigned a group in the YAML file, the code will crash when trying to create the ComponentsTable. |
 
 <!---
 
@@ -64,6 +66,8 @@ Components can be explicitly omitted from the analysis by assigning them to the 
 
 --->
 
+<br/><br/> 
+
 ## The **ComponentsTable** HDF5 file
 
 The **ComponentsTable** is a `pandas.DataFrame` object stored in an HDF5 file format. It can be opened using the `pandas.from_hdf()` function. As explained in the tutorial, the **ComponentsTable** combines three pieces of information:
@@ -83,6 +87,7 @@ For the 2020 sensitivity estimate, the processed/reconstructed ROOT data can be 
 
 > **Note:** Generating the histograms can take up to 45 minutes, especially when the binning is chosen pretty finely. It will take the most time on PDFs like the 0nu and 2nu, for which we have lots of Monte Carlo events that pass our cuts. Creating the **ComponentsTable**, on the other hand, should only take a minute or so.
 
+<br/><br/> 
 
 ## Run scripts and output data structure
 
@@ -132,7 +137,7 @@ The data that gets saved to the output file can be modified by the user, but bel
 | `90CL_crossing` | the signal hypothesis where the profile-likelihood-ratio test statistic crosses the 90% CL threshold, assuming Wilks' theorem |
 
 
-
+<br/><br/> 
 
 ## Analyzing the output to compute actual sensitivity and discovery potentials
 
