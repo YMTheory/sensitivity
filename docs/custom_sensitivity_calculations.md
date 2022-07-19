@@ -15,7 +15,7 @@ If you're running a brand new calculation, the steps are basically as follows:
 
 Details about each of these steps is provided below. 
 
-<br/><br/> 
+<br/> 
 
 ## The YAML config file
 
@@ -66,7 +66,7 @@ Components can be explicitly omitted from the analysis by assigning them to the 
 
 --->
 
-<br/><br/> 
+<br/>
 
 ## The **ComponentsTable** HDF5 file
 
@@ -87,13 +87,15 @@ For the 2020 sensitivity estimate, the processed/reconstructed ROOT data can be 
 
 > **Note:** Generating the histograms can take up to 45 minutes, especially when the binning is chosen pretty finely. It will take the most time on PDFs like the 0nu and 2nu, for which we have lots of Monte Carlo events that pass our cuts. Creating the **ComponentsTable**, on the other hand, should only take a minute or so.
 
-<br/><br/> 
+<br/> 
 
 ## Run scripts and output data structure
 
 We've included some example scripts in the directory [`sensitivity/work/example_scripts`](https://github.com/nEXO-collaboration/sensitivity/tree/documentation_update/work/example_scripts) to get you started. 
 
 For now, we'll focus on [`Compute90PercentLimit_WilksApprox_RnScaling_Example.py`](https://github.com/nEXO-collaboration/sensitivity/blob/documentation_update/work/example_scripts/Compute90PercentLimit_WilksApprox_RnScaling_Example.py).
+
+> **Note:** We've also included an example script for submitting large batches of jobs to the LLNL cluster, [`SubmitNew90CLSensitivityJobs_LLNL_RnScaling_Example.py`](https://github.com/nEXO-collaboration/sensitivity/blob/documentation_update/work/example_scripts/SubmitNew90CLSensitivityJobs_LLNL_RnScaling_Example.py)
 
 
 In this example, the run script is intended to compute nEXO's sensitivity with the option to scale up/down the contribution of <sup>222</sup>Rn-induced backgrounds. The anatomy of this script is as follows:
@@ -112,9 +114,7 @@ In this example, the run script is intended to compute nEXO's sensitivity with t
 - **Lines 283-333:** Store output from the fitter in a data structure that can be used to perform analysis later
 - **Lines 337-347:** Write data to output file.
 
-The data that gets saved to the output file can be modified by the user, but below we list the variables saved in the 2020 baseline calculation of our 90% CL sensitivity. 
-
-> **Note:** One row of data is saved *per toy dataset*
+The data that gets saved to the output file can be modified by the user, but below we list the variables saved in the 2020 baseline calculation of our 90% CL sensitivity. **Note: One row of data is saved *per toy dataset* **
 
 
 #### Output data for 2020 90% CL sensitivity analysis
@@ -137,11 +137,12 @@ The data that gets saved to the output file can be modified by the user, but bel
 | `90CL_crossing` | the signal hypothesis where the profile-likelihood-ratio test statistic crosses the 90% CL threshold, assuming Wilks' theorem |
 
 
-<br/><br/> 
+<br/>
 
 ## Analyzing the output to compute actual sensitivity and discovery potentials
 
-
+As an example of how to analyze the output data, please refer to some example notebooks from the 2020 sensitivity evaluation, for instance our analysis of how our sensitivity scales with Rn222 background:
+* [work/SensitivityPaper2020_scripts/Rn222Study/Rn222 Analysis.ipynb](https://github.com/nEXO-collaboration/sensitivity/blob/documentation_update/work/SensitivityPaper2020_scripts/Rn222Study/Rn222%20Analysis.ipynb)
 
 
 
