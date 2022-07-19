@@ -26,7 +26,7 @@ If you are running on LLNL, I recommend creating a virtual environment by follow
 ### Low-level tutorial
 
 If you are new to the sensitivity calculation, we recommend you start with the tutorial. 
-This can be found in [https://github.com/nEXO-collaboration/sensitivity/blob/main/work/Sensitivity%20Code%20Tutorial.ipynb](`sensitivity/work/Sensitivity Code Tutorial.ipynb`).
+This can be found in [`sensitivity/work/Sensitivity Code Tutorial.ipynb`](https://github.com/nEXO-collaboration/sensitivity/blob/main/work/Sensitivity%20Code%20Tutorial.ipynb).
 The tutorial is designed to walk through how the sensitivity calculation works, step-by-step. 
 
 ### Running your own sensitivity calculations
