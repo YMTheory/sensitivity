@@ -4,21 +4,20 @@ sys.path.append('../../modules')
 
 ######################################################################
 # Load the arguments:
-if len(sys.argv) != 7:
+if len(sys.argv) != 6:
 	print('\nERROR: incorrect number of arguments.\n')
 	print('Usage:')
 	print('\tpython Compute90PercentLimit_PythonCode.py ' + \
-		'<job_id_num> <bkg_shape_err_parameter> ' + \
+		'<job_id_num> ' + \
                 '<num_datasets_to_generate> <input_table> <output_directory> ' + \
                 '<rn222_scale_factor>\n\n')
 	sys.exit()
 
 job_id_num = int(sys.argv[1])
-bkg_shape_err = float(sys.argv[2])
-num_datasets = int(sys.argv[3])
-input_table = sys.argv[4]
-output_dir = sys.argv[5]
-rn222_scale_factor = float(sys.argv[6])
+num_datasets = int(sys.argv[2])
+input_table = sys.argv[3]
+output_dir = sys.argv[4]
+rn222_scale_factor = float(sys.argv[5])
 
 #####################################################################
 
