@@ -1,0 +1,10 @@
+Experiment,Sensitivity,BkgIndex [cts/FWHM/t/yr],Exposure [ton year],Livetime [yr],Efficiency,Mass [tonne],PhaseSpace,Isotope,IsotopeMass,Reference
+nEXO,1.35E+28,0.07,45,10,0.5196,3.281,14.58,Xe-136,136,
+LEGEND-1000,1.6E+28,0.03,10,10,0.7,0.92,2.363,Ge-76,76,https://indico.fnal.gov/event/43811/contributions/192252/attachments/132439/162773/snowmass2020_Ge.pdf
+CUPID,1.5E+27,0.5,2.53,10,0.9,0.253,15.92,Mo-100,100,https://arxiv.org/pdf/1907.09376.pdf
+KamLAND2-Zen,2E+27,,5,5,0.5,1,14.58,Xe-136,136,http://vietnam.in2p3.fr/2019/neutrinos/transparencies/4_thursday/2_afternoon/6_ueshima.pdf
+NEXT-1t,2.7E+27,0.061,5,10,0.246,1,14.58,Xe-136,136,https://arxiv.org/pdf/2005.06467.pdf
+MAJORANA,,,,,,,,,,
+GERDA,,,,,,,,,,
+EXO-200,,,,,,,,,,
+CUORE,,,,,,,,,,
