@@ -89,19 +89,7 @@ Cuts:
     Value: 0
      
  
- 
-# Set a customized specific activity for a specific component, 
-# which overrides whatever is stored in the Materials Database. 
-# All units are in mBq/kg.
-CustomSpecActivities:
-  bb0n_FullLXe:      0.0000000001 # mBq/kg
 
-# Set a custom scaling factor for a specific component,
-# which scales the activity calculated from the Materials Database.
-# Useful for e.g. Xe137 depth studies
-CustomScalingFactors:
-  Xe137_ActiveLXe:    1.
-  Xe137_InactiveLXe:  1.
 
 # Each component needs to be assigned to a group to create
 # composite PDFs in the sensitivity code. 
