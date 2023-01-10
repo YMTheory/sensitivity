@@ -34,15 +34,22 @@ for filename in os.listdir(pathToROOTPDFs):
                                                         num_processed,\
                                                         num_rootfiles))
     thisfile = uproot.open( (pathToROOTPDFs + '/' + filename) )
-    h_StandoffVsEnergySS_Smear = thisfile['h_StandoffVsEnergySS_Smear;1'].numpy()
-    h_StandoffVsEnergyMS_Smear = thisfile['h_StandoffVsEnergyMS_Smear;1'].numpy()
+    h_StandoffVsEnergySS_Smear = thisfile['h_StandoffVsEnergySS_Smear;1'].to_numpy()
+    h_StandoffVsEnergyMS_Smear = thisfile['h_StandoffVsEnergyMS_Smear;1'].to_numpy()
+    print('\n\n\n')
+    print(h_StandoffVsEnergySS_Smear[0].shape)
+    print(h_StandoffVsEnergySS_Smear[1][[0,-1]])
+    print(h_StandoffVsEnergySS_Smear[2][[0,-1]])
+    print('\n\n\n')
+#    print(h_StandoffVsEnergyMS_Smear)
+#    print('\n\n\n')
     hh = hl.Hist( [ [0,1,2],\
-                    h_StandoffVsEnergySS_Smear[1][0][0],\
-                    h_StandoffVsEnergySS_Smear[1][0][1] ],\
+                    h_StandoffVsEnergySS_Smear[1],\
+                    h_StandoffVsEnergySS_Smear[2] ],\
                   [ h_StandoffVsEnergySS_Smear[0].astype(float),\
                     h_StandoffVsEnergyMS_Smear[0].astype(float) ] )
-    hh = hh.rebin(1,h_StandoffVsEnergySS_Smear[1][0][0][0::10])
-    hh = hh.rebin(2,h_StandoffVsEnergySS_Smear[1][0][1][0::26])
+    hh = hh.rebin(1,h_StandoffVsEnergySS_Smear[1][0::2])
+    hh = hh.rebin(2,h_StandoffVsEnergySS_Smear[2][0::5])
     
     thisrow = {'Filename':filename, 'Histogram':hh, 'HistogramAxisNames':['SS/MS','Energy (keV)','Standoff (mm)']}
     rowslist.append(thisrow)
