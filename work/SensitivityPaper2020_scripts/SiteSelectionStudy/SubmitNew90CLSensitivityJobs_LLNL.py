@@ -7,16 +7,17 @@ outputdir = "/p/lustre2/nexouser/samuele/siteselection"
 executable_name = 'Compute90PercentLimit_WilksApprox.py'
 components_table_dir = '/p/lustre2/nexouser/samuele/multivarstudy/ComponentsTables'
 components_table_basename = 'ComponentsTable_D-024'
-config_file = '/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/SiteSelectionStudy/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_Xe137.yaml'
+config_case = '_SURF_Eff80'
+config_file = f'/g/g92/samuele/nEXO/sensitivity/work/SensitivityPaper2020_scripts/SiteSelectionStudy/Sensitivity2020_Optimized_DNN_Standoff_Binning_version1_Xe137{config_case}.yaml'
 
 # one full calculation for 5000 toys takes about 4-5 hours
 bkg_shape_err = 0.
-num_datasets = 6000
-num_jobs = 100
+num_datasets = 5000
+num_jobs = 200
 jobs_offset = 0
 num_datasets_per_job = int(num_datasets / num_jobs)
 
-label = "LNGS_RV"
+label = "SURF_Eff80"
 base = "Run_siteselection_"
 
 components_table = f'{components_table_basename}_DNN_factor=0.0_ERes=0.008.h5'

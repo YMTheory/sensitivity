@@ -1,9 +1,6 @@
 ################################################################################
-# Configuration file with fine binning in energy and DNN, 
-# useful to compute ROI background index with better precision, 
-# thus enabling to get correct background values for different assumptions
-# on energy resolution or DNN performance
-# Contact: Samuele Sangiorgio
+# Example configuration file for sensitivity calculation
+# Contact: Brian Lenardo
 ################################################################################
 
 # Input file
@@ -22,15 +19,13 @@ RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
 FitAxes:
   - Title: 'DNN'
     VariableName: 'm_DNNvalue'
-    Min: 0.
-    Max: 1.
-    NumBins: 100 
-    BinningOption: 'Linear'
+    BinEdges: [0., 0.2, 0.4, 0.6, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1.0]
+    BinningOption: 'Custom'
   - Title: 'Energy (keV)'
     VariableName: 'energy'
     Min: 1000.
     Max: 3500.
-    NumBins: 2500
+    NumBins: 250
     BinningOption: 'Linear'
   - Title: 'Standoff (mm)'
     VariableName: 'standoff'
@@ -332,66 +327,9 @@ GroupAssignments:
 # and any scaling factor applied to Xe-137 components will be discarded
 # bin_centers must be in units of atoms of Xe-137 per year per kg of LXe
 
-# ## LNGS:
-# Xe137Distribution:
-#     counts: [6, 7, 27, 35, 85, 96, 119, 136, 116, 97, 84, 55, 48, 41, 18,  8, 13,  1,  6,  2]
-#     bin_centers: [0.05207618, 0.05275633, 0.05343648, 0.05411663, 0.05479677,
-#        0.05547692, 0.05615707, 0.05683721, 0.05751736, 0.05819751,
-#        0.05887766, 0.0595578 , 0.06023795, 0.0609181 , 0.06159824,
-#        0.06227839, 0.06295854, 0.06363868, 0.06431883, 0.06499898]
-
-# ## SNOLAB:
-# Xe137Distribution:
-#     counts: [129, 1267, 3508, 3233, 1353, 373, 62, 27, 23, 9, 10, 0, 0, 0, 0, 0, 0, 1, 3, 2]
-#     bin_centers: [0.00024714052287581705, 0.00037377450980392163, 0.0005004084967320262, 0.0006270424836601308, 0.0007536764705882355, 
-#         0.0008803104575163402, 0.0010069444444444449, 0.0011335784313725493, 0.0012602124183006538, 0.0013868464052287585, 
-#         0.0015134803921568632, 0.0016401143790849677, 0.0017667483660130723, 0.0018933823529411772, 0.0020200163398692815, 
-#         0.0021466503267973864, 0.0022732843137254904, 0.0023999183006535954, 0.0025265522875817003, 0.0026531862745098047]
-
-
-## LNGS_Eff70
+## SURF Xe136 n-capture eff=80%
 Xe137DistributionModel: 
     dist: 'skewnorm'
-    a: 2.189349688990879
-    loc: 0.05499667059517516
-    scale: 0.003253980744928109
-
-
-# ## LNGS_Eff80
-# Xe137DistributionModel: 
-#     dist: 'skewnorm'
-#     a: 1.6144005396821521
-#     loc: 0.030982223178905685
-#     scale: 0.0014665113523260054
-
-
-# ## SURF_Eff70
-# Xe137DistributionModel: 
-#     dist: 'skewnorm'
-#     a: -1.1470272620412725
-#     loc: 0.007347809308748012
-#     scale: 0.0004960314136825961
-
-
-# ## SURF_Eff80
-# Xe137DistributionModel: 
-#     dist: 'skewnorm'
-#     a: 3.8097464355650303
-#     loc: 0.004317179017773809
-#     scale: 0.0006690078384303799
-
-
-## SNOLAB_Eff70
-# Xe137DistributionModel: 
-#     dist: 'skewnorm'
-#     a: 1.5610828187332408
-#     loc: 0.00045139723825705203
-#     scale: 0.00018211524534939016
-
-
-## SNOLAB_Eff80
-# Xe137DistributionModel: 
-#     dist: 'skewnorm'
-#     a: 3.355427790778958
-#     loc: 0.00026968631632917026
-#     scale: 0.0001449830300348509
+    a: 2.22809659
+    loc: 0.00449233
+    scale: 6.0327e-04

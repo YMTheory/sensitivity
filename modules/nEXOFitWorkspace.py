@@ -88,8 +88,8 @@ class nEXOFitWorkspace:
    def InitializeXe137Sampler(self):
       if 'Xe137Distribution' in self.config:
            self.Xe137Sample = self.Xe137DiscreteSample
-           counts = np.array(workspace.config['Xe137Distribution']['counts'])
-           bin_centers = np.array(workspace.config['Xe137Distribution']['bin_centers'])
+           counts = np.array(self.config['Xe137Distribution']['counts'])
+           bin_centers = np.array(self.config['Xe137Distribution']['bin_centers'])
            self.mean_xe137_spec_activ = sum(counts * bin_centers)/sum(counts) * 1000 / (365 * 24 * 3600) # mBq/kg
       elif 'Xe137DistributionModel' in self.config:
            dist = getattr(stats, self.config['Xe137DistributionModel']['dist'])
@@ -1017,8 +1017,8 @@ class nEXOFitWorkspace:
            axis_name = self.histogram_axis_names[i]
            axis_indices = self.roi_indices[axis_name]
            roi_indices_array.append( axis_indices )
-
-       return np.array(roi_indices_array)
+        
+       return roi_indices_array
    ###################### End of GetROIBinIndices() #######################
 
 
