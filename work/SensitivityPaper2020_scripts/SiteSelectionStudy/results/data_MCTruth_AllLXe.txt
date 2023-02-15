@@ -1,0 +1,339 @@
+Fraction of muons with non-zero captures:  ['SNOLAB', 'LNGS', 'WIPP', 'SURF'] [0.0008313883299798793, 0.0007124571428571429, 0.0007124571428571429, 0.0007124571428571429]
+
+Mean number of muons at SNOLAB:  197100
+Mean [136Xe, 64Cu, 66Cu] captures per muon, given atleast one capture, at SNOLAB:  1.3233301064859633 1.6631171345595352 0.37899322362052273
+
+Mean number of muons at LNGS:  20305468.27794562
+Mean [136Xe, 64Cu, 66Cu] captures per muon, given atleast one capture, at LNGS:  1.2468719923002887 1.5923698000213882 0.34445513848786224
+
+Mean number of muons at WIPP:  242355589.1238671
+Mean [136Xe, 64Cu, 66Cu] captures per muon, given atleast one capture, at WIPP:  1.2468719923002887 1.5923698000213882 0.34445513848786224
+
+Mean number of muons at SURF:  3161936.5558912386
+Mean [136Xe, 64Cu, 66Cu] captures per muon, given atleast one capture, at SURF:  1.2468719923002887 1.5923698000213882 0.34445513848786224
+
+Capture tagging efficiency file:  cap_eff_cuml_[Iso][Reg][EneVar][Ene].npy
+Veto Time Efficiency: 0.9734584229484352
+
+Run Time [days]:  3650
+
+*******************************
+Site: SNOLAB
+Trials:  400
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 0 ,  4600 ]
+137Xe Tagging efficiency:  0.9941529138989478
+64Cu Tagging efficiency:  0.4750195341139211
+66Cu Tagging efficiency:  0.45723190517742074
+Total Xe137 [atoms] Mean:  216.8375  STD:  52.07111573367715
+Unvetoed Xe137 [atoms] Mean:  6.7425  STD:  2.886380735454004
+Deadtime [days] Mean:  1.7910416666666622  STD:  0.15933708094054613
+Unvetoed 137Xe trials/bin [ 4,  7, 40,  0, 42, 60, 48,  0, 58, 39, 37,  0, 25, 13,  9,  0,  8,  6,
+  1,  3]
+Unvetoed 137Xe bins [ 1.  ,  1.75,  2.5 ,  3.25,  4.  ,  4.75,  5.5 ,  6.25,  7.  ,  7.75,
+  8.5 ,  9.25, 10.  , 10.75, 11.5 , 12.25, 13.  , 13.75, 14.5 , 15.25,
+ 16.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1400 ,  4600 ]
+137Xe Tagging efficiency:  0.9153086865697805
+64Cu Tagging efficiency:  0.1874326324642548
+66Cu Tagging efficiency:  0.1905304679654234
+Total Xe137 [atoms] Mean:  219.4275  STD:  48.9737658726588
+Unvetoed Xe137 [atoms] Mean:  11.22  STD:  3.72848494699925
+Deadtime [days] Mean:  1.4329166666666635  STD:  0.13796645067676977
+Unvetoed 137Xe trials/bin [ 9,  8, 16, 31, 35, 43, 38, 44, 42, 30, 32, 17, 21, 11, 10,  2,  5,  3,
+  1,  2]
+Unvetoed 137Xe bins [ 3.  ,  4.05,  5.1 ,  6.15,  7.2 ,  8.25,  9.3 , 10.35, 11.4 , 12.45,
+ 13.5 , 14.55, 15.6 , 16.65, 17.7 , 18.75, 19.8 , 20.85, 21.9 , 22.95,
+ 24.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1800 ,  4600 ]
+137Xe Tagging efficiency:  0.8958077955360954
+64Cu Tagging efficiency:  0.16426639738023863
+66Cu Tagging efficiency:  0.15119530585932134
+Total Xe137 [atoms] Mean:  222.6075  STD:  52.97035438573165
+Unvetoed Xe137 [atoms] Mean:  12.9525  STD:  4.031159107502456
+Deadtime [days] Mean:  1.397673611111108  STD:  0.1452517794282851
+Unvetoed 137Xe trials/bin [ 4,  3,  6, 16, 18, 33, 82, 30, 47, 32, 25, 31, 21, 24,  8,  7,  6,  6,
+  0,  1]
+Unvetoed 137Xe bins [ 3.  ,  4.15,  5.3 ,  6.45,  7.6 ,  8.75,  9.9 , 11.05, 12.2 , 13.35,
+ 14.5 , 15.65, 16.8 , 17.95, 19.1 , 20.25, 21.4 , 22.55, 23.7 , 24.85,
+ 26.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2200 ,  4600 ]
+137Xe Tagging efficiency:  0.8663258836370243
+64Cu Tagging efficiency:  0.14593834930174393
+66Cu Tagging efficiency:  0.12481617918602367
+Total Xe137 [atoms] Mean:  215.8225  STD:  47.47600439959117
+Unvetoed Xe137 [atoms] Mean:  14.385  STD:  4.042496134815716
+Deadtime [days] Mean:  1.3243749999999972  STD:  0.13416190395848332
+Unvetoed 137Xe trials/bin [ 7,  9,  8, 16, 27, 64, 41, 39, 41, 36, 51, 23, 12,  6,  5, 11,  1,  1,
+  0,  2]
+Unvetoed 137Xe bins [ 5. ,  6.2,  7.4,  8.6,  9.8, 11. , 12.2, 13.4, 14.6, 15.8, 17. , 18.2,
+ 19.4, 20.6, 21.8, 23. , 24.2, 25.4, 26.6, 27.8, 29. ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2600 ,  4600 ]
+137Xe Tagging efficiency:  0.8372218497324491
+64Cu Tagging efficiency:  0.12921618154962267
+66Cu Tagging efficiency:  0.10280827259149045
+Total Xe137 [atoms] Mean:  219.6525  STD:  51.09532017465005
+Unvetoed Xe137 [atoms] Mean:  16.5875  STD:  4.466244927229137
+Deadtime [days] Mean:  1.2842013888888864  STD:  0.13004376173891108
+Unvetoed 137Xe trials/bin [ 1,  1,  2, 25, 18, 26, 69, 30, 37, 36, 58, 21, 16, 31, 10,  4,  9,  2,
+  3,  1]
+Unvetoed 137Xe bins [ 5. ,  6.3,  7.6,  8.9, 10.2, 11.5, 12.8, 14.1, 15.4, 16.7, 18. , 19.3,
+ 20.6, 21.9, 23.2, 24.5, 25.8, 27.1, 28.4, 29.7, 31. ]
+
+
+*******************************
+
+*******************************
+Site: LNGS
+Trials:  100
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 0 ,  4600 ]
+137Xe Tagging efficiency:  0.9941529138989478
+64Cu Tagging efficiency:  0.4750195341139211
+66Cu Tagging efficiency:  0.45723190517742074
+Total Xe137 [atoms] Mean:  18069.76  STD:  425.6807517377312
+Unvetoed Xe137 [atoms] Mean:  585.34  STD:  29.124292266079188
+Deadtime [days] Mean:  155.32583333330606  STD:  1.5246576978712156
+Unvetoed 137Xe trials/bin [ 1,  2,  3,  3,  5,  4,  7,  5, 10, 13,  8,  8, 12,  2,  6,  4,  2,  1,
+  2,  2]
+Unvetoed 137Xe bins [517.  , 523.95, 530.9 , 537.85, 544.8 , 551.75, 558.7 , 565.65, 572.6 ,
+ 579.55, 586.5 , 593.45, 600.4 , 607.35, 614.3 , 621.25, 628.2 , 635.15,
+ 642.1 , 649.05, 656.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1400 ,  4600 ]
+137Xe Tagging efficiency:  0.9153086865697805
+64Cu Tagging efficiency:  0.1874326324642548
+66Cu Tagging efficiency:  0.1905304679654234
+Total Xe137 [atoms] Mean:  18118.33  STD:  480.9742208268547
+Unvetoed Xe137 [atoms] Mean:  971.22  STD:  35.847337418558716
+Deadtime [days] Mean:  122.40902777775801  STD:  1.3058973769420639
+Unvetoed 137Xe trials/bin [ 2,  0,  2,  2,  4,  8,  7,  6,  9, 11, 19, 10,  4,  6,  5,  3,  0,  1,
+  0,  1]
+Unvetoed 137Xe bins [ 875. ,  885.2,  895.4,  905.6,  915.8,  926. ,  936.2,  946.4,  956.6,
+  966.8,  977. ,  987.2,  997.4, 1007.6, 1017.8, 1028. , 1038.2, 1048.4,
+ 1058.6, 1068.8, 1079. ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1800 ,  4600 ]
+137Xe Tagging efficiency:  0.8958077955360954
+64Cu Tagging efficiency:  0.16426639738023863
+66Cu Tagging efficiency:  0.15119530585932134
+Total Xe137 [atoms] Mean:  17995.5  STD:  452.1144655947208
+Unvetoed Xe137 [atoms] Mean:  1084.07  STD:  34.607009405610306
+Deadtime [days] Mean:  118.06888888887009  STD:  1.2932366802369746
+Unvetoed 137Xe trials/bin [ 1,  2,  3,  4,  3,  4,  7, 12, 16,  6, 10, 13,  5,  7,  0,  1,  1,  3,
+  1,  1]
+Unvetoed 137Xe bins [ 999.  , 1008.15, 1017.3 , 1026.45, 1035.6 , 1044.75, 1053.9 , 1063.05,
+ 1072.2 , 1081.35, 1090.5 , 1099.65, 1108.8 , 1117.95, 1127.1 , 1136.25,
+ 1145.4 , 1154.55, 1163.7 , 1172.85, 1182.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2200 ,  4600 ]
+137Xe Tagging efficiency:  0.8663258836370243
+64Cu Tagging efficiency:  0.14593834930174393
+66Cu Tagging efficiency:  0.12481617918602367
+Total Xe137 [atoms] Mean:  17951.6  STD:  456.63510596536486
+Unvetoed Xe137 [atoms] Mean:  1236.22  STD:  36.618186738286205
+Deadtime [days] Mean:  113.81583333331551  STD:  1.3031325328405303
+Unvetoed 137Xe trials/bin [ 1,  1,  1,  2,  5,  7,  4,  8,  5, 17, 10, 13, 11,  3,  3,  4,  2,  2,
+  0,  1]
+Unvetoed 137Xe bins [1138., 1148., 1158., 1168., 1178., 1188., 1198., 1208., 1218., 1228.,
+ 1238., 1248., 1258., 1268., 1278., 1288., 1298., 1308., 1318., 1328.,
+ 1338.]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2600 ,  4600 ]
+137Xe Tagging efficiency:  0.8372218497324491
+64Cu Tagging efficiency:  0.12921618154962267
+66Cu Tagging efficiency:  0.10280827259149045
+Total Xe137 [atoms] Mean:  18032.03  STD:  509.7009604660364
+Unvetoed Xe137 [atoms] Mean:  1400.83  STD:  36.760319639524354
+Deadtime [days] Mean:  109.96472222220527  STD:  1.1704261846451833
+Unvetoed 137Xe trials/bin [ 2,  0,  0,  1,  3,  6,  6, 11, 11,  8,  8, 11, 12,  5,  7,  3,  3,  2,
+  0,  1]
+Unvetoed 137Xe bins [1297.  , 1307.15, 1317.3 , 1327.45, 1337.6 , 1347.75, 1357.9 , 1368.05,
+ 1378.2 , 1388.35, 1398.5 , 1408.65, 1418.8 , 1428.95, 1439.1 , 1449.25,
+ 1459.4 , 1469.55, 1479.7 , 1489.85, 1500.  ]
+
+
+*******************************
+
+*******************************
+Site: WIPP
+Trials:  20
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 0 ,  4600 ]
+137Xe Tagging efficiency:  0.9941529138989478
+64Cu Tagging efficiency:  0.4750195341139211
+66Cu Tagging efficiency:  0.45723190517742074
+Total Xe137 [atoms] Mean:  215066.8  STD:  1587.435245923436
+Unvetoed Xe137 [atoms] Mean:  6953.55  STD:  89.30480110274027
+Deadtime [days] Mean:  1854.3937500028576  STD:  5.666462882715906
+Unvetoed 137Xe trials/bin [3, 2, 1, 0, 0, 1, 1, 3, 0, 1, 0, 1, 2, 0, 1, 1, 1, 1, 0, 1]
+Unvetoed 137Xe bins [6829. , 6843.5, 6858. , 6872.5, 6887. , 6901.5, 6916. , 6930.5, 6945. ,
+ 6959.5, 6974. , 6988.5, 7003. , 7017.5, 7032. , 7046.5, 7061. , 7075.5,
+ 7090. , 7104.5, 7119. ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1400 ,  4600 ]
+137Xe Tagging efficiency:  0.9153086865697805
+64Cu Tagging efficiency:  0.1874326324642548
+66Cu Tagging efficiency:  0.1905304679654234
+Total Xe137 [atoms] Mean:  215306.65  STD:  1677.8797714675507
+Unvetoed Xe137 [atoms] Mean:  11636.4  STD:  103.91169327847564
+Deadtime [days] Mean:  1461.1923611132531  STD:  4.658808850299435
+Unvetoed 137Xe trials/bin [1, 0, 0, 1, 0, 1, 1, 0, 0, 2, 3, 0, 1, 1, 1, 3, 0, 2, 2, 1]
+Unvetoed 137Xe bins [11395.  , 11414.55, 11434.1 , 11453.65, 11473.2 , 11492.75, 11512.3 ,
+ 11531.85, 11551.4 , 11570.95, 11590.5 , 11610.05, 11629.6 , 11649.15,
+ 11668.7 , 11688.25, 11707.8 , 11727.35, 11746.9 , 11766.45, 11786.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1800 ,  4600 ]
+137Xe Tagging efficiency:  0.8958077955360954
+64Cu Tagging efficiency:  0.16426639738023863
+66Cu Tagging efficiency:  0.15119530585932134
+Total Xe137 [atoms] Mean:  215432.8  STD:  1509.3249351945392
+Unvetoed Xe137 [atoms] Mean:  12886.25  STD:  136.80565595032976
+Deadtime [days] Mean:  1412.0944444464972  STD:  3.8002563469484105
+Unvetoed 137Xe trials/bin [1, 0, 1, 1, 2, 3, 1, 4, 2, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1]
+Unvetoed 137Xe bins [12657.  , 12686.05, 12715.1 , 12744.15, 12773.2 , 12802.25, 12831.3 ,
+ 12860.35, 12889.4 , 12918.45, 12947.5 , 12976.55, 13005.6 , 13034.65,
+ 13063.7 , 13092.75, 13121.8 , 13150.85, 13179.9 , 13208.95, 13238.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2200 ,  4600 ]
+137Xe Tagging efficiency:  0.8663258836370243
+64Cu Tagging efficiency:  0.14593834930174393
+66Cu Tagging efficiency:  0.12481617918602367
+Total Xe137 [atoms] Mean:  215508.05  STD:  1698.4675585656619
+Unvetoed Xe137 [atoms] Mean:  14815.45  STD:  124.04856911710026
+Deadtime [days] Mean:  1362.6187500019628  STD:  4.961093759699349
+Unvetoed 137Xe trials/bin [1, 0, 1, 1, 1, 0, 0, 0, 4, 1, 3, 1, 2, 0, 2, 0, 0, 1, 1, 1]
+Unvetoed 137Xe bins [14565.  , 14589.35, 14613.7 , 14638.05, 14662.4 , 14686.75, 14711.1 ,
+ 14735.45, 14759.8 , 14784.15, 14808.5 , 14832.85, 14857.2 , 14881.55,
+ 14905.9 , 14930.25, 14954.6 , 14978.95, 15003.3 , 15027.65, 15052.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2600 ,  4600 ]
+137Xe Tagging efficiency:  0.8372218497324491
+64Cu Tagging efficiency:  0.12921618154962267
+66Cu Tagging efficiency:  0.10280827259149045
+Total Xe137 [atoms] Mean:  215820.9  STD:  1658.5200300267707
+Unvetoed Xe137 [atoms] Mean:  16793.0  STD:  176.05964898295122
+Deadtime [days] Mean:  1311.880555557426  STD:  3.612514150519247
+Unvetoed 137Xe trials/bin [1, 1, 1, 0, 1, 1, 2, 1, 2, 1, 1, 3, 1, 1, 1, 1, 0, 0, 0, 1]
+Unvetoed 137Xe bins [16466. , 16502.3, 16538.6, 16574.9, 16611.2, 16647.5, 16683.8, 16720.1,
+ 16756.4, 16792.7, 16829. , 16865.3, 16901.6, 16937.9, 16974.2, 17010.5,
+ 17046.8, 17083.1, 17119.4, 17155.7, 17192. ]
+
+
+*******************************
+
+*******************************
+Site: SURF
+Trials:  100
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 0 ,  4600 ]
+137Xe Tagging efficiency:  0.9941529138989478
+64Cu Tagging efficiency:  0.4750195341139211
+66Cu Tagging efficiency:  0.45723190517742074
+Total Xe137 [atoms] Mean:  2830.8  STD:  196.24265591353983
+Unvetoed Xe137 [atoms] Mean:  90.65  STD:  10.148275715608046
+Deadtime [days] Mean:  24.16583333333389  STD:  0.5315792189781301
+Unvetoed 137Xe trials/bin [ 1,  0,  2,  1,  1,  4,  7,  8,  8,  7,  9,  7,  8, 10,  6,  8,  4,  4,
+  1,  4]
+Unvetoed 137Xe bins [ 63.  ,  65.45,  67.9 ,  70.35,  72.8 ,  75.25,  77.7 ,  80.15,  82.6 ,
+  85.05,  87.5 ,  89.95,  92.4 ,  94.85,  97.3 ,  99.75, 102.2 , 104.65,
+ 107.1 , 109.55, 112.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1400 ,  4600 ]
+137Xe Tagging efficiency:  0.9153086865697805
+64Cu Tagging efficiency:  0.1874326324642548
+66Cu Tagging efficiency:  0.1905304679654234
+Total Xe137 [atoms] Mean:  2815.42  STD:  178.9969932708368
+Unvetoed Xe137 [atoms] Mean:  151.19  STD:  13.087929553600143
+Deadtime [days] Mean:  19.036388888889302  STD:  0.5574058770128035
+Unvetoed 137Xe trials/bin [ 1,  2,  3,  3,  4,  9,  7, 12,  6, 10,  5,  2,  5,  7,  9,  5,  2,  4,
+  3,  1]
+Unvetoed 137Xe bins [123.  , 125.85, 128.7 , 131.55, 134.4 , 137.25, 140.1 , 142.95, 145.8 ,
+ 148.65, 151.5 , 154.35, 157.2 , 160.05, 162.9 , 165.75, 168.6 , 171.45,
+ 174.3 , 177.15, 180.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 1800 ,  4600 ]
+137Xe Tagging efficiency:  0.8958077955360954
+64Cu Tagging efficiency:  0.16426639738023863
+66Cu Tagging efficiency:  0.15119530585932134
+Total Xe137 [atoms] Mean:  2832.47  STD:  180.3194085504941
+Unvetoed Xe137 [atoms] Mean:  167.74  STD:  14.731340740068433
+Deadtime [days] Mean:  18.438611111111506  STD:  0.5275298394228494
+Unvetoed 137Xe trials/bin [ 1,  0,  0,  1,  1,  3,  3,  6, 11,  9,  9, 11, 12,  8,  8,  8,  2,  1,
+  3,  3]
+Unvetoed 137Xe bins [121.  , 125.05, 129.1 , 133.15, 137.2 , 141.25, 145.3 , 149.35, 153.4 ,
+ 157.45, 161.5 , 165.55, 169.6 , 173.65, 177.7 , 181.75, 185.8 , 189.85,
+ 193.9 , 197.95, 202.  ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2200 ,  4600 ]
+137Xe Tagging efficiency:  0.8663258836370243
+64Cu Tagging efficiency:  0.14593834930174393
+66Cu Tagging efficiency:  0.12481617918602367
+Total Xe137 [atoms] Mean:  2826.55  STD:  178.1885167456085
+Unvetoed Xe137 [atoms] Mean:  195.67  STD:  15.836701045356637
+Deadtime [days] Mean:  17.79305555555593  STD:  0.5253838250082149
+Unvetoed 137Xe trials/bin [ 2,  1,  2,  5,  6,  2, 11,  6, 15, 12, 11,  6,  5,  9,  3,  2,  1,  0,
+  0,  1]
+Unvetoed 137Xe bins [157. , 161.3, 165.6, 169.9, 174.2, 178.5, 182.8, 187.1, 191.4, 195.7,
+ 200. , 204.3, 208.6, 212.9, 217.2, 221.5, 225.8, 230.1, 234.4, 238.7,
+ 243. ]
+
+Neutron capture energy variable:  MCTruth 1%
+Neutron capture volume:  All LXe
+Neutron capture window [keV]: [ 2600 ,  4600 ]
+137Xe Tagging efficiency:  0.8372218497324491
+64Cu Tagging efficiency:  0.12921618154962267
+66Cu Tagging efficiency:  0.10280827259149045
+Total Xe137 [atoms] Mean:  2829.68  STD:  184.18566067965224
+Unvetoed Xe137 [atoms] Mean:  218.05  STD:  15.038866313655427
+Deadtime [days] Mean:  17.159305555555918  STD:  0.48763829551533366
+Unvetoed 137Xe trials/bin [ 1,  1,  1,  3,  4, 10, 13, 12,  3, 17,  7,  4,  8,  5,  4,  4,  0,  0,
+  2,  1]
+Unvetoed 137Xe bins [182., 186., 190., 194., 198., 202., 206., 210., 214., 218., 222., 226.,
+ 230., 234., 238., 242., 246., 250., 254., 258., 262.]
+
+
+*******************************
+
