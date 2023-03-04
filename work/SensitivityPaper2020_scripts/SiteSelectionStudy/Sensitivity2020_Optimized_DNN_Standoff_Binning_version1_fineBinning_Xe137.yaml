@@ -357,12 +357,12 @@ GroupAssignments:
 #     scale: 0.003253980744928109
 
 
-# ## LNGS_Eff80
-# Xe137DistributionModel: 
-#     dist: 'skewnorm'
-#     a: 1.6144005396821521
-#     loc: 0.030982223178905685
-#     scale: 0.0014665113523260054
+## LNGS_Eff80
+Xe137DistributionModel: 
+    dist: 'skewnorm'
+    a: 1.6144005396821521
+    loc: 0.030982223178905685
+    scale: 0.0014665113523260054
 
 
 # ## SURF_Eff70
@@ -396,9 +396,37 @@ GroupAssignments:
 #     loc: 0.00026968631632917026
 #     scale: 0.0001449830300348509
     
-## WIPP_Eff70
+# ## WIPP_Eff70
+# Xe137DistributionModel: 
+#     dist: 'skewnorm'
+#     a: 3.0
+#     loc: 0.36
+#     scale: 0.01
+
+## LNGS_Eff74
+# Xe137DistributionModel: 
+#     dist: 'skewnorm'
+#     a: -1.7645188798645501
+#     loc: 0.03610358838352065
+#     scale: 0.0012776216963994447
+
+## SNOLAB_Eff74
+# Xe137DistributionModel: 
+#     dist: 'skewnorm'
+#     a: -0.006972257002212964
+#     loc: 0.00038497334124029854
+#     scale: 9.681380079107349e-05
+
+## SNOLAB_Eff93
+# Xe137DistributionModel: 
+#     dist: 'skewnorm'
+#     a: 1.9590575332308107
+#     loc: 7.528799174908533e-05
+#     scale: 8.198137266690608e-05
+
+## LNGS_Eff93
 Xe137DistributionModel: 
     dist: 'skewnorm'
-    a: 3.0
-    loc: 0.36
-    scale: 0.01
+    a: -1.2462449834145441
+    loc: 0.012108211396980286
+    scale: 0.0005839448442623851
