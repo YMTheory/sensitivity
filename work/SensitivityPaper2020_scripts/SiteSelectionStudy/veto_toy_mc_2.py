@@ -64,7 +64,7 @@ n_scans = len(n_cap_tag_emin_scan)
 cap_tag_vol_idx = 0 # 0: All LXe, 1: Active LXe
 cap_tag_vol = ["All LXe", "Active LXe"]
 
-cap_tag_enevar_idx = 0
+cap_tag_enevar_idx = 1
 cap_tag_enevar = ["MCTruth 1%", "LightOnly"]
 
 
@@ -173,10 +173,10 @@ for s in range(n_sites): #loop over locations
 
                 muon_id = np.random.choice(len(mult_arr[s]))
                 xe137_mult = mult_arr[s][muon_id][0]
-                cu64_mult = mult_arr[s][muon_id][1]
-                cu66_mult = mult_arr[s][muon_id][2]
-                f20_mult = mult_arr[s][muon_id][3]
-                h2_mult = mult_arr[s][muon_id][4]
+                cu64_mult = mult_arr[s][muon_id][2]
+                cu66_mult = mult_arr[s][muon_id][1]
+                f20_mult = mult_arr[s][muon_id][4]
+                h2_mult = mult_arr[s][muon_id][5]
 
                 xe137 += xe137_mult
                 cu64 += cu64_mult
