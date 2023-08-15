@@ -1,0 +1,333 @@
+################################################################################
+# Example configuration file for sensitivity calculation
+# Contact: Brian Lenardo
+################################################################################
+
+# Input file
+SummaryInputFile: '../tables/Summary_D-005_v22_2018-11-12_02_tutorial.h5'
+
+# Location of ROOT files containing reconstructed PDFs
+RawPDFInputDir: '/usr/workspace/wsa/nexo/lenardo1/sensitivity_2020_pdfs/'
+
+# Choose which variables will make up each axis in the fit. 
+# These are:
+#      Title -- the name, with units, the axis in question
+#      VariableName -- the name of the variable in the reconstruction TTree
+#      Min -- the minimum value to be used in the fit
+#      Max -- the maxmum value to be used in the fit
+#      NumBins -- the number of bins to be used in the fit. 
+FitAxes:
+  - Title: 'DNN'
+    VariableName: 'm_DNNvalue'
+    BinEdges: [0., 0.2, 0.4, 0.6, 0.8, 0.82, 0.84, 0.86, 0.88, 0.9, 0.92, 0.94, 0.96, 0.98, 1.0]
+    BinningOption: 'Custom'
+  - Title: 'Energy (keV)'
+    VariableName: 'energy'
+    Min: 1000.
+    Max: 3500.
+    NumBins: 250
+    BinningOption: 'Linear'
+  - Title: 'Standoff (mm)'
+    VariableName: 'standoff'
+    BinEdges: [0.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 120.0, 140.0, 160.0, 180.0, 200.0, 250.0, 300.0, 350.0, 400.0, 450.0, 500.0, 650.0]
+    BinningOption: 'Custom'
+
+# Define the cuts which are applied when constructing the PDFs from the
+# merged reconstruction files. Supported cut types are '1D', '2DLinear',
+# and 'Boolean'.
+Cuts:
+  - Title: 'EnergyUpper'
+    Type: '1D'
+    Variable: 'energy'
+    Bound: 'Upper'
+    Value: 3500.
+  - Title: 'EnergyLower'
+    Type: '1D'
+    Variable: 'energy'
+    Bound: 'Lower'
+    Value: 1000.
+  - Title: 'StandoffLower'
+    Type: '1D'
+    Variable: 'standoff'
+    Bound: 'Lower'
+    Value: 20.
+  - Title: 'LightVsChargeUpper'
+    Type: '2DLinear'
+    XVariable: 'm_nQ'
+    YVariable: 'm_nOPCal'
+    Bound: 'Upper'
+    Slope: 1.077
+    Intercept: 313.
+  - Title: 'LightVsChargeLower'
+    Type: '2DLinear'
+    XVariable: 'm_nQ'
+    YVariable: 'm_nOPCal'
+    Bound: 'Lower'
+    Slope: 0.597
+    Intercept: -216.
+  - Title: 'PassedZThreshold'
+    Type: 'Boolean'
+    Variable: 'passed_z_thresh'
+  - Title: 'PassedXYThreshold'
+    Type: 'Boolean'
+    Variable: 'passed_xy_thresh'
+  - Title: 'NestBug'
+    Type: 'InvertedBoolean'
+    Variable: 'NESTBugFound'
+  - Title: 'n_x_ch_abovenoise'
+    Type: '1D'
+    Variable: 'n_x_ch_abovenoise'
+    Bound: 'Lower'
+    Value: 0
+  - Title: 'n_x_ch_abovenoise'
+    Type: '1D'
+    Variable: 'n_y_ch_abovenoise'
+    Bound: 'Lower'
+    Value: 0
+     
+ 
+ 
+# Set a customized specific activity for a specific component, 
+# which overrides whatever is stored in the Materials Database. 
+# All units are in mBq/kg.
+CustomSpecActivities:
+  bb0n_FullLXe:      0.0000000001 # mBq/kg
+
+# Set a custom scaling factor for a specific component,
+# which scales the activity calculated from the Materials Database.
+# Useful for e.g. Xe137 depth studies
+CustomScalingFactors:
+  Xe137_ActiveLXe:    1.
+  Xe137_InactiveLXe:  1.
+
+# Each component needs to be assigned to a group to create
+# composite PDFs in the sensitivity code. 
+GroupAssignments:
+  U238_OuterCryostatResin:             "Far"
+  U238_OuterCryostatFiber:             "Far"
+  U238_OuterCryostatSupportResin:      "Far"
+  U238_OuterCryostatSupportFiber:      "Far"
+  U238_OuterCryostatFeedthrough:       "Far"
+  U238_OuterCryostatLiner:             "Far"
+  U238_OuterCryostatWTSupport:         "Off"
+  U238_InnerCryostatResin:             "Far"
+  U238_InnerCryostatFiber:             "Far"
+  U238_InnerCryostatSupportResin:      "Far"
+  U238_InnerCryostatSupportFiber:      "Far"
+  U238_InnerCryostatLiner:             "Far"
+  U238_InnerCryostatFeedthrough:       "Far"
+  U238_RepeaterBoxShell:               "Far"
+  U238_RepeaterBoxElectronics:         "Far"
+  Th232_OuterCryostatResin:            "Far"
+  Th232_OuterCryostatFiber:            "Far"
+  Th232_OuterCryostatSupportResin:     "Far"
+  Th232_OuterCryostatSupportFiber:     "Far"
+  Th232_OuterCryostatFeedthrough:       "Far"
+  Th232_OuterCryostatLiner:            "Far"
+  Th232_OuterCryostatWTSupport:         "Off"
+  Th232_InnerCryostatResin:            "Far"
+  Th232_InnerCryostatFiber:            "Far"
+  Th232_InnerCryostatSupportResin:     "Far"
+  Th232_InnerCryostatSupportFiber:     "Far"
+  Th232_InnerCryostatLiner:            "Far"
+  Th232_InnerCryostatFeedthrough:       "Far"
+  Th232_RepeaterBoxShell:               "Far"
+  Th232_RepeaterBoxElectronics:         "Far"
+  Co60_OuterCryostatResin:             "Far"
+  Co60_OuterCryostatFiber:             "Far"
+  Co60_OuterCryostatSupportResin:      "Far"
+  Co60_OuterCryostatSupportFiber:      "Far"
+  Co60_OuterCryostatFeedthrough:       "Far"
+  Co60_OuterCryostatLiner:             "Far"
+  Co60_OuterCryostatWTSupport:          "Off"
+  Co60_InnerCryostatResin:             "Far"
+  Co60_InnerCryostatFiber:             "Far"
+  Co60_InnerCryostatSupportResin:      "Far"
+  Co60_InnerCryostatSupportFiber:      "Far"
+  Co60_InnerCryostatLiner:             "Far"
+  Co60_InnerCryostatFeedthrough:       "Far"
+  Co60_RepeaterBoxShell:               "Far"
+  Co60_RepeaterBoxElectronics:         "Far"
+  K40_OuterCryostatResin:              "Far"
+  K40_OuterCryostatFiber:              "Far"
+  K40_OuterCryostatSupportResin:       "Far"
+  K40_OuterCryostatSupportFiber:       "Far"
+  K40_OuterCryostatFeedthrough:       "Far"
+  K40_OuterCryostatLiner:              "Far"
+  K40_OuterCryostatWTSupport:          "Off"
+  K40_InnerCryostatResin:              "Far"
+  K40_InnerCryostatFiber:              "Far"
+  K40_InnerCryostatSupportResin:       "Far"
+  K40_InnerCryostatSupportFiber:       "Far"
+  K40_InnerCryostatLiner:              "Far"
+  K40_InnerCryostatFeedthrough:       "Far"
+  K40_RepeaterBoxShell:               "Far"
+  K40_RepeaterBoxElectronics:         "Far"
+  U238_HFE:                            "Vessel_U238"
+  U238_TPCVessel:                      "Vessel_U238"
+  U238_TPCSupportCone:                 "Vessel_U238"
+  U238_HVTubes:                        "Vessel_U238"
+  U238_HVCables:                       "Vessel_U238"
+  U238_HVFeedthrough:                  "Vessel_U238"
+  U238_HVFeedthroughCoreTeflon:        "Vessel_U238"
+  U238_HVFeedthroughCoreCable:         "Vessel_U238"
+  U238_HVFeedthroughCoreConductivePE:  "Vessel_U238"
+  U238_CalibrationGuideTube1:          "Vessel_U238"
+  U238_CalibrationGuideTube2:          "Vessel_U238"
+  Th232_HFE:                           "Vessel_Th232"
+  Th232_TPCVessel:                     "Vessel_Th232"
+  Th232_TPCSupportCone:                "Vessel_Th232"
+  Th232_HVTubes:                       "Vessel_Th232"
+  Th232_HVCables:                      "Vessel_Th232"
+  Th232_HVFeedthrough:                 "Vessel_Th232"
+  Th232_HVFeedthroughCoreTeflon:       "Vessel_Th232"
+  Th232_HVFeedthroughCoreCable:        "Vessel_Th232"
+  Th232_HVFeedthroughCoreConductivePE: "Vessel_Th232"
+  Th232_CalibrationGuideTube1:         "Vessel_Th232"
+  Th232_CalibrationGuideTube2:         "Vessel_Th232"
+  U238_Cathode:                        "Internals_U238"
+  U238_Bulge:                          "Internals_U238"
+  U238_FieldRings:                     "Internals_U238"
+  U238_SupportRodsandSpacers:          "Internals_U238"
+  U238_SiPMStaves:                     "Internals_U238"
+  U238_SiPMElectronics:                "Internals_U238"
+  U238_SiPMModuleInterposer:           "Internals_U238"
+  U238_SiPMCables:                     "Internals_U238"
+  U238_SiPMs:                          "Internals_U238"
+  U238_ChargeTilesSupport:             "Internals_U238"
+  U238_ChargeTilesBacking:             "Internals_U238"
+  U238_HVPlunger:                      "Internals_U238"
+  U238_ChargeTilesCables:              "Internals_U238"
+  U238_ChargeTilesElectronics:         "Internals_U238"
+  Th232_Cathode:                       "Internals_Th232"
+  Th232_Bulge:                         "Internals_Th232"
+  Th232_FieldRings:                    "Internals_Th232"
+  Th232_SupportRodsandSpacers:         "Internals_Th232"
+  Th232_SiPMStaves:                    "Internals_Th232"
+  Th232_SiPMElectronics:               "Internals_Th232"
+  Th232_SiPMModuleInterposer:          "Internals_Th232"
+  Th232_SiPMCables:                    "Internals_Th232"
+  Th232_SiPMs:                         "Internals_Th232"
+  Th232_ChargeTilesSupport:           "Internals_Th232"
+  Th232_ChargeTilesBacking:           "Internals_Th232"
+  Th232_HVPlunger:                     "Internals_Th232"
+  Th232_ChargeTilesCables:            "Internals_Th232"
+  Th232_ChargeTilesElectronics:       "Internals_Th232"
+  K40_SupportRodsandSpacers:           "FullTPC_K40"
+  K40_SiPMModuleInterposer:            "FullTPC_K40" 
+  K40_ChargeTilesBacking:             "FullTPC_K40"
+  Co60_ChargeTilesCables:              "FullTPC_Co60"
+  Co60_ChargeTilesElectronics:         "FullTPC_Co60"
+  Co60_ChargeTilesSupport:            "FullTPC_Co60"
+  Co60_ChargeTilesBacking:            "FullTPC_Co60"
+  Co60_HVPlunger:                      "FullTPC_Co60"
+  Co60_SupportRodsandSpacers:          "FullTPC_Co60"
+  Rn222_ActiveLXeRn-222:               "Rn222"
+  Rn222_InactiveLXeRn-222:             "Rn222"
+  Rn222_CathodeRadon:                  "Rn222"
+  Rn222_FieldRingsRadon:               "Rn222"
+  Rn222_HFE:                           "Far"
+  Xe137_ActiveLXeXe-137:               "Xe137_and_Ar42"
+  Xe137_InactiveLXeXe-137:             "Xe137_and_Ar42"
+  Ar42_ActiveLXeAr-42:                 "Xe137_and_Ar42"
+  Ar42_InactiveLXeAr-42:               "Xe137_and_Ar42"
+  bb2n_FullLXe:                        "FullLXeBb2n"
+  bb0n_FullLXe:                        "FullLXeBb0n"
+  B8nu_FullLXe:                        "B8nu"
+  #Rn222_ActiveLXe:                   "Off"
+  #Rn222_InactiveLXe:                   "Off"
+  #Xe137_ActiveLXe:                     "Off"
+  #Xe137_InactiveLXe:                     "Off"
+  #U238_SupportRodsandSpacers:          "Off"
+  #Th232_SupportRodsandSpacers:          "Off"
+  #K40_SupportRodsandSpacers:          "Off"
+  Co60_Cathode:                        "Off"
+  Co60_Bulge:                          "Off"
+  Co60_FieldRings:                     "Off"
+  Co60_SiPMStaves:                     "Off"
+  Co60_SiPMElectronics:                "Off"
+  Co60_SiPMModuleInterposer:           "Off"
+  Co60_SiPMCables:                     "Off"
+  Co60_SiPMs:                          "Off"
+  Co60_HFE:                            "Off"
+  Co60_TPCVessel:                      "Off"
+  Co60_TPCSupportCone:                 "Off"
+  Co60_HVTubes:                        "Off"
+  Co60_HVCables:                       "Off"
+  Co60_HVFeedthrough:                  "Off"
+  Co60_HVFeedthroughCoreTeflon:        "Off"
+  Co60_HVFeedthroughCoreCable:         "Off"
+  Co60_HVFeedthroughCoreConductivePE:  "Off"
+  Co60_CalibrationGuideTube1:          "Off"
+  Co60_CalibrationGuideTube2:          "Off"
+  K40_Cathode:                         "Off"
+  K40_Bulge:                           "Off"
+  K40_FieldRings:                      "Off"
+  K40_SiPMStaves:                      "Off"
+  K40_SiPMElectronics:                 "Off"
+  K40_SiPMCables:                      "Off"
+  K40_SiPMs:                           "Off"
+  K40_ChargeTilesSupport:              "Off"
+  K40_HVPlunger:                       "Off"
+  K40_HFE:                             "Off"
+  K40_TPCVessel:                       "Off"
+  K40_TPCSupportCone:                  "Off"
+  K40_HVTubes:                         "Off"
+  K40_HVCables:                        "Off"
+  K40_HVFeedthrough:                   "Off"
+  K40_HVFeedthroughCoreTeflon:         "Off"
+  K40_HVFeedthroughCoreCable:          "Off"
+  K40_HVFeedthroughCoreConductivePE:   "Off"
+  K40_CalibrationGuideTube1:           "Off"
+  K40_CalibrationGuideTube2:           "Off"
+  U238_ElectricalConnectionsAnode:     "Off"
+  Th232_ElectricalConnectionsAnode:    "Off"
+  K40_ElectricalConnectionsAnode:      "Off"
+  Co60_ElectricalConnectionsAnode:     "Off"
+  Ag110m_ElectricalConnectionsAnode:   "Off"
+  U238_ElectricalConnectionsSiPM:      "Off"
+  Th232_ElectricalConnectionsSiPM:     "Off"
+  K40_ElectricalConnectionsSiPM:       "Off"
+  Co60_ElectricalConnectionsSiPM:      "Off"
+  Ag110m_ElectricalConnectionsSiPM:    "Off"
+  Al26_SupportRodsandSpacers:          "Off"
+  Cs137_FieldRings:                    "Off"
+  Cs137_OuterCryostatSupportResin:     "Off"
+  Cs137_OuterCryostatSupportFiber:     "Off"
+  Cs137_OuterCryostatResin:            "Off"
+  Cs137_OuterCryostatFiber:            "Off"
+  Cs137_InnerCryostatResin:            "Off"
+  Cs137_InnerCryostatFiber:            "Off"
+  Cs137_InnerCryostatSupportFiber:     "Off"
+  Cs137_InnerCryostatSupportResin:     "Off"
+  Cs137_HVTubes:                       "Off"
+  Cs137_HVFeedthrough:                 "Off"
+  Cs137_HVPlunger:                     "Off"
+  Cs137_CalibrationGuideTube1:         "Off"
+  Cs137_CalibrationGuideTube2:         "Off"
+  Cs137_TPCSupportCone:                "Off"
+  Cs137_TPCVessel:                     "Off"
+  Cs137_Bulge:                         "Off"
+  Cs137_SiPMStaves:                    "Off"
+  Cs137_SiPMCables:                    "Off"
+  Cs137_SiPMElectronics:               "Off"
+  Cs137_SiPMs:                         "Off"
+  Cs137_ChargeTilesSupport:            "Off"
+  Cs137_ChargeTilesBacking:            "Off"
+  Xe137_FullLXe:                       "Off"
+  K40_ChargeTilesEpoxy:                "Off"
+  Th232_ChargeTilesEpoxy:              "Internals_Th232"
+  U238_ChargeTilesEpoxy:               "Internals_U238"
+  Th232_SiPMLead-freeSolder:           "Internals_Th232"
+  U238_SiPMLead-freeSolder:            "Internals_U238"
+  
+
+# By specifying the distribution of unvetoed Xe-137 atoms in the full LXe,
+# the sensitivity code will override any speciific activity defined in the materials db
+# and any scaling factor applied to Xe-137 components will be discarded
+# bin_centers must be in units of atoms of Xe-137 per year per kg of LXe
+
+## WIPP Xe136 n-capture eff=80%
+Xe137Distribution:
+    counts: [1, 0, 4, 2, 0, 1, 2, 1, 2, 1, 4, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+    bin_centers: [17549.45, 17582.350000000002, 17615.25, 17648.149999999998, 17681.05, 17713.95, 17746.850000000002, 17779.75, 17812.649999999998, 17845.550000000003, 17878.449999999997, 17911.35, 17944.25, 17977.15, 18010.050000000003, 18042.95, 18075.85, 18108.75, 18141.649999999998, 18174.55]

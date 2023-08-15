@@ -8,6 +8,7 @@ import uproot
 import os
 from scipy.special import erfinv
 #import iminuit
+from scipy import stats
 
 import nEXOExcelTableReader
 import nEXOMaterialsDBInterface
@@ -74,7 +75,32 @@ class nEXOFitWorkspace:
       config_file = open(config,'r')
       self.config = yaml.load( config_file, Loader=yaml.SafeLoader )
       config_file.close()
-
+        
+      self.InitializeXe137Sampler()
+    
+   def Xe137DiscreteSample(self):
+      pdf = np.array(self.config['Xe137Distribution']['counts']) / float(sum(self.config['Xe137Distribution']['counts']))
+      x = np.random.choice(len(pdf), size=1, p=pdf)
+      count_rate = self.config['Xe137Distribution']['bin_centers'][x[0]]   # atoms/(kg.y)
+      fluctuated_spec_activity = count_rate * 1000 / (365 * 24 * 3600)  # mBq/kg
+      return fluctuated_spec_activity
+       
+   def InitializeXe137Sampler(self):
+      if 'Xe137Distribution' in self.config:
+           self.Xe137Sample = self.Xe137DiscreteSample
+           counts = np.array(self.config['Xe137Distribution']['counts'])
+           bin_centers = np.array(self.config['Xe137Distribution']['bin_centers'])
+           self.mean_xe137_spec_activ = sum(counts * bin_centers)/sum(counts) * 1000 / (365 * 24 * 3600) # mBq/kg
+      elif 'Xe137DistributionModel' in self.config:
+           dist = getattr(stats, self.config['Xe137DistributionModel']['dist'])
+           rv = dist(self.config['Xe137DistributionModel']['a'],
+                    loc = self.config['Xe137DistributionModel']['loc'],
+                    scale = self.config['Xe137DistributionModel']['scale'])
+           self.Xe137Sample = lambda: rv.rvs(size=1)[0] * 1000 / (365 * 24 * 3600) # mBq/kg
+           self.mean_xe137_spec_activ = rv.mean() * 1000 / (365 * 24 * 3600)
+           print(f'Xe137 Test Sample {self.Xe137Sample()} and mean {self.mean_xe137_spec_activ}')
+      else:
+           self.Xe137Sample = None
 
 
    ##########################################################################
@@ -777,12 +803,18 @@ class nEXOFitWorkspace:
                             components_table_row['PDFName'],\
                             components_table_row['SpecActivErrorType'] ))
            raise TypeError
-   
+
+       # if the user specifies the distribution of unvetoed Xe137 events,
+       if ('Xe137' in components_table_row['PDFName']) and self.Xe137Sample:
+           fluctuated_spec_activity = self.Xe137Sample()
+       else:
+           fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+
+
        # If fluctuated activity is less than 0, use 0.
-       fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
        if fluctuated_spec_activity < 0.:
-              fluctuated_spec_activity = 0.
-              #fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+           fluctuated_spec_activity = 0.
+           #fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
 
        totalExpectedCounts = components_table_row['Total Mass or Area'] * \
                              fluctuated_spec_activity/1000. * \
@@ -831,8 +863,13 @@ class nEXOFitWorkspace:
                                 row['SpecActivErrorType'] ))
                raise TypeError
        
+           # if the user specifies the distribution of unvetoed Xe137 events,
+           if ('Xe137' in row['PDFName']) and self.Xe137Sample:
+                fluctuated_spec_activity = self.Xe137Sample()
+           else:
+                fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
+
            # If fluctuated activity is less than 0, use 0.
-           fluctuated_spec_activity = np.random.normal(fluct_mean,fluct_sigma)
            if fluctuated_spec_activity < 0.:
                   fluctuated_spec_activity = 0.
 
@@ -980,8 +1017,8 @@ class nEXOFitWorkspace:
            axis_name = self.histogram_axis_names[i]
            axis_indices = self.roi_indices[axis_name]
            roi_indices_array.append( axis_indices )
-
-       return np.array(roi_indices_array)
+        
+       return roi_indices_array
    ###################### End of GetROIBinIndices() #######################
 
 
