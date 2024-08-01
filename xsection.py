@@ -50,8 +50,8 @@ class xsection:
 
     ### Load the data points from Brian's paper and interpolate to get the total cross section
     def load_csv(self):
-        self.Ev1, self.xsec1 = np.loadtxt('../data/Cs136_1+590keV_totXsec.csv', delimiter=',', unpack=True)
-        self.Ev2, self.xsec2 = np.loadtxt('../data/Cs136_1+850keV_totXsec.csv', delimiter=',', unpack=True)
+        self.Ev1, self.xsec1 = np.loadtxt('/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/Cs136_1+590keV_totXsec.csv', delimiter=',', unpack=True)
+        self.Ev2, self.xsec2 = np.loadtxt('/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/Cs136_1+850keV_totXsec.csv', delimiter=',', unpack=True)
         self.load_flag = True
 
     def interp_xsec_state1(self, E):

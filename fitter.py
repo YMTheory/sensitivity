@@ -15,8 +15,8 @@ class fitter:
 
         source_z = self.source.position[2]
         detector_center_z = self.detector.position[2]
-        self.Lmin, self.Lmax, Lstep = detector_center_z - source_z - self.detector.height/2. ,  detector_center_z - source_z + self.detector.height/2., 0.03
-        self.n_Lbins = int((self.Lmax - self.Lmin) / Lstep) + 1
+        self.Lmin, self.Lmax, self.Lstep = detector_center_z - source_z - self.detector.height/2. ,  detector_center_z - source_z + self.detector.height/2., 0.03
+        self.n_Lbins = int((self.Lmax - self.Lmin) / self.Lstep) + 1
 
         self.MC_gen.scale_counts()
         
