@@ -67,8 +67,9 @@ class xsection:
         
         
     ### Directly use the total cross section from Brian's paper
-    def total_xsec(self, Ev):
-        pass
+    def total_xsec_CC(self, Ev):
+        return self.interp_xsec_state1(Ev)
+        
     
     
     
