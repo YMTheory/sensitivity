@@ -41,6 +41,11 @@ class detector:
         #TODO: add Xe enrichment?
         
         
+    def update_geometry(self, H, D):
+        self.height = H
+        self.radius = D/2.
+        self.volume = np.pi * (D/2.)**2 * H
+    
     # Two empirical energy resolution functions from Brain's solar nu paper
     def empirical_combined_energy_resolution(self, E):
         E = E * 1000. # input unit: MeV, convert to keV
