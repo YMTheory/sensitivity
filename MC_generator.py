@@ -1,6 +1,9 @@
 import numpy as np
-from scipy.integrate import dblquad
-from histlite import hist
+from scipy.integrate import dblquad, quad
+from scipy.interpolate import interp2d, LinearNDInterpolator
+from histlite import hist, Hist
+import h5py as h5
+import os
 
 from signal_spectrum import signal_calculation
 from detector import detector
@@ -27,7 +30,16 @@ class MC_generator:
 
         # expected un-oscillated neutrino number:
         #self.source.scale_counts(self.det.height. self.det.volume, self.det.baseline, self.det.run_time )
-        self.n_events = self.scale_counts()
+        self.n_events_noosc = self.scale_counts()
+        
+        self.h_maps = None
+        
+        self.scale_noosc = 11.978 # hard-coded now,
+        
+        
+        ### Load 
+        self.osc_event_rate_file = '/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/event_rate_bl10cm_Ev750keV.h5'
+        self.osc_event_rate_func = None
 
 
     def scale_counts(self):
@@ -42,7 +54,10 @@ class MC_generator:
         N0 = 12518 # 100 days run
         T0 = 100 # unit: days, 100 days run
         activity0 = 5e6 # unit: Ci, 1 Ci = 3.7e10 dacays per second
-        geometry_factor_LZ =  0.775229 # hard-coded, I did convolve_oscillation_event_rate for LZ detector without oscillation
+        #geometry_factor_LZ =  0.37128 # hard-coded, I did convolve_oscillation_event_rate for LZ detector without oscillation
+
+        spheric_geometry_factor = 494.620
+        spheric_geometry_factor_LZ = 123.382
         
         #H = self.det.height
         #V = self.det.volume
@@ -51,7 +66,7 @@ class MC_generator:
         T = self.det.run_time
         
         Enu = self.source.energies[0]
-        geometry_factor = self.convolve_oscillation_event_rate(Enu)[0]
+        #geometry_factor = self.convolve_oscillation_event_rate(Enu)[0]
         br  = self.source.ratios[0]
         xsec_nue = self.xsec.total_xsec_nuescatter(Enu)
         xsec_cc = self.xsec.total_xsec_CC(Enu)
@@ -64,9 +79,17 @@ class MC_generator:
         else:
             print("There is no such interaction in this package -> must in {'CC', 'nue'}.")
 
-        self.n_events = N0 * (T/T0) * (geometry_factor/geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
-        #self.n_events = (N0 / V0 / T0 * (L0+ H0/2.)**2 ) * V * T / (L+H/2.)**2 * (self.source.activity / activity0) * br * totxsec / xsec_nue
-        return self.n_events
+        if False:
+            print(f'Pre-scaling event count: {N0:.3f}')
+            print(f"Scaling exposure time: {T:.3f}, {T0:.3f}")
+            print(f'Geometry factor: {spheric_geometry_factor:.3f}, {spheric_geometry_factor_LZ:.3f}')
+            print(f"Activity: {self.source.activity}, {activity0}")
+            print(f"Cross section: {totxsec:.3e}, {xsec_nue:.3e}")
+
+        self.n_events_noosc = N0 * (T/T0) * (spheric_geometry_factor/spheric_geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
+        #self.n_events_noosc = N0 * (T/T0) * (geometry_factor/geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
+        #self.n_events_noosc = (N0 / V0 / T0 * (L0+ H0/2.)**2 ) * V * T / (L+H/2.)**2 * (self.source.activity / activity0) * br * totxsec / xsec_nue
+        return self.n_events_noosc
     
     ## getter methods:
 
@@ -77,7 +100,7 @@ class MC_generator:
         return self.det
     
     def _get_nevents(self):
-        return self.n_events
+        return self.n_events_noosc
     
     def _get_baseline_range(self):
         return self.baseline_min, self.baseline_max
@@ -85,6 +108,7 @@ class MC_generator:
     def _get_oscillation_length(self):
         return oscillation_length(self.dm2, self.source.energies[0])
 
+    ####################################
     ### setter methods:
     def _set_dm2(self, dm2):
         self.dm2 = dm2
@@ -92,6 +116,8 @@ class MC_generator:
     def _set_sin2theta_square(self, sin2):
         self.sin2theta_square = sin2
 
+    def _set_event_rate_filename(self, filename):
+        self.osc_event_rate_file = filename
 
     ####################################
     ### Generating events uniformly in the detector, which could be incorrect because I did not consider the flux scaling in unit volumes with different distances.
@@ -117,76 +143,182 @@ class MC_generator:
         return pos_smeared, bl
 
 
-    def generate_nonoscillate_Asimov_dataset(self, smear=False):
-        nu_pos = []
-        bl = []
-        n_event0 = int(2 * self.n_events) # Hard-coded as 2-fold to make sure we generate enough samples first in the cubic volume.
-        x0, y0, z0 = self.generate_in_cubic(*self.det.position, self.det.height, 2*self.det.radius, n_event0)
-        for x, y, z in zip(x0, y0, z0) :
-            if self.Is_in_detector(x, y, z):
-                #nu_pos.append( (x, y, z) )
-                tmp_bl = np.sqrt((x - self.source.position[0])**2 + (y - self.source.position[1])**2 + (z - self.source.position[2])**2) 
-                flux_scale = (self.baseline_min)**2 / tmp_bl**2
-            else:
-                continue
-        if not smear:
-            return np.array(nu_pos[0:int(self.n_events)]), np.array(bl[0:int(self.n_events)])
-        else:
-            pos_smeared, bl_smeared = self.smear_position(np.array(nu_pos[0:int(self.n_events)]), self.det.spatial_resolution)
-            return pos_smeared, bl_smeared
-        
-        
-        
-    def generate_oscillate_Asimov_dataset(self, Enu, smear=False):
-        nu_pos0, bl0 = self.generate_nonoscillate_Asimov_dataset()
-        sur_p = electron_neutrino_survival_probability(self.dm2, self.sin2theta_square, Enu, bl0)
-        flux_scale = self.baseline_min**2 / bl0**2 
-        p0 = np.random.uniform(0, 1, size=len(sur_p))
-        sur_id = np.where(p0 < sur_p * flux_scale)[0]
-        nu_pos, bl = [], []
-        for id in sur_id:
-            nu_pos.append( nu_pos0[id] ) 
-            bl.append(bl0[id])
-        
-        if not smear:
-            return np.array(nu_pos), np.array(bl)
-        else:
-            pos_smeared, bl_smeared = self.smear_position(np.array(nu_pos), self.det.spatial_resolution)
-            return pos_smeared, bl_smeared
-    
-    
     # Do numerical integral to as: int_V (Phi) dV \propto int_V (P(V)/L^2) dV (where P is the survival probability, L is the distance) 
     # Considering flux scaling at each unit volume, and also the survival probability 
-    def expected_rate_oneCylindricalLayer(self, r, z, E):
+    def flux_scaling(self, bl):
+        # scaled to 1m baseline
+        return 1. / bl**2
+        
+    
+    
+    def expected_rate_UnitCylindricalVolume(self, r, z, E, dm2, sin2theta_square):
         bl = np.sqrt(r**2 + (z - self.source.position[2])**2) 
-        P = electron_neutrino_survival_probability(self.dm2, self.sin2theta_square, E, bl)
-        return 2*np.pi * r * P / bl**2
+        P = electron_neutrino_survival_probability(dm2, sin2theta_square, E, bl)
+        flux = self.flux_scaling(bl)
+        return  P * flux
 
-
-    def convolve_oscillation_event_rate(self, E):
-        f = lambda r, z, E: self.expected_rate_oneCylindricalLayer(r, z, E)
+    def expected_rate_cylindrical_integral(self, E, data_dm2, data_sin2):
+        f = lambda r, z, E: self.expected_rate_UnitCylindricalVolume(r, z, E, data_dm2, data_sin2) * r * 2*np.pi
         res, err = dblquad(f, -self.det.height/2., self.det.height/2., lambda z: 0., lambda z: self.det.radius, args=(E, ), )
+        return res, err
+
+    def expected_rate_UnitSphericVolume(self, rs, E, dm2, sin2theta_square):
+        P = electron_neutrino_survival_probability(dm2, sin2theta_square, E, rs)
+        flux = self.flux_scaling(rs)
+        return P * flux
+
+    def expected_rate_spheric_integral(self, E, data_dm2, data_sin2):
+        f = lambda theta, r, E: self.expected_rate_UnitSphericVolume(r, E, data_dm2, data_sin2) * r**2 * np.sin(theta) * 2*np.pi
+        res, err = dblquad(f, self.baseline_min, self.baseline_max, lambda r: self.spheric_theta_limits(r)[0], lambda r: self.spheric_theta_limits(r)[1], args=(E, ))
         return res, err
 
 
 
-    def fill_rateVSbaseline_histogram(self, E, step_bl=0.03):
-        # A tiny volume: dV = r dr dtheta dz
-        N_bl = int((self.baseline_max - self.baseline_min) / step_bl) + 1
-        bl_edges = np.array([self.baseline_min + step_bl*i for i in range(N_bl+1)])
-        bl_cents = ( bl_edges[1:] + bl_edges[:-1]) / 2.
-        bl_cents = np.zeros(N_bl)
-        step_z = 0.001 # m
-        step_r = 0.001 # m
-        for z in np.arange(-self.det.height/2., self.det.height/2., step_z):
-            for r in np.arange(0, self.det.radius, step_r):
-                    dV = r * step_r * step_z  * 2*np.pi
-                    tmp_rate = self.expected_rate_oneCylindricalLayer(r, z, E) * dV
-                    tmp_bl = np.sqrt(r**2 + (z - self.source.position[2])**2) 
-                    bl_idx = int((tmp_bl-self.baseline_min) / step_bl)
-                    bl_cents[bl_idx] += tmp_rate
-        return bl_edges, bl_cents
-                    
+    def generate_dataset(self, data_dm2=0.0, data_sin2=0.0, poisson=False, smear=False):
+        # The current acceptance-rejection sampling method seems not efficient :( Around 5 sec per event
+        n_events_generated = 0
+        gen_pos = []
+        gen_bl  = []
+        h = self.generate_asimov_dataset(data_dm2, data_sin2)
+        total_expected_event = np.sum(h.values)
+        if poisson:
+            total_expected_event = np.random.poisson( total_expected_event )
+        while n_events_generated < total_expected_event:
+            x0, y0, z0 = self.generate_in_cubic(*self.det.position, self.det.height, 2*self.det.radius, 1)
+            x0, y0, z0 = x0[0], y0[0], z0[0]
+            if not self.Is_in_detector(x0, y0, z0):
+                continue
+            bl = np.sqrt( x0**2 + y0**2 + (z0-self.source.position[2])**2 )
+            flux_max = self.flux_scaling(self.baseline_min)
+            flux = self.flux_scaling(bl)
+            flux_prob = flux / flux_max
+            surprob = electron_neutrino_survival_probability( data_dm2, data_sin2, self.source.energies[0], bl)
+            p0 = np.random.uniform()
+            if p0 < flux_prob * surprob:
+                n_events_generated += 1
+                gen_pos.append( [x0, y0, z0] )
+                gen_bl.append( bl )
+            else:
+                continue
 
+        gen_pos = np.array(gen_pos)
+        if smear:
+            gen_pos, gen_bl = self.smear_position(gen_pos, self.det.spatial_resolution)
+
+        return gen_pos, gen_bl
+
+
+    def generate_asimov_dataset(self, data_dm2=0.0, data_sin2=0.0, fine_step_bl=0.001, coarse_step_bl=0.03):
+        #total_expected_event = self.interp_oscillated_event_rate(data_dm2, data_sin2)
+        #print(f"Total {total_expected_event} events for oscillation parameters ({data_dm2:.4f}, {data_sin2:.4f}).")
+        baseline_edges = np.arange(self.baseline_min, self.baseline_max+fine_step_bl, fine_step_bl)
+        baseline_cents = (baseline_edges[1:] + baseline_edges[:-1]) / 2.
+        counts = []
+        for bl in baseline_cents:
+            tmp_shell_counts = self.shell_integral(bl, data_dm2, data_sin2)[0]
+            counts.append(tmp_shell_counts)
+        #scale_factor = total_expected_event / np.sum(counts)
+        #print(total_expected_event, np.sum(counts), scale_factor)
+        counts = np.array(counts)
+        #counts = counts * scale_factor
+        counts = counts * self.scale_noosc
+        tmp_hist = Hist(baseline_edges, counts)
+
+        baseline_edges_new = np.arange(baseline_edges[0], baseline_edges[-1], coarse_step_bl)
+        baseline_edges_new = np.append(baseline_edges_new, baseline_edges[-1])
+        new_hist = tmp_hist.rebin(0, baseline_edges_new)
+        return new_hist
         
             
+            
+        
+
+            
+    def spheric_theta_limits(self, rs):
+        z_min, z_max = -self.det.height/2., self.det.height/2.
+        rs_min, rs_max = -self.source.position[2]-self.det.height/2., np.sqrt((-self.source.position[2]+self.det.height/2.)**2 + self.det.radius**2)
+        dist = z_min - self.source.position[2]
+        theta_max = np.arctan(self.det.radius / (dist))
+
+        if False:
+            print('******************** General limits on rs and theta **********************')
+            print(f'theta_c in [0, {theta_max/np.pi*180:.4f}]')
+            print(f'r_c in [{rs_min:.3f}, {rs_max:.3f}] ')
+            print('**************************************************************************')
+    
+    
+        if rs > rs_max or rs < rs_min:
+            print(f'Radius is out of range [{rs_min:.3f}, {rs_max:.3f}].')
+            return 0, 0
+
+        theta_uplimt0 = 100.
+        if self.det.radius < rs:
+            #print('Cylindrical radisu condition should be satisfied !')
+            theta_uplimt0 = np.arcsin(self.det.radius/rs)
+    
+        theta_uplimt1 = 100.
+        up_cond = (-self.det.height/2.-self.source.position[2]) / rs
+        if 0<= up_cond <= 1:
+            #print('Lower cylindrical height condition should be satisfied !')
+            theta_uplimt1 = np.arccos(up_cond)
+        theta_lowlimt1 = -100
+        low_cond = (self.det.height/2.-self.source.position[2]) / rs
+        if 0<= low_cond <= 1:
+            #print('Upper cylindrical height condition should be satisfied !')
+            theta_lowlimt1 = np.arccos(low_cond)
+
+        if False:
+            print('******************** Strict limits on rs and theta **********************')
+            print(f'Upper limits of theta: {theta_uplimt0:.4f}, {theta_uplimt1:.4f}.')
+            print(f"Lower limits of theta: {theta_lowlimt1:.4f}.") 
+    
+    
+        uplimit = min([theta_max, theta_uplimt0, theta_uplimt1])
+        lowlimit = max([0, theta_lowlimt1])
+        return lowlimit, uplimit 
+
+        
+        
+    def shell_integral(self, rs, dm2, sin2theta_square):
+        # rs is actually the baseline
+        flux = self.flux_scaling(rs)
+        surprob = electron_neutrino_survival_probability(dm2, sin2theta_square, self.source.energies[0], rs)
+        low, up = self.spheric_theta_limits(rs)
+        f = lambda theta, r: flux * surprob * r**2 * np.sin(theta)
+        res, err = quad(f, low, up, args=(rs,))
+        return res, err
+
+        
+        
+    def load_even_rate_file(self):
+        with h5.File(self.osc_event_rate_file, 'r') as f:
+            sin2_arr    = f['x-axis'][:]
+            dm2_arr     = f['y-axis'][:]
+            rates       = f['rate'][:]
+        
+        self.osc_event_rate_func = interp2d(sin2_arr, dm2_arr, rates)
+
+
+    def interp_oscillated_event_rate(self, dm2, sin2):
+        if self.osc_event_rate_func is None:
+            self.load_even_rate_file()
+        return self.osc_event_rate_func(dm2, sin2)[0]
+
+        
+        
+    
+    
+
+
+
+# LZ exp
+source_LZ = neutrino_source('Cr51', 1e5, [0.75], [1.0])
+det_LZ = detector('LZ')
+det_LZ.update_geometry(1.38, 1.38)
+det_LZ.position = (0, 0, 0)
+dist = 1.0
+source_LZ.position = ( 0, 0, -det_LZ.height/2.-dist)
+det_LZ.run_time = 100
+
+dm2, sin2theta_square = 0.0, 0.0
+gen_LZ = MC_generator(source_LZ, det_LZ,  dm2=dm2, sin2theta_square=sin2theta_square, int_type='nue');  
