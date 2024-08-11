@@ -14,7 +14,7 @@ from xsection import xsection
 from unit_conversion import *
 
 class MC_generator:
-    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='nue'):
+    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='nue', seed=42):
         self.source = source
         self.det = det
         self.xsec = xsection()
@@ -35,6 +35,8 @@ class MC_generator:
         self.h_maps = None
         
         self.scale_noosc = 11.978 # hard-coded now,
+
+        np.random.seed(seed)
         
         
         ### Load 
@@ -202,6 +204,7 @@ class MC_generator:
                 continue
 
         gen_pos = np.array(gen_pos)
+        gen_bl = np.array(gen_bl)
         if smear:
             gen_pos, gen_bl = self.smear_position(gen_pos, self.det.spatial_resolution)
 
