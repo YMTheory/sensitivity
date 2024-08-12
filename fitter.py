@@ -115,3 +115,63 @@ class fitter:
 
         return chi2
         
+
+    def calculate_shape_only_dchi2_asimov_fixedRate(self):
+        ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
+        # Fitting histogram
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        fit_spec = h_fit.values
+        
+        # Data asimov histogram
+        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+        data_spec = h_data.values
+
+        # For now, only consider Poisson statistics fluctuation.
+        sigma_data = np.sqrt( data_spec )
+        
+        mask_id = np.where(sigma_data != 0)
+        chi2 = np.sum( (fit_spec[mask_id] - data_spec[mask_id])**2 / sigma_data[mask_id]**2 ) 
+
+        return chi2
+
+    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.01, coarse_scan=11, fine_scan_step=0.001, fine_scan=11):
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        fit_spec = h_fit.values
+        
+        # Data asimov histogram
+        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+        data_spec = h_data.values
+
+        sigma_data = np.sqrt( data_spec )
+        
+        mask_id = np.where( sigma_data != 0 )
+
+        ## Coarse scanning
+        coarse_dchi2 = np.zeros(coarse_scan)
+        coarse_R     = np.zeros(coarse_scan)
+        N_oneSide = int((coarse_scan/2) -1)
+        low = 1 - coarse_scan_step * N_oneSide
+        for i in range(coarse_scan):
+            Ri = low + coarse_scan_step * i
+            coarse_R[i] =  Ri 
+            dchi2 =  np.sum( (data_spec[mask_id] - Ri * fit_spec[mask_id] )**2 / sigma_data[mask_id]**2 ) 
+            coarse_dchi2[i] = dchi2 
+
+        coarse_min_R = coarse_R[np.argmin(coarse_dchi2) ]
+
+        # Fine scanning
+        fine_dchi2 = np.zeros(fine_scan)
+        fine_R     = np.zeros(fine_scan)
+        N_oneSide = int((fine_scan/2) -1)
+        low = 1 - fine_scan_step * N_oneSide
+        for i in range(fine_scan):
+            Ri = low + fine_scan_step * i
+            fine_R[i] =  Ri 
+            dchi2 =  np.sum( (data_spec[mask_id] - Ri * fit_spec[mask_id] )**2 / sigma_data[mask_id]**2 ) 
+            fine_dchi2[i] = ( dchi2 )
+
+        fine_min_R = fine_R[np.argmin(fine_dchi2) ]
+        fine_min_dchi2 = np.min( fine_dchi2 )
+        
+        
+        return coarse_R, coarse_dchi2, fine_R, fine_dchi2
