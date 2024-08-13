@@ -1,9 +1,10 @@
 import os
 import numpy as np
-from iminuit import cost, Minuit
+#from iminuit import cost, Minuit
 import histlite as hl
 import sys
 import h5py as h5
+import matplotlib.pyplot as plt
 
 from MC_generator import MC_generator
 
@@ -15,22 +16,14 @@ class fitter:
 
         self.MC_gen = MC_generator(self.source, self.detector)
 
-        source_z = self.source.position[2]
-        detector_center_z = self.detector.position[2]
-        self.Lmin, self.Lmax, self.Lstep = detector_center_z - source_z - self.detector.height/2. ,  detector_center_z - source_z + self.detector.height/2., 0.03
-        self.n_Lbins = int((self.Lmax - self.Lmin) / self.Lstep) + 1
-        
-        self.dm2 = 0.
-        self.sin2theta_square = 0.
-
         self.scale_count_flag = False
         self.MC_gen.scale_counts()
 
         self.dataset = []
         self.PDF  = None
-        self.data_filename = None
+        self.data_filename = ''
         self.load_data_flag = False
-        self.pdf_filename = None
+        self.pdf_filename = ''
         self.load_pdf_flag = False
         
 
@@ -39,6 +32,7 @@ class fitter:
         self.fit_dm2 = 0.0
         self.fit_sin2 = 0.0
 
+    ######################################################################## 
     ## Setters:
     def _set_data_dm2(self, val):
         self.data_dm2 = val
@@ -57,9 +51,8 @@ class fitter:
         
     def _set_pdf_filename(self, name):
         self.pdf_filename = name
-   ######################################################################## 
-        
-    
+
+    ######################################################################## 
     ## Gettters:
     def _get_data_dm2(self):
         return self.data_dm2
@@ -73,9 +66,12 @@ class fitter:
     def _get_fit_sin2(self):
         return self.fit_sin2
 
-   ######################################################################## 
-        
+    ######################################################################## 
+    # file loaders  
     def load_data_file(self, evno=[]):
+        '''
+        Load toy MC data from data_filename.
+        '''
         if not os.path.exists(self.data_filename):
             print(f'{self.data_filename} does not exist :(')
             sys.exit(-1)
@@ -93,10 +89,11 @@ class fitter:
                     if name not in f.keys():
                         continue
                     self.dataset.append( f[name][:])
-            
-                    
-                    
+
+        self.load_data_flag = True 
     
+    ######################################################################## 
+    ### calculate dchi2 for Asimov dataset: total 3 ways for now.
     
     def calculate_rateonly_dchi2_asimov(self):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
@@ -134,7 +131,25 @@ class fitter:
 
         return chi2
 
-    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.01, coarse_scan=11, fine_scan_step=0.001, fine_scan=11):
+    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.1, coarse_Nscan=21, fine_scan_step=0.001, fine_Nscan=21, draw=False):
+
+        def calculate_scan_range(center, scan_step, scan_number):
+            x = np.zeros(scan_number)
+            N_oneSide = int((scan_number - 1) / 2)
+            low = center - N_oneSide * scan_step
+            for i in range(scan_number):
+                Ri = low + i * scan_step
+                x[i] = Ri
+            return x
+            
+        def scanning(x, data, fit, err):
+            y = np.zeros(len(x))
+            for i in range(len(x)):
+                R = x[i]
+                dchi2 = np.sum( (data - R*fit)**2/err**2 )
+                y[i] = dchi2 
+            return y
+                
         h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
         fit_spec = h_fit.values
         
@@ -146,32 +161,86 @@ class fitter:
         
         mask_id = np.where( sigma_data != 0 )
 
+        
         ## Coarse scanning
-        coarse_dchi2 = np.zeros(coarse_scan)
-        coarse_R     = np.zeros(coarse_scan)
-        N_oneSide = int((coarse_scan/2) -1)
-        low = 1 - coarse_scan_step * N_oneSide
-        for i in range(coarse_scan):
-            Ri = low + coarse_scan_step * i
-            coarse_R[i] =  Ri 
-            dchi2 =  np.sum( (data_spec[mask_id] - Ri * fit_spec[mask_id] )**2 / sigma_data[mask_id]**2 ) 
-            coarse_dchi2[i] = dchi2 
-
-        coarse_min_R = coarse_R[np.argmin(coarse_dchi2) ]
+        find_coarse_best = False
+        find_coarse_time = 0
+        start = 1.0
+        while (not find_coarse_best) and (find_coarse_time < 10):
+            coarse_R = calculate_scan_range(start, coarse_scan_step, coarse_Nscan)
+            coarse_dchi2 = scanning(coarse_R, data_spec[mask_id], fit_spec[mask_id], sigma_data[mask_id])
+            min_idx = np.argmin(coarse_dchi2) 
+            if min_idx == 0:
+                #print('xxxxx Scanning not good -> minimum at the left-edge of the coarse scanning range !')
+                start = coarse_R[0]
+            elif min_idx == len(coarse_R) - 1:
+                #print('xxxxx Scanning not good -> minimum at the right-edge of the coarse scanning range !')
+                start = coarse_R[-1]
+            else:
+                find_coarse_best = True
+            find_coarse_time += 1
+                
+        if (not find_coarse_best):
+            print(f"xxx Something wrong with coarse scanning -> could not find minimum after {find_coarse_time} times scanning.")
 
         # Fine scanning
-        fine_dchi2 = np.zeros(fine_scan)
-        fine_R     = np.zeros(fine_scan)
-        N_oneSide = int((fine_scan/2) -1)
-        low = 1 - fine_scan_step * N_oneSide
-        for i in range(fine_scan):
-            Ri = low + fine_scan_step * i
-            fine_R[i] =  Ri 
-            dchi2 =  np.sum( (data_spec[mask_id] - Ri * fit_spec[mask_id] )**2 / sigma_data[mask_id]**2 ) 
-            fine_dchi2[i] = ( dchi2 )
+        find_fine_best = False
+        find_fine_time = 0
+        start = coarse_R[min_idx]
+        while (not find_fine_best) and (find_fine_time < 10):
+            fine_R = calculate_scan_range(start, fine_scan_step, fine_Nscan)
+            fine_dchi2 = scanning(fine_R, data_spec[mask_id], fit_spec[mask_id], sigma_data[mask_id])
+            min_idx = np.argmin(fine_dchi2) 
+            if min_idx == 0:
+                #print('xxxxx Scanning not good -> minimum at the left-edge of the fine scanning range !')
+                start = fine_R[0]
+            elif min_idx == len(fine_R) - 1:
+                #print('xxxxx Scanning not good -> minimum at the right-edge of the fine scanning range !')
+                start = fine_R[-1]
+            else:
+                find_fine_best = True
+            find_fine_time += 1
 
-        fine_min_R = fine_R[np.argmin(fine_dchi2) ]
-        fine_min_dchi2 = np.min( fine_dchi2 )
+        if (not find_fine_best):
+            print(f"xxx Something wrong with fine scanning -> could not find minimum after {find_fine_time} times scanning.")
         
+        fine_min_R = fine_R[min_idx]
+            
+        if draw:
+            bins = h_fit.bins[0]
+            values = h_fit.values * fine_min_R
+            h_fit_scaled = hl.Hist(bins, values)
+            fig = self.draw_fits(h_fit, h_data)
+            return coarse_R, coarse_dchi2, fine_R, fine_dchi2, fig
         
         return coarse_R, coarse_dchi2, fine_R, fine_dchi2
+
+        
+    ######################################################################## 
+    ### Fit toy MC fluctuated dataset
+    
+    def calculate_rateonly_dchi2_MCdata(self):
+        ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
+        # Fitting histogram
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        fit_nevt = np.sum( h_fit.values )
+        
+        if not self.load_data_flag:
+            self.load_data_file()
+        if len( self.dataset ) == 0:
+            print("There is no dataset loaded yet.")
+            sys.exit(-1)
+        
+
+    ######################################################################## 
+    ## Draw fits
+    def draw_fits(self, h_fit, h_data):
+        fig, ax = plt.subplots(figsize=(8, 6))
+        hl.plot1d(h_fit,  label='Fit')
+        hl.plot1d(h_data, label='Data')
+        ax.set_xlabel('Baseline [m]', fontsize=14)
+        ax.set_ylabel('Count per bin', fontsize=14)
+        ax.legend(fontsize=13)
+        ax.tick_params(labelsize=14)
+        plt.tight_layout()
+        return fig
