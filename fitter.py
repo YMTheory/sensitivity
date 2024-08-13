@@ -6,6 +6,8 @@ import sys
 import h5py as h5
 import matplotlib.pyplot as plt
 
+from iminuit import cost, Minuit
+
 from MC_generator import MC_generator
 
 
@@ -25,7 +27,9 @@ class fitter:
         self.load_data_flag = False
         self.pdf_filename = ''
         self.load_pdf_flag = False
-        
+
+        self.other_exp_files = []    
+        self.other_exp_sens = []    
 
         self.data_dm2 = 0.0
         self.data_sin2 = 0.0
@@ -91,6 +95,20 @@ class fitter:
                     self.dataset.append( f[name][:])
 
         self.load_data_flag = True 
+
+    def load_other_experiments_sensitivity(self):
+        for file in self.other_exp_files:
+            if not os.path.exists(file):
+                print(f"{file} does not exist !")
+                continue
+            arr = np.loadtxt(file)
+            self.other_exp_sens.append( arr )
+        
+    ######################################################################## 
+    def expected_signal_count_onebin(self, bl, R, binwidth=0.03):
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=binwidth)
+        f = lambda x: np.interp(x, h_fit.centers[0], h_fit.values)
+        return f(bl) * R
     
     ######################################################################## 
     ### calculate dchi2 for Asimov dataset: total 3 ways for now.
@@ -215,6 +233,46 @@ class fitter:
         
         return coarse_R, coarse_dchi2, fine_R, fine_dchi2
 
+
+
+    def calculate_shape_only_dchi2_asimov_fitRate(self, draw=False):
+        fit_valid = False
+        N_fit, N_fit_max = 0, 5
+        while (not fit_valid) and (N_fit < N_fit_max):
+            h_fit  = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+
+            xe = h_data.bins[0]
+            xc = (xe[1:]+xe[:-1])/2.
+            vals = h_data.values
+            errs = np.sqrt( vals )
+            mask_id = np.where(vals != 0 )
+            xc = xc[mask_id]
+            vals = vals[mask_id]
+            errs = errs[mask_id]
+            c = cost.LeastSquares(xc, vals, errs, self.expected_signal_count_onebin )
+            m = Minuit(c, R=1.0, binwidth=0.03)
+            m.fixed['binwidth'] = 0.03
+            m.limits['R'] = (0, 2)
+
+            m.migrad()
+            fit_valid = m.valid
+            N_fit += 1
+        
+        if not fit_valid:
+            print(f'Fitting failed after {N_fit} time trys.')
+
+        if draw:
+            fit_R = m.values[0]
+            bins = h_fit.bins[0]
+            values = h_fit.values * fit_R
+            h_fit_scaled = hl.Hist(bins, values)
+            fig = self.draw_fits(h_fit, h_data)
+            return m.values[0], m.errors[0], m, fig
+        
+        return m.values[0], m.errors[0], m
+        
+
         
     ######################################################################## 
     ### Fit toy MC fluctuated dataset
@@ -230,6 +288,11 @@ class fitter:
         if len( self.dataset ) == 0:
             print("There is no dataset loaded yet.")
             sys.exit(-1)
+
+        for dat in self.dataset:
+            data_nevt = len(dat)
+            sigma_nevt = np.sqrt( data_nevt )
+            
         
 
     ######################################################################## 
