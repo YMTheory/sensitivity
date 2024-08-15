@@ -36,6 +36,8 @@ class fitter:
         self.fit_dm2 = 0.0
         self.fit_sin2 = 0.0
 
+        self.bin_width = 0.03
+
     ######################################################################## 
     ## Setters:
     def _set_data_dm2(self, val):
@@ -55,6 +57,9 @@ class fitter:
         
     def _set_pdf_filename(self, name):
         self.pdf_filename = name
+
+    def _set_bin_width(self, val):
+        self.bin_width = val
 
     ######################################################################## 
     ## Gettters:
@@ -105,8 +110,8 @@ class fitter:
             self.other_exp_sens.append( arr )
         
     ######################################################################## 
-    def expected_signal_count_onebin(self, bl, R, binwidth=0.03):
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=binwidth)
+    def expected_signal_count_onebin(self, bl, R):
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width)
         f = lambda x: np.interp(x, h_fit.centers[0], h_fit.values)
         return f(bl) * R
     
@@ -116,11 +121,11 @@ class fitter:
     def calculate_rateonly_dchi2_asimov(self):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
         # Fitting histogram
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width)
         fit_nevt = np.sum( h_fit.values )
         
         # Data asimov histogram
-        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width)
         data_nevt = np.sum( h_data.values )
 
         # For now, only consider Poisson statistics fluctuation.
@@ -134,11 +139,11 @@ class fitter:
     def calculate_shape_only_dchi2_asimov_fixedRate(self):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
         # Fitting histogram
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2 , coarse_step_bl=self.bin_width)
         fit_spec = h_fit.values
         
         # Data asimov histogram
-        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width )
         data_spec = h_data.values
 
         # For now, only consider Poisson statistics fluctuation.
@@ -168,11 +173,11 @@ class fitter:
                 y[i] = dchi2 
             return y
                 
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width)
         fit_spec = h_fit.values
         
         # Data asimov histogram
-        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width)
         data_spec = h_data.values
 
         sigma_data = np.sqrt( data_spec )
@@ -239,8 +244,8 @@ class fitter:
         fit_valid = False
         N_fit, N_fit_max = 0, 5
         while (not fit_valid) and (N_fit < N_fit_max):
-            h_fit  = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
-            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, )
+            h_fit  = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2,  coarse_step_bl=self.bin_width)
+            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width)
 
             xe = h_data.bins[0]
             xc = (xe[1:]+xe[:-1])/2.
@@ -251,8 +256,7 @@ class fitter:
             vals = vals[mask_id]
             errs = errs[mask_id]
             c = cost.LeastSquares(xc, vals, errs, self.expected_signal_count_onebin )
-            m = Minuit(c, R=1.0, binwidth=0.03)
-            m.fixed['binwidth'] = 0.03
+            m = Minuit(c, R=1.0,)
             m.limits['R'] = (0, 2)
 
             m.migrad()
@@ -280,7 +284,7 @@ class fitter:
     def calculate_rateonly_dchi2_MCdata(self):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
         # Fitting histogram
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, )
+        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width)
         fit_nevt = np.sum( h_fit.values )
         
         if not self.load_data_flag:
