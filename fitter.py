@@ -228,7 +228,7 @@ class fitter:
             bins = h_fit.bins[0]
             values = h_fit.values * fine_min_R
             h_fit_scaled = hl.Hist(bins, values)
-            fig = self.draw_fits(h_fit, h_data)
+            fig = self.draw_fits([h_fit_scaled, h_fit, h_data], ['scaled fit', 'fit', 'data'])
             return coarse_R, coarse_dchi2, fine_R, fine_dchi2, fig
         
         return coarse_R, coarse_dchi2, fine_R, fine_dchi2
@@ -267,7 +267,7 @@ class fitter:
             bins = h_fit.bins[0]
             values = h_fit.values * fit_R
             h_fit_scaled = hl.Hist(bins, values)
-            fig = self.draw_fits(h_fit, h_data)
+            fig = self.draw_fits([h_fit_scaled, h_fit, h_data], ['scaled fit', 'fit', 'data'])
             return m.values[0], m.errors[0], m, fig
         
         return m.values[0], m.errors[0], m
@@ -297,10 +297,10 @@ class fitter:
 
     ######################################################################## 
     ## Draw fits
-    def draw_fits(self, h_fit, h_data):
+    def draw_fits(self, histo, labels):
         fig, ax = plt.subplots(figsize=(8, 6))
-        hl.plot1d(h_fit,  label='Fit')
-        hl.plot1d(h_data, label='Data')
+        for h, lb in zip(histo, labels):
+            hl.plot1d(ax, h, label=lb)
         ax.set_xlabel('Baseline [m]', fontsize=14)
         ax.set_ylabel('Count per bin', fontsize=14)
         ax.legend(fontsize=13)
