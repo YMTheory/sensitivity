@@ -4,6 +4,7 @@ from scipy.interpolate import interp2d, LinearNDInterpolator
 from histlite import hist, Hist
 import h5py as h5
 import os
+from scipy.stats import norm
 
 from signal_spectrum import signal_calculation
 from detector import detector
@@ -37,6 +38,9 @@ class MC_generator:
         self.scale_noosc = 11.978 # hard-coded now,
 
         np.random.seed(seed)
+
+        # If I do the full-radius-range integral as in the following codes, I get a normalization factor as,
+        self.integral_norm_factor = 1.0
         
         
         ### Load 
@@ -173,7 +177,30 @@ class MC_generator:
         f = lambda theta, r, E: self.expected_rate_UnitSphericVolume(r, E, data_dm2, data_sin2) * r**2 * np.sin(theta) * 2*np.pi
         res, err = dblquad(f, self.baseline_min, self.baseline_max, lambda r: self.spheric_theta_limits(r)[0], lambda r: self.spheric_theta_limits(r)[1], args=(E, ))
         return res, err
+        
+        
+    def convolve_resolution(self, h0, rebin_width=0.03):
+        bin_edges = h0.bins[0]
+        bin_conts = h0.values
+        bin_cents = h0.centers[0]
+        smeared_bin_cents = np.zeros( len(bin_cents) )
+        lowbin, higbin, binwidth = bin_edges[0], bin_edges[-1], bin_edges[1]-bin_edges[0]
+        nsigma = 5 # only calculate 5-sigma region smearing
+        for ibin, ibincenter in enumerate(bin_cents):
+            lowi  = max([lowbin, ibincenter-nsigma*self.det.spatial_resolution])
+            lowid = int((lowi-lowbin)/binwidth)
+            highi = min([higbin, ibincenter+nsigma*self.det.spatial_resolution])
+            highid = int((highi-lowbin)/binwidth)
+            for ibin_smear in np.arange(lowid, highid):
+                smeared_bin_cents[ibin_smear] += bin_conts[ibin] * norm.pdf(bin_cents[ibin_smear], loc=ibincenter, scale=self.det.spatial_resolution) * binwidth
 
+        smeared_h0 = Hist(bin_edges, smeared_bin_cents)
+
+        baseline_edges_new = np.arange(bin_edges[0], bin_edges[-1], rebin_width)
+        baseline_edges_new = np.append(baseline_edges_new, bin_edges[-1])
+        smeared_h = smeared_h0.rebin(0, baseline_edges_new)
+        return smeared_h
+        
 
 
     def generate_dataset(self, data_dm2=0.0, data_sin2=0.0, poisson=False, smear=False):
@@ -211,14 +238,14 @@ class MC_generator:
         return gen_pos, gen_bl
 
 
-    def generate_asimov_dataset(self, data_dm2=0.0, data_sin2=0.0, fine_step_bl=0.001, coarse_step_bl=0.03):
+    def generate_asimov_dataset(self, data_dm2=0.0, data_sin2=0.0, fine_step_bl=0.001, coarse_step_bl=0.03, smear=False):
         #total_expected_event = self.interp_oscillated_event_rate(data_dm2, data_sin2)
         #print(f"Total {total_expected_event} events for oscillation parameters ({data_dm2:.4f}, {data_sin2:.4f}).")
         baseline_edges = np.arange(self.baseline_min, self.baseline_max+fine_step_bl, fine_step_bl)
         baseline_cents = (baseline_edges[1:] + baseline_edges[:-1]) / 2.
         counts = []
         for bl in baseline_cents:
-            tmp_shell_counts = self.shell_integral(bl, data_dm2, data_sin2)[0]
+            tmp_shell_counts = self.theta_integral(bl, data_dm2, data_sin2)[0]
             counts.append(tmp_shell_counts)
         #scale_factor = total_expected_event / np.sum(counts)
         #print(total_expected_event, np.sum(counts), scale_factor)
@@ -227,6 +254,12 @@ class MC_generator:
         counts = counts * self.scale_noosc
         tmp_hist = Hist(baseline_edges, counts)
 
+        if smear:
+            # will smear the positions only for now to consider the detector spatial resolution
+            smeared_h = self.convolve_resolution(tmp_hist, rebin_width=coarse_step_bl)
+            return smeared_h
+
+        # Rebin the original histogram into coarse bins
         baseline_edges_new = np.arange(baseline_edges[0], baseline_edges[-1], coarse_step_bl)
         baseline_edges_new = np.append(baseline_edges_new, baseline_edges[-1])
         new_hist = tmp_hist.rebin(0, baseline_edges_new)
@@ -282,7 +315,7 @@ class MC_generator:
 
         
         
-    def shell_integral(self, rs, dm2, sin2theta_square):
+    def theta_integral(self, rs, dm2, sin2theta_square):
         # rs is actually the baseline
         flux = self.flux_scaling(rs)
         surprob = electron_neutrino_survival_probability(dm2, sin2theta_square, self.source.energies[0], rs)
@@ -290,6 +323,30 @@ class MC_generator:
         f = lambda theta, r: flux * surprob * r**2 * np.sin(theta)
         res, err = quad(f, low, up, args=(rs,))
         return res, err
+
+    def radius_integral_fullrange(self, dm2, sin2theta_square):
+        f = lambda r: self.theta_integral(r, dm2=dm2, sin2theta_square=sin2theta_square)[0]
+        res, err = quad(f, self.baseline_min, self.baseline_max)
+        self.integral_norm_factor = res
+        return res
+        
+    def radius_integral(self, rmin, rmax, dm2, sin2theta_square):
+        '''
+        In my codes, I did theta integral first, then I do radius integral.
+        '''
+        if self.integral_norm_factor == 0:
+            self.radius_integral_fullrange(dm2, sin2theta_square)
+        f = lambda r: self.theta_integral(r, dm2=dm2, sin2theta_square=sin2theta_square)[0]
+        res, err = quad(f, rmin, rmax, )
+        return res/self.integral_norm_factor, err/self.integral_norm_factor
+        
+    
+    def expected_rate_and_integral(self, r, dm2, sin2theta_square):
+        if self.integral_norm_factor == 0:
+            self.radius_integral_fullrange(dm2, sin2theta_square)
+        density     = self.theta_integral(r, dm2, sin2theta_square)[0] / self.integral_norm_factor
+        integral    = self.radius_integral(self.baseline_min, r, dm2, sin2theta_square)[0]
+        return density, integral
 
         
         
