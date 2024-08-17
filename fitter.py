@@ -1,9 +1,10 @@
 import os
 import numpy as np
-#from iminuit import cost, Minuit
+import re
 import histlite as hl
 import sys
 import h5py as h5
+import pickle
 import matplotlib.pyplot as plt
 
 from iminuit import cost, Minuit
@@ -22,11 +23,24 @@ class fitter:
         self.MC_gen.scale_counts()
 
         self.dataset = []
-        self.PDF  = None
+        self.PDFs  = None
         self.data_filename = ''
         self.load_data_flag = False
         self.pdf_filename = ''
         self.load_pdf_flag = False
+        
+        
+        ##### This part is for pre-loading PDF fitting:
+        self.pre_load_dm2_min_index = -2
+        self.pre_load_dm2_max_index = 2
+        self.pre_load_dm2_index_step = 0.2
+        self.pre_load_dm2_N = int((self.pre_load_dm2_max_index - self.pre_load_dm2_min_index) / self.pre_load_dm2_index_step) * 10
+        self.pre_load_sin2_min_index = -2
+        self.pre_load_sin2_max_index = 0
+        self.pre_load_sin2_index_step = 0.2
+        self.pre_load_sin2_N = int((self.pre_load_sin2_max_index - self.pre_load_sin2_min_index) / self.pre_load_sin2_index_step) * 10
+        self.pre_load_dchi2_all = np.zeros((self.pre_load_dm2_N, self.pre_load_sin2_N)) # This is hard-coding now, # TODO: a better way
+        
 
         self.other_exp_files = []    
         self.other_exp_sens = []    
@@ -108,7 +122,16 @@ class fitter:
                 continue
             arr = np.loadtxt(file)
             self.other_exp_sens.append( arr )
+
+    def load_pdfs(self):
+        if not os.path.exists(self.pdf_filename):
+            print(f'{self.pdf_filename} does not exsit!')
+            return
+        with open(self.pdf_filename, 'rb') as f:
+            self.PDFs = pickle.load(f)
         
+        self.load_pdf_flag = True
+
     ######################################################################## 
     def expected_signal_count_onebin(self, bl, R, smear=False):
         h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
@@ -118,30 +141,46 @@ class fitter:
     ######################################################################## 
     ### calculate dchi2 for Asimov dataset: total 3 ways for now.
     
-    def calculate_rateonly_dchi2_asimov(self, smear=False):
+    def calculate_rateonly_dchi2_asimov(self, smear=False, preload=False):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
-        # Fitting histogram
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
-        fit_nevt = np.sum( h_fit.values )
-        
         # Data asimov histogram
         h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear)
         data_nevt = np.sum( h_data.values )
-
-        # For now, only consider Poisson statistics fluctuation.
         sigma_data = np.sqrt( data_nevt )
-        
-        chi2 = (fit_nevt - data_nevt)**2 / sigma_data**2
 
-        return chi2
-        
-
-    def calculate_shape_only_dchi2_asimov_fixedRate(self, smear=False):
-        ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
         # Fitting histogram
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2 , coarse_step_bl=self.bin_width, smear=smear)
-        fit_spec = h_fit.values
+        if not preload:
+            # calculate fit pdf real-time
+            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
+            fit_nevt = np.sum( h_fit.values )
         
+            # For now, only consider Poisson statistics fluctuation.
+        
+            chi2 = (fit_nevt - data_nevt)**2 / sigma_data**2
+
+            return chi2
+        
+        else:
+            if self.load_pdf_flag == False:
+                self.load_pdfs()
+            
+            for i in range(self.pre_load_dm2_N):
+                for j in range(self.pre_load_sin2_N) :
+                    hname = f'dm2No{i}_sin2No{j}'
+                    tmp_h = self.PDFs[hname]
+                    fit_nevt = np.sum( tmp_h.values )
+                    chi2 = (fit_nevt - data_nevt)**2 / sigma_data**2
+                    
+                    self.pre_load_dchi2_all[i, j] = chi2
+
+            return self.pre_load_dchi2_all
+
+                    
+            
+        
+
+    def calculate_shape_only_dchi2_asimov_fixedRate(self, smear=False, preload=False):
+        ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
         # Data asimov histogram
         h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear )
         data_spec = h_data.values
@@ -150,11 +189,31 @@ class fitter:
         sigma_data = np.sqrt( data_spec )
         
         mask_id = np.where(sigma_data != 0)
-        chi2 = np.sum( (fit_spec[mask_id] - data_spec[mask_id])**2 / sigma_data[mask_id]**2 ) 
+        if not preload:
+            # Fitting histogram
+            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2 , coarse_step_bl=self.bin_width, smear=smear)
+            fit_spec = h_fit.values
+        
+            chi2 = np.sum( (fit_spec[mask_id] - data_spec[mask_id])**2 / sigma_data[mask_id]**2 ) 
 
-        return chi2
+            return chi2
+        else:
+            if self.load_pdf_flag == False:
+                self.load_pdfs()
+            
+            for i in range(self.pre_load_dm2_N):
+                for j in range(self.pre_load_sin2_N) :
+                    hname = f'dm2No{i}_sin2No{j}'
+                    tmp_h = self.PDFs[hname]
+                    fit_spec = tmp_h.values
+                    chi2 = np.sum( (fit_spec[mask_id] - data_spec[mask_id])**2 / sigma_data[mask_id]**2 ) 
+                    
+                    self.pre_load_dchi2_all[i, j] = chi2
 
-    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.1, coarse_Nscan=21, fine_scan_step=0.001, fine_Nscan=21, draw=False, smear=False):
+            return self.pre_load_dchi2_all
+            
+
+    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.1, coarse_Nscan=21, fine_scan_step=0.001, fine_Nscan=21, draw=False, smear=False, preload=False):
 
         def calculate_scan_range(center, scan_step, scan_number):
             x = np.zeros(scan_number)
@@ -172,10 +231,55 @@ class fitter:
                 dchi2 = np.sum( (data - R*fit)**2/err**2 )
                 y[i] = dchi2 
             return y
-                
-        h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
-        fit_spec = h_fit.values
         
+        def high_level_scan(h_fit, data_spec, sigma_data, coarse_scan_step, coarse_Nscan, fine_scan_step, fine_Nstep):
+            fit_spec = h_fit.values
+        
+            ## Coarse scanning
+            find_coarse_best = False
+            find_coarse_time = 0
+            start = 1.0
+            while (not find_coarse_best) and (find_coarse_time < 10):
+                coarse_R = calculate_scan_range(start, coarse_scan_step, coarse_Nscan)
+                coarse_dchi2 = scanning(coarse_R, data_spec[mask_id], fit_spec[mask_id], sigma_data[mask_id])
+                min_idx = np.argmin(coarse_dchi2) 
+                if min_idx == 0:
+                    #print('xxxxx Scanning not good -> minimum at the left-edge of the coarse scanning range !')
+                    start = coarse_R[0]
+                elif min_idx == len(coarse_R) - 1:
+                    #print('xxxxx Scanning not good -> minimum at the right-edge of the coarse scanning range !')
+                    start = coarse_R[-1]
+                else:
+                    find_coarse_best = True
+                find_coarse_time += 1
+                    
+            if (not find_coarse_best):
+                print(f"xxx Something wrong with coarse scanning -> could not find minimum after {find_coarse_time} times scanning.")
+
+            # Fine scanning
+            find_fine_best = False
+            find_fine_time = 0
+            start = coarse_R[min_idx]
+            while (not find_fine_best) and (find_fine_time < 10):
+                fine_R = calculate_scan_range(start, fine_scan_step, fine_Nscan)
+                fine_dchi2 = scanning(fine_R, data_spec[mask_id], fit_spec[mask_id], sigma_data[mask_id])
+                min_idx = np.argmin(fine_dchi2) 
+                if min_idx == 0:
+                    #print('xxxxx Scanning not good -> minimum at the left-edge of the fine scanning range !')
+                    start = fine_R[0]
+                elif min_idx == len(fine_R) - 1:
+                    #print('xxxxx Scanning not good -> minimum at the right-edge of the fine scanning range !')
+                    start = fine_R[-1]
+                else:
+                    find_fine_best = True
+                find_fine_time += 1
+
+            if (not find_fine_best):
+                print(f"xxx Something wrong with fine scanning -> could not find minimum after {find_fine_time} times scanning.")
+        
+            return coarse_R, coarse_dchi2, fine_R, fine_dchi2
+                
+                
         # Data asimov histogram
         h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear)
         data_spec = h_data.values
@@ -184,63 +288,39 @@ class fitter:
         
         mask_id = np.where( sigma_data != 0 )
 
-        
-        ## Coarse scanning
-        find_coarse_best = False
-        find_coarse_time = 0
-        start = 1.0
-        while (not find_coarse_best) and (find_coarse_time < 10):
-            coarse_R = calculate_scan_range(start, coarse_scan_step, coarse_Nscan)
-            coarse_dchi2 = scanning(coarse_R, data_spec[mask_id], fit_spec[mask_id], sigma_data[mask_id])
-            min_idx = np.argmin(coarse_dchi2) 
-            if min_idx == 0:
-                #print('xxxxx Scanning not good -> minimum at the left-edge of the coarse scanning range !')
-                start = coarse_R[0]
-            elif min_idx == len(coarse_R) - 1:
-                #print('xxxxx Scanning not good -> minimum at the right-edge of the coarse scanning range !')
-                start = coarse_R[-1]
-            else:
-                find_coarse_best = True
-            find_coarse_time += 1
-                
-        if (not find_coarse_best):
-            print(f"xxx Something wrong with coarse scanning -> could not find minimum after {find_coarse_time} times scanning.")
-
-        # Fine scanning
-        find_fine_best = False
-        find_fine_time = 0
-        start = coarse_R[min_idx]
-        while (not find_fine_best) and (find_fine_time < 10):
-            fine_R = calculate_scan_range(start, fine_scan_step, fine_Nscan)
-            fine_dchi2 = scanning(fine_R, data_spec[mask_id], fit_spec[mask_id], sigma_data[mask_id])
-            min_idx = np.argmin(fine_dchi2) 
-            if min_idx == 0:
-                #print('xxxxx Scanning not good -> minimum at the left-edge of the fine scanning range !')
-                start = fine_R[0]
-            elif min_idx == len(fine_R) - 1:
-                #print('xxxxx Scanning not good -> minimum at the right-edge of the fine scanning range !')
-                start = fine_R[-1]
-            else:
-                find_fine_best = True
-            find_fine_time += 1
-
-        if (not find_fine_best):
-            print(f"xxx Something wrong with fine scanning -> could not find minimum after {find_fine_time} times scanning.")
-        
-        fine_min_R = fine_R[min_idx]
+        if not preload:
+            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
+            coarse_R, coarse_dchi2, fine_R, fine_dchi2 = high_level_scan(h_fit, data_spec, sigma_data, coarse_scan_step, coarse_Nscan, fine_scan_step, fine_Nscan)
             
-        if draw:
-            bins = h_fit.bins[0]
-            values = h_fit.values * fine_min_R
-            h_fit_scaled = hl.Hist(bins, values)
-            fig = self.draw_fits([h_fit_scaled, h_fit, h_data], ['scaled fit', 'fit', 'data'])
-            return coarse_R, coarse_dchi2, fine_R, fine_dchi2, fig
+            if draw:
+                bins = h_fit.bins[0]
+                min_idx = np.argmin(fine_dchi2) 
+                fine_min_R = fine_R[min_idx]
+                values = h_fit.values * fine_min_R
+                h_fit_scaled = hl.Hist(bins, values)
+                fig = self.draw_fits([h_fit_scaled, h_fit, h_data], ['scaled fit', 'fit', 'data'])
+                return coarse_R, coarse_dchi2, fine_R, fine_dchi2, fig
         
-        return coarse_R, coarse_dchi2, fine_R, fine_dchi2
+            return coarse_R, coarse_dchi2, fine_R, fine_dchi2
+        
+        else:
+            if self.load_pdf_flag == False:
+                self.load_pdfs()
+            
+            for i in range(self.pre_load_dm2_N):
+                for j in range(self.pre_load_sin2_N) :
+                    hname = f'dm2No{i}_sin2No{j}'
+                    tmp_h = self.PDFs[hname]
+                    coarse_R, coarse_dchi2, fine_R, fine_dchi2 = high_level_scan(tmp_h, data_spec, sigma_data, coarse_scan_step, coarse_Nscan, fine_scan_step, fine_Nscan)
+                    self.pre_load_dchi2_all[i, j] = np.min(fine_dchi2)
+
+            return self.pre_load_dchi2_all
+                    
 
 
 
-    def calculate_shape_only_dchi2_asimov_fitRate(self, draw=False, smear=False):
+
+    def calculate_shape_only_dchi2_asimov_fitRate(self, draw=False, smear=False, preload=False):
         fit_valid = False
         N_fit, N_fit_max = 0, 5
         while (not fit_valid) and (N_fit < N_fit_max):
