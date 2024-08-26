@@ -10,6 +10,9 @@ class neutrino_source:
         self.energies = energies
         self.ratios = ratios
         
+        self.height = 0.14 # unit: m
+        self.diameter = 0.14 # unit: m
+
         self.position = (0, 0, 0)
 
         self.activity = 5e6 # unit: Ci, 1 Ci = 3.7e10 dacays per second
@@ -18,5 +21,7 @@ class neutrino_source:
     def set_source_positin(self, x, y, z):
         self.position = (x, y, -1)
         
+    def sample_vertice(self, nevent):
+        # TODO: consider the geometry of the source, which will influence the baseline calculation.
+        pass
     
-    # TODO: consider the geometry of the source, which will influence the baseline calculation.
