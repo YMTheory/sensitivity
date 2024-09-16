@@ -1,10 +1,29 @@
 import numpy as np
-from scipy.integrate import dblquad, quad
+from scipy.integrate import dblquad, quad, tplquad, nquad
 from scipy.interpolate import interp2d, LinearNDInterpolator
 from histlite import hist, Hist
 import h5py as h5
 import os
 from scipy.stats import norm
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+
+from IPython import get_ipython
+def isnotebook():
+        try:
+                shell = get_ipython().__class__.__name__
+                if shell == 'ZMQInteractiveShell':
+                        return True   # Jupyter notebook or qtconsole
+                elif shell == 'TerminalInteractiveShell':
+                        return False  # Terminal running IPython
+                else:
+                        return False  # Other type (?)
+        except NameError:
+                return False      # Probably standard Python interpreter
+if(isnotebook()):
+        from tqdm.notebook import tqdm
+else:
+        from tqdm import tqdm
 
 from signal_spectrum import signal_calculation
 from detector import detector
@@ -64,6 +83,8 @@ class MC_generator:
 
         spheric_geometry_factor = 494.620
         spheric_geometry_factor_LZ = 123.382
+
+        geometry_factor_ratio = 4.16
         
         #H = self.det.height
         #V = self.det.volume
@@ -92,10 +113,37 @@ class MC_generator:
             print(f"Activity: {self.source.activity}, {activity0}")
             print(f"Cross section: {totxsec:.3e}, {xsec_nue:.3e}")
 
-        self.n_events_noosc = N0 * (T/T0) * (spheric_geometry_factor/spheric_geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
+        self.n_events_noosc = N0 * (T/T0) * geometry_factor_ratio * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
+        #self.n_events_noosc = N0 * (T/T0) * (spheric_geometry_factor/spheric_geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
         #self.n_events_noosc = N0 * (T/T0) * (geometry_factor/geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
         #self.n_events_noosc = (N0 / V0 / T0 * (L0+ H0/2.)**2 ) * V * T / (L+H/2.)**2 * (self.source.activity / activity0) * br * totxsec / xsec_nue
         return self.n_events_noosc
+    
+    def draw_experiment_layout(self, events=[], elev=0, azim=90, roll=0):
+        # Create meshgrid for the source
+        theta = theta = np.linspace(0, 2 * np.pi, 50)
+        z0 = np.linspace(self.source.position[2] - self.source.height/2., self.source.position[2] + self.source.height/2., 50)
+        z1 = np.linspace(self.det.position[2] - self.det.height/2., self.det.position[2] + self.det.height/2., 50)
+        theta_grid0, z_grid0 = np.meshgrid(theta, z0)    
+        theta_grid1, z_grid1 = np.meshgrid(theta, z1)    
+        x_grid0 = self.source.diameter/2. * np.cos(theta_grid0)
+        y_grid0 = self.source.diameter/2. * np.sin(theta_grid0)
+        x_grid1 = self.det.radius * np.cos(theta_grid1)
+        y_grid1 = self.det.radius * np.sin(theta_grid1)
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(x_grid0, y_grid0, z_grid0, color='b', alpha=0.2, rstride=5, cstride=5) 
+        ax.plot_surface(x_grid1, y_grid1, z_grid1, color='r', alpha=0.2, rstride=5, cstride=5) 
+
+        for evt in events:
+            xs, ys, zs = evt[0::3], evt[1::3], evt[2::3]
+            ax.plot3D(xs, ys, zs, color='gray')
+        
+        ax.view_init(elev=elev, azim=azim, roll=roll)
+
+        plt.show()
+        return fig
     
     ## getter methods:
 
@@ -140,6 +188,12 @@ class MC_generator:
         else:
             return False
 
+    def Is_in_source(self, x, y, z):
+        if ( np.sqrt((x-self.source.position[0])**2 + (y-self.source.position[1])**2) < self.source.diameter/2.) and (-self.source.height/2. <= z-self.source.position[2] < self.source.height/2.) :
+            return True
+        else:
+            return False
+
     def smear_position(self, pos, res):
         x_smeared = np.random.normal(loc=pos[:,0], scale=res, size=len(pos))
         y_smeared = np.random.normal(loc=pos[:,1], scale=res, size=len(pos))
@@ -154,9 +208,107 @@ class MC_generator:
     def flux_scaling(self, bl):
         # scaled to 1m baseline
         return 1. / bl**2
+
+
+    def expected_flux_UnitSourceCylindricalVolume(self, r, z, theta, E, dm2, sin2theta_square, xd, yd, zd):
+        #(xd, yd, zd) is the point coordinate in the detector we are calculating now.
+        xs, ys, zs = r*np.cos(theta), r*np.sin(theta), z # (xs, ys, zs) is the unit volume coordinate in the cylindrical source.
+        bl = np.sqrt((xs-xd)**2 + (ys-yd)**2 + (zs-zd)**2 )
+        P = electron_neutrino_survival_probability(dm2, sin2theta_square, E, bl)
+        flux = self.flux_scaling(bl)
+        return P * flux # There is no volume here.
+    
+    
+    def expected_rate_UnitSourceCylinderVolume_UnitDetectorSphericalVolume(self, E, dm2, sin2, rs, thetas, zs, rd, thetad, phid):
+        xs, ys = rs * np.cos(thetas), rs * np.sin(thetas)
+        xd, yd, zd = rd * np.sin(thetad) * np.cos(phid), rd * np.sin(thetad) * np.sin(phid), rd * np.cos(thetad)
+        l = np.sqrt((xs-xd)**2 +(ys-yd)**2 + (zs-zd)**2)
+        P = electron_neutrino_survival_probability(dm2, sin2, E, l)
+        F = self.flux_scaling(l)
+        vol_source = rs
+        vol_det = rd**2 * np.sin(thetad)
+        return P * F * vol_source * vol_det
         
     
+        
+    def expected_rate_UnitDetectorSphericVolume_withSourceGeometry_noNumericalIntegral(self, rs, phi, theta, E, dm2, sin2):
+        xd, yd, zd = rs*np.sin(theta)*np.cos(phi), rs*np.sin(theta)*np.sin(phi), rs*np.cos(theta) + self.source.position[2]
+        num_samples = int(1e6)
+        z_samples = np.random.uniform(self.source.position[2]-self.source.height/2., self.source.position[2]+self.source.height/2., num_samples)
+        theta_samples = np.random.uniform(0, 2 * np.pi, num_samples)
+        r_samples = (self.source.diameter/2.) * np.sqrt(np.random.uniform(0, 1, num_samples))
+        value_samples = self.expected_flux_UnitSourceCylindricalVolume(r_samples, z_samples, theta_samples, E, dm2, sin2, xd, yd, zd) * r_samples
+        source_cylinder_volume = np.pi * (self.source.diameter/2.)**2 * self.source.height
+        integral_estimate = np.mean(value_samples) * source_cylinder_volume
+        return integral_estimate
+
+  
+    def expected_rate_UnitDetectorSphericVolume_withSourceGeometry(self, rs, phi, theta, E, dm2, sin2theta_square):
+        ## In shperical coordinate, the origin is set as the center of the source so that the radius = baseline
+        xd, yd, zd = rs*np.sin(theta)*np.cos(phi), rs*np.sin(theta)*np.sin(phi), rs*np.cos(theta) + self.source.position[2]
+        f = lambda r, z, theta: self.expected_flux_UnitSourceCylindricalVolume(r, z, theta, E, dm2, sin2theta_square, xd, yd, zd) * r
+        res, err = tplquad(f, 0, 2*np.pi, self.source.position[2]-self.source.height/2., self.source.position[2]+self.source.height/2., 0, self.source.diameter/2.)
+        return res, err
+
+
+    def expected_rate_UnitDetectorSphericVolume_noSourceGeometry(self, rs, E, dm2, sin2theta_square):
+        flux = self.flux_scaling(rs)
+        P = electron_neutrino_survival_probability(dm2, sin2theta_square, E, rs)
+        return P * flux
+
+
+    def expected_rate_DetectorSphericalAngularIntegral_withSourceGeometry(self, rs, E, dm2, sin2theta_square, mc=False):
+        theta_low, theta_high = self.spheric_theta_limits(rs)
+        if mc:
+            f = lambda phi, theta: self.expected_rate_UnitDetectorSphericVolume_withSourceGeometry_noNumericalIntegral(rs, phi, theta, E, dm2, sin2theta_square) * np.sin(theta) * rs**2
+        else:
+            f = lambda phi, theta : self.expected_rate_UnitDetectorSphericVolume_withSourceGeometry(rs, phi, theta, E, dm2, sin2theta_square)[0] * np.sin(theta) * rs**2
+        res, err = dblquad(f, theta_low, theta_high, 0, 2*np.pi)
+        return res, err
+
+    def expected_rate_DetectorSphericalVolumeIntegral_withSourceGeometry(self, E, dm2, sin2theta_square, mc=False):
+        if mc:
+            f = lambda phi, theta, r: self.expected_rate_UnitDetectorSphericVolume_withSourceGeometry_noNumericalIntegral(r, phi, theta, E, dm2, sin2theta_square) * np.sin(theta) * r**2
+        else:
+            f = lambda phi, theta, r : self.expected_rate_UnitDetectorSphericVolume_withSourceGeometry(r, phi, theta, E, dm2, sin2theta_square)[0] * np.sin(theta) * r**2
+        res, err = tplquad(f, self.baseline_min, self.baseline_max, lambda r: self.spheric_theta_limits(r)[0], lambda r: self.spheric_theta_limits(r)[1], 0, 2*np.pi)
+
+        return res, err
     
+    def expected_rate_DetectorSphericalAngularIntegral_noSourceGeometry(self, rs, E, dm2, sin2):
+        f = lambda theta : self.expected_rate_UnitDetectorSphericVolume_noSourceGeometry(rs, E, dm2, sin2) * rs**2 * np.sin(theta)
+        theta_low, theta_high = self.spheric_theta_limits(rs)
+        res, err = quad(f, theta_low, theta_high)
+        return res, err
+
+        
+    def expected_rate_DetectorSphericalVolumeIntegral_noSourceGeometry(self, E, dm2, sin2):
+        f = lambda theta, r : self.expected_rate_UnitDetectorSphericVolume_noSourceGeometry(r, E, dm2, sin2) * r**2 * np.sin(theta)
+        res, err = dblquad(f, self.baseline_min, self.baseline_max, lambda r: self.spheric_theta_limits(r)[0], lambda r: self.spheric_theta_limits(r)[1])
+        return res, err
+
+    
+    ### The high-dimensional integral is very computation-heavy so that we should -> we need to do a tplquad for the source volume and then a dbl/tplquad for the detector.
+    def expected_rate_MonteCarloIntegral(self, E, dm2, sin2):
+        dist = np.abs( self.det.position[2] - self.source.position[2] )
+        #f = lambda zs, thetas, rs, phi, theta, r: self.expected_flux_UnitSourceCylindricalVolume(rs, zs, thetas, E, dm2, sin2, r*np.sin(theta)*np.cos(phi), r*np.sin(theta)*np.sin(phi), r*np.cos(theta)-(dist)) * electron_neutrino_survival_probability(dm2, sin2, E, ) * rs * r**2 * np.sin(theta)
+        pass
+        
+    def expected_rate_DetectorSphericalAngularIntegral_withSourceGeometry_1(self, r, E, dm2, sin2):
+        f = lambda thetad, zs, thetas, rs: self.expected_rate_UnitSourceCylinderVolume_UnitDetectorSphericalVolume(E, dm2, sin2, r, thetas, zs, rs, thetad, 0.)
+        zmin, zmax = self.source.position[2] - self.source.height/2., self.source.position[2] + self.source.height/2.
+        res, err = nquad(f, [[self.spheric_theta_limits(r)[0],  self.spheric_theta_limits(r)[1]], [zmin, zmax], [0, 2*np.pi], [0, self.source.diameter/2.] ])
+        res, err = nquad()
+        return res, err
+        
+        
+        
+        
+        
+  
+    ##################################################
+    ##### Previous codes
+    ### Integral inside the detector
     def expected_rate_UnitCylindricalVolume(self, r, z, E, dm2, sin2theta_square):
         bl = np.sqrt(r**2 + (z - self.source.position[2])**2) 
         P = electron_neutrino_survival_probability(dm2, sin2theta_square, E, bl)
@@ -238,14 +390,18 @@ class MC_generator:
         return gen_pos, gen_bl
 
 
-    def generate_asimov_dataset(self, data_dm2=0.0, data_sin2=0.0, fine_step_bl=0.001, coarse_step_bl=0.03, smear=False):
+    def generate_asimov_dataset(self, data_dm2=0.0, data_sin2=0.0, fine_step_bl=0.001, coarse_step_bl=0.03, source_geom=False, smear=False):
         #total_expected_event = self.interp_oscillated_event_rate(data_dm2, data_sin2)
         #print(f"Total {total_expected_event} events for oscillation parameters ({data_dm2:.4f}, {data_sin2:.4f}).")
         baseline_edges = np.arange(self.baseline_min, self.baseline_max+fine_step_bl, fine_step_bl)
         baseline_cents = (baseline_edges[1:] + baseline_edges[:-1]) / 2.
         counts = []
-        for bl in baseline_cents:
-            tmp_shell_counts = self.theta_integral(bl, data_dm2, data_sin2)[0]
+        for bl in tqdm( baseline_cents ):
+            #tmp_shell_counts = self.theta_integral(bl, data_dm2, data_sin2)[0]
+            if source_geom:
+                tmp_shell_counts = self.expected_rate_DetectorSphericalAngularIntegral_withSourceGeometry(bl, self.source.energies[0], data_dm2, data_sin2, mc=False)[0]
+            else:
+                tmp_shell_counts = self.expected_rate_DetectorSphericalAngularIntegral_noSourceGeometry(bl, self.source.energies[0], data_dm2, data_sin2)[0]
             counts.append(tmp_shell_counts)
         #scale_factor = total_expected_event / np.sum(counts)
         #print(total_expected_event, np.sum(counts), scale_factor)
@@ -349,22 +505,56 @@ class MC_generator:
         return density, integral
 
         
+    def monte_carlo_sampling(self, n_event=1e5, return_pos=False):
+        # First, randomly sample points within the source and detector volume separately.
+        x_source, y_source, z_source = [], [], []
+        delta_n = int(n_event - len(x_source))
+        while delta_n > 0:
+            x_source0, y_source0, z_source0 = self.generate_in_cubic(*self.source.position, self.source.height, self.source.diameter, int(delta_n*1.5))
+            for x, y, z in zip(x_source0, y_source0, z_source0):
+                if self.Is_in_source(x, y, z):
+                    x_source.append(x)
+                    y_source.append(y)
+                    z_source.append(z)
+            delta_n = int(n_event - len(x_source))
+            
+        x_source = np.array(x_source)[0:n_event]        
+        y_source = np.array(y_source)[0:n_event]        
+        z_source = np.array(z_source)[0:n_event]        
         
-    def load_even_rate_file(self):
-        with h5.File(self.osc_event_rate_file, 'r') as f:
-            sin2_arr    = f['x-axis'][:]
-            dm2_arr     = f['y-axis'][:]
-            rates       = f['rate'][:]
         
-        self.osc_event_rate_func = interp2d(sin2_arr, dm2_arr, rates)
-
-
-    def interp_oscillated_event_rate(self, dm2, sin2):
-        if self.osc_event_rate_func is None:
-            self.load_even_rate_file()
-        return self.osc_event_rate_func(dm2, sin2)[0]
-
+        x_detector, y_detector, z_detector = [], [], []
+        delta_n = int(n_event - len(x_detector))
+        while delta_n > 0:
+            x_detector0, y_detector0, z_detector0 = self.generate_in_cubic(*self.det.position, self.det.height, self.det.radius*2, int(n_event*1.5))
+            for x, y, z in zip(x_detector0, y_detector0, z_detector0):
+                if self.Is_in_detector(x, y, z):
+                    x_detector.append(x)
+                    y_detector.append(y)
+                    z_detector.append(z)
+            delta_n = int(n_event - len(x_detector))
+        x_detector = np.array(x_detector)[0:n_event]        
+        y_detector = np.array(y_detector)[0:n_event]        
+        z_detector = np.array(z_detector)[0:n_event]        
         
+        # match pairs: calculate baseline and weight.
+        pairs = []
+        x3, y3, z3 = self.source.position[0], self.source.position[1], self.source.position[2]
+        for i in range(n_event):
+            x1, y1, z1 = x_source[i], y_source[i], z_source[i]
+            x2, y2, z2 = x_detector[i], y_detector[i], z_detector[i]
+            bl0 = np.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)
+            bl = np.sqrt((x2-x3)**2 + (y2-y3)**2 + (z2-z3)**2)
+            weight = self.flux_scaling(bl0) * electron_neutrino_survival_probability(self.dm2, self.sin2theta_square, self.source.energies[0], bl0)
+            # I have made a mistake here that I should not use the real baseline here, as we do not know the precise position in the source.
+            pairs.append([bl0, bl, weight])
+
+        pairs = np.array(pairs) 
+        #return pairs 
+        if return_pos:
+            return pairs, x_source, y_source, z_source, x_detector, y_detector, z_detector
+        else:
+            return pairs
         
     
     
