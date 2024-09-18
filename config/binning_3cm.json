@@ -1,5 +1,5 @@
 {
-    "baseline_min" : 0.30,
+    "baseline_min" : 0.030,
     "baseline_max" : 1.49524,
     "bin_start": 0.0276,
     "bin_end"  : 1.4976,
