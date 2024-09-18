@@ -3,6 +3,7 @@ import pickle
 import re
 import histlite as hl
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 plt.style.use('fivethirtyeight')
 #plt.style.use('ggplot')
 import numpy as np
@@ -34,6 +35,7 @@ class fitting:
         
         self.asimov_fit = True
         self.fit_flag = False
+        self.minimizer = None
         
         self.other_exp_files = []
         self.other_exp_sens = []
@@ -47,6 +49,11 @@ class fitting:
         self.alpha_init_flux = 0.0
         self.alpha_xsec = 0.0
         self.alpha_det_eff = 0.0
+        
+        ## Besides do fitting, another functionailty will be loading the pre-fitted results and plotting
+        self.fitting_filename = None
+        self.fitting_results = None
+        self.fitting_load_flag = False
         
 
     ## Setters:
@@ -70,6 +77,22 @@ class fitting:
         
     def _set_PDF_filename(self, name):
         self.PDF_filename = name
+
+    def _set_fitting_filename(self, name):
+        self.fitting_filename = name
+        
+    def _set_other_experimental_filenames(self, names):
+        for name in names:
+            self.other_exp_files.append(name)
+
+    def _set_sigma_det_eff(self, val):
+        self.sigma_det_eff = val
+
+    def _set_sigma_xsec(self, val):
+        self.sigma_xsec = val
+
+    def _set_sigma_init_flux(self, val):
+        self.sigma_init_flux = val
             
     ## Getters:
     def _get_data_dm2(self):
@@ -83,7 +106,15 @@ class fitting:
     
     def _get_fit_sin2(self):
         return self.fit_sin2
+
+    def _get_sigma_det_eff(self):
+        return self.sigma_det_eff
+
+    def _get_sigma_init_flux(self):
+        return self.sigma_init_flux
     
+    def _get_sigma_xsec(self):
+        return self.sigma_xsec
         
     ### Loaders:
     def load_dataset_asimov(self):
@@ -118,6 +149,24 @@ class fitting:
             self.load_dataset_toyMC()
         if not (self.PDF_filename is None):
             self.load_PDF()
+        # The fitting flag is set as fault here as new histograms has been loaded.
+        self.fit_flag = False
+
+    def load_other_experimental_sensitivities(self):
+        for file in self.other_exp_files:
+            if not os.path.exists(file):
+                print(f"{file} does not exist !")
+                continue
+            else:
+                arr = np.loadtxt(file)
+            self.other_exp_sens.append( arr )
+
+    def load_fitting_results(self):
+        try:
+            self.fitting_results = np.loadtxt(self.fitting_filename)
+            self.fitting_load_flag = True
+        except Exception as e:
+            print(f"Error occurs -> {e}")
 
         
     def parse_parameters(self, filename):
@@ -187,6 +236,67 @@ class fitting:
         plt.show()
         return fig
 
+    def draw_fitting_results(self, variable, contour=False, others=False, N_dm2=100, dm2_start=-2, dm2_stop=1,  N_sin2=100, sin2_start=-2, sin2_stop=0):
+        if not self.fitting_load_flag:
+            self.load_fitting_results()
+        if variable == 'alpha_xsec':
+            arr = self.fitting_results[:, 0]
+            lb = r"$\alpha_{xsec}$"
+        elif variable == 'alpha_init_flux':
+            arr = self.fitting_results[:, 1]
+            lb = r"$\alpha_{init-flux}$"
+        elif variable == 'alpha_det_eff':
+            lb = r"$\alpha_{eff}$"
+            arr = self.fitting_results[:, 2]
+        elif variable == 'chi_square':
+            arr = self.fitting_results[:, 3]
+            lb = r"$\Delta\chi^2$"
+        elif variable == 'total_rate_scaling':
+            arr = self.fitting_results[:, 0] + self.fitting_results[:, 1] + self.fitting_results[:, 2] + 1
+            lb = r"$1+\alpha_{xsec}+\alpha_{eff}+\alpha_{init-flux}$"
+        else:
+            print('No such variable, can only be in [alpha_xsec, alpha_init_flux, alpha_det_eff, chi_square, total_rate_scaling]')
+        arr = np.reshape(arr, (N_dm2, N_sin2))
+        
+        
+        dm2_edges = np.logspace(dm2_start, dm2_stop, N_dm2+1)
+        sin2_edges = np.logspace(sin2_start, sin2_stop, N_sin2+1)
+        dm2_cents = np.logspace(dm2_start, dm2_stop, N_dm2)
+        sin2_cents = np.logspace(sin2_start, sin2_stop, N_sin2)
+
+        fig, ax = plt.subplots(figsize=(9, 6))
+        if variable == 'chi_square':
+            im = ax.pcolormesh(sin2_edges, dm2_edges, arr, shading='flat', cmap='viridis', norm=colors.LogNorm(vmin=1e-5, vmax=np.max(arr)))
+            if contour:
+                X, Y = np.meshgrid(sin2_cents, dm2_cents)
+                CS = ax.contour(X, Y, arr, levels=[4.605], cmap='Spectral',)
+            if others:
+                self.load_other_experimental_sensitivities()
+                for data, name in zip(self.other_exp_sens, self.other_exp_files):
+                    if 'reactor' in name:
+                        ax.plot(data[:,0], data[:,1], '--', lw=3, color='darkviolet')
+                    elif 'LZ' in name:
+                        ax.plot(data[:,0], data[:,1], '-.', lw=3, color='blue')
+        else:
+            im = ax.pcolormesh(sin2_edges, dm2_edges, arr, shading='flat', cmap='viridis', )
+
+        ax.loglog()
+        cb = plt.colorbar(im, ax=ax,)
+        cb.set_label(lb, fontsize=14, rotation=270, labelpad=25)
+        cb.ax.tick_params(labelsize=13)
+
+        ax.set_xlabel(r'$\sin^2(2\theta)$', fontsize=14)
+        ax.set_ylabel(r'$\Delta m^2$', fontsize=14)
+        ax.tick_params(labelsize=13)
+        ax.set_xlim(sin2_edges[0], sin2_edges[-1])
+        ax.set_ylim(dm2_edges[0], dm2_edges[-1])
+        #fig.savefig("../plots/dchi2_MCalg_1cmSmear_3cmBinWidth_14cmSource.png")
+
+        plt.tight_layout()
+        plt.show()
+        return fig 
+            
+
         
    
     def chi_square(self, alpha_xsec, alpha_init_flux, alpha_det_eff):
@@ -238,6 +348,7 @@ class fitting:
         self.alpha_init_flux = m.values['alpha_init_flux']
         self.alpha_xsec = m.values['alpha_xsec']
         self.alpha_det_eff = m.values['alpha_det_eff']
+        self.minimizer = m
 
         self.fit_flag = True
         return m.values, m.errors, m
@@ -250,6 +361,16 @@ class fitting:
         self.PDF_fitted = hl.Hist(bins, fitted_values)
 
         
+    def print_fitting(self):
+        if not self.fit_flag:
+            self.minimize_chi_square()
+            if not self.fit_flag:
+                print('The minimization failed :( ')
+            else:
+                print( self.minimizer )
+        else:
+            print( self.minimizer )
 
         
-        
+    def total_rate_scaling(self):
+        return 1 + self.alpha_init_flux + self.alpha_xsec + self.alpha_det_eff
