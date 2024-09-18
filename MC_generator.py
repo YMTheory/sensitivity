@@ -41,8 +41,8 @@ class MC_generator:
         self.interaction =  int_type # 'nue' or CC, only two options now
         
         #### calculate baseline ranges:
-        self.baseline_min = np.abs(self.det.position[2] - self.source.position[2]) - self.det.height/2.
-        self.baseline_max = np.sqrt( (np.abs(self.det.position[2]-self.source.position[2]) + self.det.height/2.)**2 + self.det.radius**2 )
+        self.baseline_min = np.abs(self.det.position[2] - self.source.position[2]) - self.det.height/2. - self.source.height/2.
+        self.baseline_max = np.sqrt( (np.abs(self.det.position[2]-self.source.position[2]) + self.source.height/2.+self.det.height/2.)**2 + (self.det.radius+self.source.diameter/2.)**2 )
         
         # neutrino mixing parameters:
         self.dm2 = dm2
@@ -556,7 +556,6 @@ class MC_generator:
         else:
             return pairs
         
-    
     
 
 
