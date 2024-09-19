@@ -28,6 +28,9 @@ class fitter:
         self.load_data_flag = False
         self.pdf_filename = ''
         self.load_pdf_flag = False
+        self.PDF0 = None
+        self.pdf0_filename = ''
+        self.load_pdf0_flag = False
         
         
         ##### This part is for pre-loading PDF fitting:
@@ -71,6 +74,9 @@ class fitter:
         
     def _set_pdf_filename(self, name):
         self.pdf_filename = name
+
+    def _set_pdf0_filename(self, name):
+        self.pdf0_filename = name
 
     def _set_bin_width(self, val):
         self.bin_width = val
@@ -132,28 +138,38 @@ class fitter:
         
         self.load_pdf_flag = True
 
+    def load_pdf0(self):
+        if not os.path.exists(self.pdf0_filename):
+            print(f'{self.pdf0_filename} does not exsit!')
+            return
+        with open(self.pdf0_filename, 'rb') as f:
+            tmp_pdf = pickle.load(f)
+        for h in tmp_pdf.values():
+            self.PDF0 = h
+        
+        self.load_pdf0_flag = True
+
     ######################################################################## 
     def expected_signal_count_onebin(self, bl, R, smear=False):
         h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
         f = lambda x: np.interp(x, h_fit.centers[0], h_fit.values)
         return f(bl) * R
-    
+
     ######################################################################## 
     ### calculate dchi2 for Asimov dataset: total 3 ways for now.
     
-    def calculate_rateonly_dchi2_asimov(self, smear=False, preload=False):
+    def calculate_rateonly_dchi2_asimov(self, smear=False, preload=False, source_geom=False, scale=False):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
-        # Data asimov histogram
-        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear)
-        data_nevt = np.sum( h_data.values )
-        sigma_data = np.sqrt( data_nevt )
-
-        # Fitting histogram
+        ## Argument preload controls if we load Asimov dataset/PDF from pre-generated files or not (both data and PDF)
         if not preload:
+            # calculate Asimov dataset first
+            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom)
+            data_nevt = np.sum( h_data.values )
+            sigma_data = np.sqrt( data_nevt )
             # calculate fit pdf real-time
-            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
+            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom)
             fit_nevt = np.sum( h_fit.values )
-        
+
             # For now, only consider Poisson statistics fluctuation.
         
             chi2 = (fit_nevt - data_nevt)**2 / sigma_data**2
@@ -161,6 +177,12 @@ class fitter:
             return chi2
         
         else:
+            if not self.load_pdf0_flag:
+                self.load_pdf0()
+            h_data = self.PDF0
+            data_nevt = np.sum( h_data.values )
+            sigma_data = np.sqrt( data_nevt )
+
             if self.load_pdf_flag == False:
                 self.load_pdfs()
             
@@ -170,6 +192,7 @@ class fitter:
                     tmp_h = self.PDFs[hname]
                     fit_nevt = np.sum( tmp_h.values )
                     chi2 = (fit_nevt - data_nevt)**2 / sigma_data**2
+                    print(i, j, hname, chi2)
                     
                     self.pre_load_dchi2_all[i, j] = chi2
 
@@ -179,10 +202,10 @@ class fitter:
             
         
 
-    def calculate_shape_only_dchi2_asimov_fixedRate(self, smear=False, preload=False):
+    def calculate_shape_only_dchi2_asimov_fixedRate(self, smear=False, preload=False, source_geom=False):
         ## There is actually no only fitting, just calculating rate-only delta_chi2 for (sin2, dm2) pairs.
         # Data asimov histogram
-        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear )
+        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom )
         data_spec = h_data.values
 
         # For now, only consider Poisson statistics fluctuation.
@@ -191,7 +214,7 @@ class fitter:
         mask_id = np.where(sigma_data != 0)
         if not preload:
             # Fitting histogram
-            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2 , coarse_step_bl=self.bin_width, smear=smear)
+            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2 , coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom)
             fit_spec = h_fit.values
         
             chi2 = np.sum( (fit_spec[mask_id] - data_spec[mask_id])**2 / sigma_data[mask_id]**2 ) 
@@ -213,7 +236,7 @@ class fitter:
             return self.pre_load_dchi2_all
             
 
-    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.1, coarse_Nscan=21, fine_scan_step=0.001, fine_Nscan=21, draw=False, smear=False, preload=False):
+    def calculate_shape_only_dchi2_asimov_scanRate(self, coarse_scan_step=0.1, coarse_Nscan=21, fine_scan_step=0.001, fine_Nscan=21, draw=False, smear=False, source_geom=False, preload=False, scale=False):
 
         def calculate_scan_range(center, scan_step, scan_number):
             x = np.zeros(scan_number)
@@ -232,8 +255,10 @@ class fitter:
                 y[i] = dchi2 
             return y
         
-        def high_level_scan(h_fit, data_spec, sigma_data, coarse_scan_step, coarse_Nscan, fine_scan_step, fine_Nstep):
+        def high_level_scan(h_fit, data_spec, sigma_data, coarse_scan_step, coarse_Nscan, fine_scan_step, fine_Nstep, scale=scale):
             fit_spec = h_fit.values
+            if scale:
+                fit_spec = fit_spec * self.MC_gen.n_events_noosc
         
             ## Coarse scanning
             find_coarse_best = False
@@ -281,15 +306,17 @@ class fitter:
                 
                 
         # Data asimov histogram
-        h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear)
-        data_spec = h_data.values
-
-        sigma_data = np.sqrt( data_spec )
-        
-        mask_id = np.where( sigma_data != 0 )
 
         if not preload:
-            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear)
+            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom)
+            print(f'Generating Asimov dataset with ({self.data_dm2:.4f}, {self.data_sin2:.4f})')
+            data_spec = h_data.values
+
+            sigma_data = np.sqrt( data_spec )
+        
+            mask_id = np.where( sigma_data != 0 )
+            print(f'No pre-loaded PDFs -> generating PDF with ({self.fit_dm2:.4f}, {self.fit_sin2:.4f})')
+            h_fit = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2, coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom)
             coarse_R, coarse_dchi2, fine_R, fine_dchi2 = high_level_scan(h_fit, data_spec, sigma_data, coarse_scan_step, coarse_Nscan, fine_scan_step, fine_Nscan)
             
             if draw:
@@ -304,8 +331,20 @@ class fitter:
             return coarse_R, coarse_dchi2, fine_R, fine_dchi2
         
         else:
+            print(f'Use pre-loaded PDFs -> total {self.pre_load_dm2_N*self.pre_load_sin2_N} PDFs have been loaded.')
             if self.load_pdf_flag == False:
                 self.load_pdfs()
+            if not self.load_pdf0_flag:
+                self.load_pdf0()
+            h_data = self.PDF0
+            data_spec = h_data.values
+
+            sigma_data = np.sqrt( data_spec )
+        
+            mask_id = np.where( sigma_data != 0 )
+            if scale:
+                data_spec = self.MC_gen.n_events_noosc * data_spec
+                sigma_data = self.MC_gen.n_events_noosc * sigma_data
             
             for i in range(self.pre_load_dm2_N):
                 for j in range(self.pre_load_sin2_N) :
@@ -320,12 +359,12 @@ class fitter:
 
 
 
-    def calculate_shape_only_dchi2_asimov_fitRate(self, draw=False, smear=False, preload=False):
+    def calculate_shape_only_dchi2_asimov_fitRate(self, draw=False, smear=False, preload=False, source_geom=False):
         fit_valid = False
         N_fit, N_fit_max = 0, 5
         while (not fit_valid) and (N_fit < N_fit_max):
-            h_fit  = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2,  coarse_step_bl=self.bin_width, smear=smear)
-            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear)
+            h_fit  = self.MC_gen.generate_asimov_dataset(data_dm2=self.fit_dm2, data_sin2=self.fit_sin2,  coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom   )
+            h_data = self.MC_gen.generate_asimov_dataset(data_dm2=self.data_dm2, data_sin2=self.data_sin2, coarse_step_bl=self.bin_width, smear=smear, source_geom=source_geom)
 
             xe = h_data.bins[0]
             xc = (xe[1:]+xe[:-1])/2.
