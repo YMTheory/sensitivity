@@ -4,6 +4,7 @@ from scipy.interpolate import interp2d, LinearNDInterpolator
 from histlite import hist, Hist
 import h5py as h5
 import os
+import json
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -34,7 +35,7 @@ from xsection import xsection
 from unit_conversion import *
 
 class MC_generator:
-    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='nue', seed=42):
+    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='nue', seed=42, binning_file='/p/lustre1/yu47/Sterile_Neutrino/sensitivity/config/binning_3cm.json'):
         self.source = source
         self.det = det
         self.xsec = xsection()
@@ -60,7 +61,12 @@ class MC_generator:
 
         # If I do the full-radius-range integral as in the following codes, I get a normalization factor as,
         self.integral_norm_factor = 1.0
-        
+
+        # binning strategy
+        binning_dict    = json.load(open(binning_file, 'r'))
+        self.bin_start       = binning_dict['bin_start']
+        self.bin_end         = binning_dict['bin_end']
+        self.nbin            = binning_dict['nbin']
         
         ### Load 
         self.osc_event_rate_file = '/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/event_rate_bl10cm_Ev750keV.h5'
@@ -348,8 +354,8 @@ class MC_generator:
 
         smeared_h0 = Hist(bin_edges, smeared_bin_cents)
 
-        baseline_edges_new = np.arange(bin_edges[0], bin_edges[-1], rebin_width)
-        baseline_edges_new = np.append(baseline_edges_new, bin_edges[-1])
+        baseline_edges_new = np.arange(self.bin_start, self.bin_end, 0.03)
+        baseline_edges_new = np.append(baseline_edges_new, self.bin_end)
         smeared_h = smeared_h0.rebin(0, baseline_edges_new)
         return smeared_h
         
