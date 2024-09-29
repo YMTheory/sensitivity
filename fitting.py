@@ -10,6 +10,9 @@ import numpy as np
 
 from iminuit import cost, Minuit
 
+import sys
+sys.path.append("/p/lustre1/yu47/Sterile_Neutrino/sensitivity/")
+from oscillation import *
 
 class fitting:
     def __init__(self) -> None:
@@ -236,7 +239,7 @@ class fitting:
         plt.show()
         return fig
 
-    def draw_fitting_results(self, variable, contour=False, others=False, N_dm2=100, dm2_start=-2, dm2_stop=1,  N_sin2=100, sin2_start=-2, sin2_stop=0):
+    def draw_fitting_results(self, variable, contour=False, others=False, N_dm2=100, dm2_start=-2, dm2_stop=1,  N_sin2=100, sin2_start=-2, sin2_stop=0, drawLength=False, Enu=0.75):
         if not self.fitting_load_flag:
             self.load_fitting_results()
         if variable == 'alpha_xsec':
@@ -259,10 +262,14 @@ class fitting:
         arr = np.reshape(arr, (N_dm2, N_sin2))
         
         
-        dm2_edges = np.logspace(dm2_start, dm2_stop, N_dm2+1)
-        sin2_edges = np.logspace(sin2_start, sin2_stop, N_sin2+1)
-        dm2_cents = np.logspace(dm2_start, dm2_stop, N_dm2)
-        sin2_cents = np.logspace(sin2_start, sin2_stop, N_sin2)
+        dm2_edges   = np.logspace(dm2_start, dm2_stop, N_dm2+1)
+        sin2_edges  = np.logspace(sin2_start, sin2_stop, N_sin2+1)
+        dm2_cents   = np.logspace(dm2_start, dm2_stop, N_dm2)
+        sin2_cents  = np.logspace(sin2_start, sin2_stop, N_sin2)
+
+        if drawLength:
+            length_edges = oscillation_length(dm2_edges, Enu)
+            length_cents = oscillation_length(dm2_cents, Enu)
 
         fig, ax = plt.subplots(figsize=(9, 6))
         if variable == 'chi_square':
@@ -286,10 +293,18 @@ class fitting:
         cb.ax.tick_params(labelsize=13)
 
         ax.set_xlabel(r'$\sin^2(2\theta)$', fontsize=14)
-        ax.set_ylabel(r'$\Delta m^2$', fontsize=14)
         ax.tick_params(labelsize=13)
         ax.set_xlim(sin2_edges[0], sin2_edges[-1])
         ax.set_ylim(dm2_edges[0], dm2_edges[-1])
+        if drawLength:
+            ax.set_ylabel('oscillation length [m]', fontsize=14)
+            #locs, _ = plt.yticks()
+            #ax.set_yticks(locs, [f'{elem:.4f}' for elem in oscillation_length(locs, Enu)])
+            locs = np.array([1e-2, 1e-1, 1, 10])
+            length_ticks = oscillation_length(locs, Enu)
+            ax.set_yticks(locs, [f'{el:.3f}' for el in length_ticks])
+        else:
+            ax.set_ylabel(r'$\Delta m^2\,\mathrm{eV}^2$', fontsize=14)
         #fig.savefig("../plots/dchi2_MCalg_1cmSmear_3cmBinWidth_14cmSource.png")
 
         plt.tight_layout()
@@ -357,7 +372,7 @@ class fitting:
     def get_fitted_PDf(self):
         values = self.PDF.values
         bins = self.PDF.bins[0]
-        fitted_values = values * (1 + self.alpha_det_eff + self.alpha_xsec + self.alpha_xsec)
+        fitted_values = values * (1 + self.alpha_det_eff + self.alpha_xsec + self.alpha_init_flux)
         self.PDF_fitted = hl.Hist(bins, fitted_values)
 
         
