@@ -1,6 +1,7 @@
 import os
 import pickle
 import re
+import pandas as pd
 import histlite as hl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -52,12 +53,15 @@ class fitting:
         self.alpha_init_flux = 0.0
         self.alpha_xsec = 0.0
         self.alpha_det_eff = 0.0
+        self.alpha  = 0.0
         
         ## Besides do fitting, another functionailty will be loading the pre-fitted results and plotting
         self.fitting_filename = None
         self.fitting_results = None
         self.fitting_load_flag = False
         
+        self.fitting_mode = 'shape' # options in: [rate, shape]
+        self.constraint   = 'constraint' # options in: [free, constraint, fixed] 
 
     ## Setters:
     def _set_data_dm2(self, val):
@@ -97,6 +101,12 @@ class fitting:
     def _set_sigma_init_flux(self, val):
         self.sigma_init_flux = val
             
+    def _set_fitting_mode(self, mode):
+        self.fitting_mode = mode
+
+    def _set_constraint(self, mode):
+        self.constraint = mode
+            
     ## Getters:
     def _get_data_dm2(self):
         return self.data_dm2
@@ -119,6 +129,8 @@ class fitting:
     def _get_sigma_xsec(self):
         return self.sigma_xsec
         
+    def _get_fitting_mode(self):
+        return self.fitting_mode
     ### Loaders:
     def load_dataset_asimov(self):
         try:
@@ -166,7 +178,8 @@ class fitting:
 
     def load_fitting_results(self):
         try:
-            self.fitting_results = np.loadtxt(self.fitting_filename)
+            #self.fitting_results = np.loadtxt(self.fitting_filename)
+            self.fitting_results = pd.read_csv(self.fitting_filename)
             self.fitting_load_flag = True
         except Exception as e:
             print(f"Error occurs -> {e}")
@@ -188,7 +201,7 @@ class fitting:
         label = r'$\Delta m^2=$' + f'{dm2_value:.5f}' + r' eV$^2, \sin^2(2\theta) = $' + f'{sin2_value:.5f}'
         return label
             
-    def draw_histograms(self, data_asimov=True, data_toyMC=False, pdf=False, pdf_fitted=False):
+    def draw_histograms(self, data_asimov=True, data_toyMC=False, pdf=False, pdf_fitted=False,):
         fig, ax = plt.subplots(figsize=(8, 6))
         if data_asimov:
             if not self.dataset_asimov_flag:
@@ -242,25 +255,32 @@ class fitting:
     def draw_fitting_results(self, variable, contour=False, others=False, N_dm2=100, dm2_start=-2, dm2_stop=1,  N_sin2=100, sin2_start=-2, sin2_stop=0, drawLength=False, Enu=0.75):
         if not self.fitting_load_flag:
             self.load_fitting_results()
+
+            
+        arr = self.fitting_results[variable].to_numpy()
         if variable == 'alpha_xsec':
-            arr = self.fitting_results[:, 0]
             lb = r"$\alpha_{xsec}$"
+        elif variable == 'alpha_xsec_err':
+            lb = r"$\epsilon_{\alpha_{xsec}}$"
         elif variable == 'alpha_init_flux':
-            arr = self.fitting_results[:, 1]
             lb = r"$\alpha_{init-flux}$"
+        elif variable == 'alpha_init_flux_err':
+            lb = r"$\epsilon_{\alpha_{init_flux}}$"
         elif variable == 'alpha_det_eff':
             lb = r"$\alpha_{eff}$"
-            arr = self.fitting_results[:, 2]
-        elif variable == 'chi_square':
-            arr = self.fitting_results[:, 3]
+        elif variable == 'alpha_det_eff_err':
+            lb = r"$\epsilon_{\alpha_{det_eff}}$"
+        elif variable == 'delta_chisquare':
             lb = r"$\Delta\chi^2$"
         elif variable == 'total_rate_scaling':
-            arr = self.fitting_results[:, 0] + self.fitting_results[:, 1] + self.fitting_results[:, 2] + 1
-            lb = r"$1+\alpha_{xsec}+\alpha_{eff}+\alpha_{init-flux}$"
+            if self.constraint == 'constraint':
+                lb = r"$1+\alpha_{xsec}+\alpha_{eff}+\alpha_{init-flux}$"
+            elif self.constraint == "free":
+                lb = r"$1+\alpha$"
         else:
-            print('No such variable, can only be in [alpha_xsec, alpha_init_flux, alpha_det_eff, chi_square, total_rate_scaling]')
-        arr = np.reshape(arr, (N_dm2, N_sin2))
+            print(f'No such variable, can only be in {self.fitting_results.columns}')
         
+        arr = np.reshape(arr, (N_dm2, N_sin2))
         
         dm2_edges   = np.logspace(dm2_start, dm2_stop, N_dm2+1)
         sin2_edges  = np.logspace(sin2_start, sin2_stop, N_sin2+1)
@@ -272,7 +292,7 @@ class fitting:
             length_cents = oscillation_length(dm2_cents, Enu)
 
         fig, ax = plt.subplots(figsize=(9, 6))
-        if variable == 'chi_square':
+        if variable == 'delta_chisquare':
             im = ax.pcolormesh(sin2_edges, dm2_edges, arr, shading='flat', cmap='viridis', norm=colors.LogNorm(vmin=1e-5, vmax=np.max(arr)))
             if contour:
                 X, Y = np.meshgrid(sin2_cents, dm2_cents)
@@ -304,75 +324,150 @@ class fitting:
             length_ticks = oscillation_length(locs, Enu)
             ax.set_yticks(locs, [f'{el:.3f}' for el in length_ticks])
         else:
-            ax.set_ylabel(r'$\Delta m^2\,\mathrm{eV}^2$', fontsize=14)
+            ax.set_ylabel(r'$\Delta m^2\ [\mathrm{eV}^2]$', fontsize=14)
         #fig.savefig("../plots/dchi2_MCalg_1cmSmear_3cmBinWidth_14cmSource.png")
 
         plt.tight_layout()
         plt.show()
+        if contour:
+            contour_points = []
+            for coll in CS.collections:
+                for path in coll.get_paths():
+                    vertices = path.vertices
+                    x_contour, y_contour = vertices[:, 0], vertices[:, 1]
+                    contour_points.append((x_contour, y_contour))
+            return fig, contour_points
         return fig 
             
-
-        
-   
-    def chi_square(self, alpha_xsec, alpha_init_flux, alpha_det_eff):
+    
+    def chi_square(self, alpha_xsec, alpha_init_flux, alpha_det_eff, alpha):
+        # Check PDF and dataset loading first.
         if not self.PDF_flag:
             self.load_PDF()
-        if self.asimov_fit :
+        if self.asimov_fit:
             if not self.dataset_asimov_flag:
                 self.load_dataset_asimov()
+            measured = self.dataset_asimov.values
         else:
             if not self.dataset_toyMC_flag:
                 self.load_dataset_toyMC()
-                
-        measured = self.dataset_asimov.values
-        stat_err2 = measured
-        sys_err2 = measured**2 * (self.sigma_det_eff**2 + self.sigma_init_flux**2 + self.sigma_xsec**2)
-        tot_err = np.sqrt(stat_err2 + sys_err2)
-        
-        predicted = self.PDF.values * (1 + alpha_xsec + alpha_init_flux + alpha_det_eff)
-        
-        dchi2 = 0
-        nbin = self.dataset_asimov.n_bins[0]
-        for i in range(nbin):
-            if tot_err[i] != 0:
-                dchi2 += (measured[i] - predicted[i])**2 / tot_err[i]**2
-                
-        dchi2 += (alpha_det_eff/self.sigma_det_eff)**2 + (alpha_init_flux/self.sigma_init_flux)**2 + (alpha_xsec/self.sigma_xsec)**2
+            measured = self.dataset_toyMC.values
 
-        return dchi2
+        # Re-prediction:
+        ## TO BE NOTED: one need to fixed the unused nuisance parameters all as 0. 
+        predicted = self.PDF.values
+        predicted = predicted * (1 + alpha_det_eff + alpha_init_flux + alpha_xsec + alpha) 
+
+        # calculating delta_chisquare
+        dchi2 = 0
+        if self.fitting_mode == 'rate':
+            measured_rate = np.sum(measured)
+            predicted_rate = np.sum(predicted)
+            stat_rate_err2 = measured_rate
+            sys_rate_err2 = 0.
+            #if self.constraint:
+            #    sys_rate_err2 = measured_rate**2 * (self.sigma_det_eff**2 + self.sigma_init_flux**2 + self.sigma_xsec**2)
+            tot_rate_err2 = stat_rate_err2 + sys_rate_err2
+
+            dchi2 += (measured_rate - predicted_rate)**2 / tot_rate_err2
+            dchi2 += (alpha_det_eff)**2/self.sigma_det_eff**2 + alpha_init_flux**2/self.sigma_init_flux**2 + alpha_xsec**2/self.sigma_xsec**2
+            return dchi2
+
+        elif self.fitting_mode == 'shape':
+            stat_shape_err2 = measured
+            sys_shape_err2 = 0.
+            #if self.constraint == 'constraint':
+            #    sys_shape_err2 = measured**2 * (self.sigma_det_eff**2 + self.sigma_init_flux**2 + self.sigma_xsec**2)
+            tot_shape_err2 = stat_shape_err2 + sys_shape_err2 
+
+            nbin = self.dataset_asimov.n_bins[0]
+            for i in range(nbin):
+                if tot_shape_err2[i] != 0:
+                    dchi2 += (measured[i] - predicted[i])**2 / tot_shape_err2[i]
+            dchi2 += (alpha_det_eff)**2/self.sigma_det_eff**2 + alpha_init_flux**2/self.sigma_init_flux**2 + alpha_xsec**2/self.sigma_xsec**2
+            return dchi2 
+   
+    #def chi_square(self, alpha_xsec, alpha_init_flux, alpha_det_eff):
+    #    if not self.PDF_flag:
+    #        self.load_PDF()
+    #    if self.asimov_fit :
+    #        if not self.dataset_asimov_flag:
+    #            self.load_dataset_asimov()
+    #    else:
+    #        if not self.dataset_toyMC_flag:
+    #            self.load_dataset_toyMC()
+    #            
+    #    measured = self.dataset_asimov.values
+    #    stat_err2 = measured
+    #    sys_err2 = measured**2 * (self.sigma_det_eff**2 + self.sigma_init_flux**2 + self.sigma_xsec**2)
+    #    tot_err = np.sqrt(stat_err2 + sys_err2)
+    #    
+    #    predicted = self.PDF.values * (1 + alpha_xsec + alpha_init_flux + alpha_det_eff)
+    #    
+    #    dchi2 = 0
+    #    nbin = self.dataset_asimov.n_bins[0]
+    #    for i in range(nbin):
+    #        if tot_err[i] != 0:
+    #            dchi2 += (measured[i] - predicted[i])**2 / tot_err[i]**2
+    #            
+    #    dchi2 += (alpha_det_eff/self.sigma_det_eff)**2 + (alpha_init_flux/self.sigma_init_flux)**2 + (alpha_xsec/self.sigma_xsec)**2
+
+    #    return dchi2
         
         
-    def minimize_chi_square(self, alpha_init_flux0 = 0.1, alpha_xsec0 = 0.02, alpha_det_eff0 = 0.02):
+    def minimize_chi_square(self, alpha_init_flux0 = 0.1, alpha_xsec0 = 0.02, alpha_det_eff0 = 0.02, alpha0=0.0):
+        
         fit_valid = False
         N_fit, N_fit_max = 0, 10
-        while (not fit_valid) and (N_fit < N_fit_max):
-            initials = {'alpha_xsec': np.random.normal(alpha_xsec0, 0.005), 'alpha_init_flux': np.random.normal(alpha_init_flux0, 0.005), 'alpha_det_eff': np.random.normal(alpha_det_eff0, 0.005)}
-            m = Minuit(self.chi_square, **initials)
-            m.limits['alpha_init_flux'] = (-1.0, 1.0)
-            m.limits['alpha_det_eff']   = (-1.0, 1.0)
-            m.limits['alpha_xsec']      = (-1.0, 1.0)
-            
-            m.migrad()
-            fit_valid = m.valid
-            N_fit += 1
-            
-        if not fit_valid:
-            print(f'Fitting fails after {N_fit} trys, will suspend it for now.')
-            return 0.0
+        if self.constraint != 'fixed':
+            while (not fit_valid) and (N_fit < N_fit_max):
+                if self.constraint == 'constraint':
+                    initials = {'alpha_xsec': np.random.normal(alpha_xsec0, 0.005), 'alpha_init_flux': np.random.normal(alpha_init_flux0, 0.005), 'alpha_det_eff': np.random.normal(alpha_det_eff0, 0.005), 'alpha': 0}
+                    m = Minuit(self.chi_square, **initials)
 
-        self.alpha_init_flux = m.values['alpha_init_flux']
-        self.alpha_xsec = m.values['alpha_xsec']
-        self.alpha_det_eff = m.values['alpha_det_eff']
-        self.minimizer = m
+                    m.limits['alpha_init_flux'] = (-10.0, 10.0)
+                    m.limits['alpha_det_eff']   = (-10.0, 10.0)
+                    m.limits['alpha_xsec']      = (-10.0, 10.0)
+                    m.fixed['alpha']            = True
+            
+                elif self.constraint == 'free':
+                    initials = {'alpha_xsec': 0.0, 'alpha_init_flux': 0., 'alpha_det_eff': 0.,  'alpha': np.random.normal(alpha0, 0.005)}
+                    m = Minuit(self.chi_square, **initials)
+                    m.fixed['alpha_init_flux']  = True
+                    m.fixed['alpha_det_eff']    = True
+                    m.fixed['alpha_xsec']       = True
+                    m.limits['alpha']           = (-10.0, 10.0)
+            
+                m.migrad()
+                fit_valid = m.valid
+                N_fit += 1
+            
+            if not fit_valid:
+                print(f'Fitting fails after {N_fit} trys, will suspend it for now.')
 
-        self.fit_flag = True
-        return m.values, m.errors, m
+            ## Allocate nuisance parameter fitting results
+            self.alpha_init_flux = m.values['alpha_init_flux']
+            self.alpha_xsec = m.values['alpha_xsec']
+            self.alpha_det_eff = m.values['alpha_det_eff']
+            self.alpha = m.values['alpha']
+            self.minimizer = m
+            self.fit_flag = True
+            return m, m.values, m.errors
+
+        elif self.constraint == 'fixed':
+            # If everything is fixed, we do not need to minimize dchi_square. We only need to calculate it.
+            dchi2 = self.chi_square(0.0, 0.0, 0.0, 0.0)
+            self.alpha_det_eff = 0.0
+            self.alpha_init_flux = 0.0
+            self.alpha_xsec = 0.0
+            self.alpha = 0.0
+            return dchi2, [0, 0, 0, 0,], [0, 0, 0, 0,]
         
         
     def get_fitted_PDf(self):
         values = self.PDF.values
         bins = self.PDF.bins[0]
-        fitted_values = values * (1 + self.alpha_det_eff + self.alpha_xsec + self.alpha_init_flux)
+        fitted_values = values * (1 + self.alpha_det_eff + self.alpha_xsec + self.alpha_init_flux + self.alpha)
         self.PDF_fitted = hl.Hist(bins, fitted_values)
 
         
@@ -388,4 +483,13 @@ class fitting:
 
         
     def total_rate_scaling(self):
-        return 1 + self.alpha_init_flux + self.alpha_xsec + self.alpha_det_eff
+        return 1 + self.alpha_init_flux + self.alpha_xsec + self.alpha_det_eff + self.alpha
+
+    def get_dataset_stats(self):
+        return np.sum(self.dataset_asimov.values)
+
+    def get_pdf_stats(self):
+        return np.sum( self.PDF.values )
+
+    def get_fitted_pdf_stats(self):
+        return np.sum( self.PDF_fitted.values)
