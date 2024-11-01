@@ -339,6 +339,39 @@ class fitting:
             return fig, contour_points
         return fig 
             
+    def decompose_chi_square(self):
+        if not self.fit_flag:
+            self.minimize_chi_square()
+        if self.asimov_fit:
+            if not self.dataset_asimov_flag:
+                self.load_dataset_asimov()
+            measured = self.dataset_asimov.values
+        else:
+            if not self.dataset_toyMC_flag:
+                self.load_dataset_toyMC()
+            measured = self.dataset_toyMC.values
+        
+        predicted = self.PDF.values
+        predicted = predicted * (1 + self.alpha_det_eff + self.alpha_init_flux + self.alpha_xsec + self.alpha)
+
+        dchi2_bins = np.zeros(len(predicted))
+        if self.fitting_mode == 'rate':
+            return dchi2_bins
+        
+        if self.fitting_mode == 'shape':
+            stat_shape_err2 = measured
+            sys_shape_err2 = 0.
+            #if self.constraint == 'constraint':
+            #    sys_shape_err2 = measured**2 * (self.sigma_det_eff**2 + self.sigma_init_flux**2 + self.sigma_xsec**2)
+            tot_shape_err2 = stat_shape_err2 + sys_shape_err2 
+
+            nbin = self.dataset_asimov.n_bins[0]
+            for i in range(nbin):
+                if tot_shape_err2[i] != 0:
+                    tmp_dchi2 = (measured[i] - predicted[i])**2 / tot_shape_err2[i]
+                    dchi2_bins[i] = tmp_dchi2
+            
+            return dchi2_bins
     
     def chi_square(self, alpha_xsec, alpha_init_flux, alpha_det_eff, alpha):
         # Check PDF and dataset loading first.
