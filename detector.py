@@ -6,6 +6,9 @@ class detector:
 
         self.livetime = 40  # unit: day
         
+        # enrichment:
+        self.enrichment = 0.9 # ~90% enrichment of Xe136
+
         # Detection efficiency
         self.efficiency = 1.0
         
