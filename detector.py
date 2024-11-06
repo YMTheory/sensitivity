@@ -4,8 +4,6 @@ class detector:
     def __init__(self, name):
         self.name = name
 
-        self.livetime = 40  # unit: day
-        
         # enrichment:
         self.enrichment = 0.9 # ~90% enrichment of Xe136
 
@@ -41,7 +39,6 @@ class detector:
         self.radius = 0.5665 # m
         self.volume = np.pi * self.radius**2 * self.height # m^3
 
-        #TODO: add Xe enrichment?
         
         
     def update_geometry(self, H, D):
