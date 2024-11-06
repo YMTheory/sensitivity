@@ -64,7 +64,7 @@ def weight_exps(int_types, efficiencies, enrichments, activities, times, volumes
 
     w_volume = volumes[0] / volumes[1]
 
-    return w_xsec * w_efficiency * w_efficiency * w_flux * w_volume
+    return w_xsec * w_efficiency * w_enrichment * w_flux * w_volume
      
 
 
