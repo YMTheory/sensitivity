@@ -35,11 +35,11 @@ from xsection import xsection
 from unit_conversion import *
 
 class MC_generator:
-    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='nue', seed=42, binning_file='/p/lustre1/yu47/Sterile_Neutrino/sensitivity/config/binning_3cm.json'):
+    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='ES', seed=42, binning_file='/p/lustre1/yu47/Sterile_Neutrino/sensitivity/config/binning_3cm.json'):
         self.source = source
         self.det = det
         self.xsec = xsection()
-        self.interaction =  int_type # 'nue' or CC, only two options now
+        self.interaction =  int_type # 'ES' or CC, only two options now
         
         #### calculate baseline ranges:
         self.baseline_min = np.abs(self.det.position[2] - self.source.position[2]) - self.det.height/2. - self.source.height/2.
@@ -101,28 +101,28 @@ class MC_generator:
         Enu = self.source.energies[0]
         #geometry_factor = self.convolve_oscillation_event_rate(Enu)[0]
         br  = self.source.ratios[0]
-        xsec_nue = self.xsec.total_xsec_nuescatter(Enu)
+        xsec_es = self.xsec.total_xsec_ES(Enu)
         xsec_cc = self.xsec.total_xsec_CC(Enu)
 
         totxsec = 0.
-        if self.interaction == 'nue':
-            totxsec = xsec_nue
+        if self.interaction == 'ES':
+            totxsec = xsec_es
         elif self.interaction == 'CC':
             totxsec = xsec_cc
         else:
-            print("There is no such interaction in this package -> must in {'CC', 'nue'}.")
+            print("There is no such interaction in this package -> must in {'CC', 'ES'}.")
 
         if False:
             print(f'Pre-scaling event count: {N0:.3f}')
             print(f"Scaling exposure time: {T:.3f}, {T0:.3f}")
             print(f'Geometry factor: {spheric_geometry_factor:.3f}, {spheric_geometry_factor_LZ:.3f}')
             print(f"Activity: {self.source.activity}, {activity0}")
-            print(f"Cross section: {totxsec:.3e}, {xsec_nue:.3e}")
+            print(f"Cross section: {totxsec:.3e}, {xsec_es:.3e}")
 
-        self.n_events_noosc = N0 * (T/T0) * geometry_factor_ratio * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
-        #self.n_events_noosc = N0 * (T/T0) * (spheric_geometry_factor/spheric_geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
-        #self.n_events_noosc = N0 * (T/T0) * (geometry_factor/geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_nue)
-        #self.n_events_noosc = (N0 / V0 / T0 * (L0+ H0/2.)**2 ) * V * T / (L+H/2.)**2 * (self.source.activity / activity0) * br * totxsec / xsec_nue
+        self.n_events_noosc = N0 * (T/T0) * geometry_factor_ratio * (self.source.activity/activity0) * br * (totxsec/xsec_es)
+        #self.n_events_noosc = N0 * (T/T0) * (spheric_geometry_factor/spheric_geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_es)
+        #self.n_events_noosc = N0 * (T/T0) * (geometry_factor/geometry_factor_LZ) * (self.source.activity/activity0) * br * (totxsec/xsec_es)
+        #self.n_events_noosc = (N0 / V0 / T0 * (L0+ H0/2.)**2 ) * V * T / (L+H/2.)**2 * (self.source.activity / activity0) * br * totxsec / xsec_es
         return self.n_events_noosc
     
     def draw_experiment_layout(self, events=[], elev=0, azim=90, roll=0):
@@ -576,4 +576,4 @@ source_LZ.position = ( 0, 0, -det_LZ.height/2.-dist)
 det_LZ.run_time = 100
 
 dm2, sin2theta_square = 0.0, 0.0
-gen_LZ = MC_generator(source_LZ, det_LZ,  dm2=dm2, sin2theta_square=sin2theta_square, int_type='nue');  
+gen_LZ = MC_generator(source_LZ, det_LZ,  dm2=dm2, sin2theta_square=sin2theta_square, int_type='ES');  
