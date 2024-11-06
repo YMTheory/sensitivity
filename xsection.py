@@ -73,7 +73,7 @@ class xsection:
     
     
     
-    def differential_xsec_nuescatter(self, Enu, Te):
+    def differential_xsec_ES(self, Enu, Te):
         # neutrino energy in unit of MeV
         Q_plus = 0.231
         Q_minus = 0.5 + Q_plus
@@ -81,9 +81,9 @@ class xsection:
         return dsigmadTe * self.Zi
     
     
-    def total_xsec_nuescatter(self, Enu):
+    def total_xsec_ES(self, Enu):
         Te_max = 2*Enu**2 / (2*Enu+self.me)
-        f = lambda Te, E: self.differential_xsec_nuescatter(E, Te)
+        f = lambda Te, E: self.differential_xsec_ES(E, Te)
         res, err = integrate.quad(f, 0, Te_max, args=(Enu))
         res = MeV_to_cm(1.0)**2 * res
         return res
