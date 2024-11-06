@@ -27,9 +27,6 @@ class detector:
         self.baseline = 1# unit: m
         # which can also be calculated by detector center position and source position
 
-        # Running time
-        self.run_time = 100 # unit: day
-
         # Detector mass and geometry
         self.FV_mass = 3281 # kg
         self.Xe136_mass = 136 # g / mol
