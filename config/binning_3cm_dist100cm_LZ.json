@@ -1,0 +1,8 @@
+{
+    "baseline_min" : 0.9300,
+    "baseline_max" : 2.5652,
+    "bin_start": 0.9226,
+    "bin_end"  : 2.5725,
+    "nbin"     : 55
+
+}
