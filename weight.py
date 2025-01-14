@@ -18,13 +18,14 @@ def weight(source, det, int_type='ES'):
     enrichment = det.enrichment
     # We will only consider the following terms:
     # 1. cross section
+    # 2. enrichment:
     if int_type == 'CC':
         w_xsec = 1.0
+        w_enrichment = enrichment / 0.90
     elif int_type == 'ES':
         xsec = xsection()
         w_xsec = xsec.total_xsec_ES(Enu) / xsec.total_xsec_CC(Enu) 
-    # 2. enrichment:
-    w_enrichment = enrichment / 0.90
+        w_enrichment = 1.0 / 0.90
     # 3. epsilon:
     w_efficiency = epsilon / 1.0
     # 4. total flux ratio:

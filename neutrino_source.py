@@ -23,7 +23,7 @@ class neutrino_source:
 
 
     def set_source_positin(self, x, y, z):
-        self.position = (x, y, -1)
+        self.position = (x, y, z)
         
     def sample_vertice(self, nevent):
         # TODO: consider the geometry of the source, which will influence the baseline calculation.
