@@ -5,7 +5,7 @@ import pandas as pd
 import histlite as hl
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-plt.style.use('fivethirtyeight')
+#plt.style.use('fivethirtyeight')
 #plt.style.use('ggplot')
 import numpy as np
 
@@ -62,6 +62,8 @@ class fitting:
         
         self.fitting_mode = 'shape' # options in: [rate, shape]
         self.constraint   = 'constraint' # options in: [free, constraint, fixed] 
+        
+        self.dimension = 1 # For default ES fitting, one should choose 2.
 
     ## Setters:
     def _set_data_dm2(self, val):
@@ -413,10 +415,21 @@ class fitting:
             #    sys_shape_err2 = measured**2 * (self.sigma_det_eff**2 + self.sigma_init_flux**2 + self.sigma_xsec**2)
             tot_shape_err2 = stat_shape_err2 + sys_shape_err2 
 
-            nbin = self.dataset_asimov.n_bins[0]
-            for i in range(nbin):
-                if tot_shape_err2[i] != 0:
-                    dchi2 += (measured[i] - predicted[i])**2 / tot_shape_err2[i]
+            #if self.dimension == 1:
+                #nbin = self.dataset_asimov.n_bins[0]
+                #for i in range(nbin):
+                    #if tot_shape_err2[i] != 0:
+                    #    dchi2 += (measured[i] - predicted[i])**2 / tot_shape_err2[i]
+                #dchi2 = np.where(tot_shape_err2>0, (measured-predicted)**2/tot_shape_err2, 0)
+                #dchi2 += (alpha_det_eff)**2/self.sigma_det_eff**2 + alpha_init_flux**2/self.sigma_init_flux**2 + alpha_xsec**2/self.sigma_xsec**2
+            #elif self.dimension == 2:
+                #nbin1, nbin2 = self.dataset_asimov.n_bins[0], self.dataset_asimov.n_bins[1] 
+                #for i in range(nbin1):
+                #    for j in range(nbin2):
+                #        if tot_shape_err2[i, j] != 0:
+                #            dchi2 += (measured[i, j] - predicted[i, j])**2 / tot_shape_err2[i, j]
+            dchi2 = np.where(tot_shape_err2>0, (measured-predicted)**2/tot_shape_err2, 0)
+            dchi2 = np.sum(dchi2)
             dchi2 += (alpha_det_eff)**2/self.sigma_det_eff**2 + alpha_init_flux**2/self.sigma_init_flux**2 + alpha_xsec**2/self.sigma_xsec**2
             return dchi2 
    
@@ -526,3 +539,6 @@ class fitting:
 
     def get_fitted_pdf_stats(self):
         return np.sum( self.PDF_fitted.values)
+
+    def _set_fitting_dimension(self, d):
+        self.dimension = d
