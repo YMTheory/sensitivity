@@ -2,6 +2,7 @@ from oscillation import *
 from unit_conversion import *
 
 import numpy as np
+import pickle
 import matplotlib.pyplot as plt
 from scipy.integrate import nquad
 from scipy.stats import norm
@@ -9,16 +10,15 @@ from scipy.stats import norm
 
 class signal_calculation:
 
-    def __init__(self, gen, det, energy_bins, dm2, sin2theta_square) -> None:
-        self.gen = gen
-        self.det = det
-        self.n_events = 12518
-        self.energy_bins = energy_bins
-        self.dm2 = dm2
-        self.sin2theta_square = sin2theta_square
-        self.Enu = 0.75
+    def __init__(self) -> None:
+        self.energy_ES = None
+        self.count_ES = None
+        self.count_ES_smeared = None
+        self.esfile = '/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/ESfile.p'
+        self.load_ES = False
 
 
+    '''
     def _set_dm2(self, dm2):
         self.dm2 = dm2
         
@@ -59,6 +59,19 @@ class signal_calculation:
             energy_spec += tmp_spec
         
         return probs, specs, energy_spec
+    '''
             
 
+    def load_ESspectrum(self):
+        # For now, the convolved ES spectrum was calculated before and loaded here
+        with open(self.esfile, 'rb') as f:
+            b = pickle.load(f)
+        self.energy_ES = b['Te_cents_coarse']/1000.
+        self.count_ES = b['y_ES']
+        self.count_ES_smeared = b['y_ES_coarse']
+        self.load_ES = True
+
+    def energy_spectrum_ES(self, Te):
+        return np.interp(Te, self.energy_ES, self.count_ES_smeared)
+        
         
