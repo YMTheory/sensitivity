@@ -15,3 +15,7 @@ def maximum_oscillation_energy_with_fixed_baseline(dm2, L, n):
 def maximum_oscillation_energy_with_fixed_energy(dm2, E, n):
     L = (np.pi/2+n*np.pi) / (1.27*dm2/E)
     return L
+
+def oscillation_length(dm2, E):
+    L = np.pi / (1.27 * dm2 /E)
+    return L

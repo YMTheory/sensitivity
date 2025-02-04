@@ -4,8 +4,9 @@ class detector:
     def __init__(self, name):
         self.name = name
 
-        self.livetime = 40  # unit: day
-        
+        # enrichment:
+        self.enrichment = 0.9 # ~90% enrichment of Xe136
+
         # Detection efficiency
         self.efficiency = 1.0
         
@@ -26,9 +27,6 @@ class detector:
         self.baseline = 1# unit: m
         # which can also be calculated by detector center position and source position
 
-        # Running time
-        self.run_time = 100 # unit: day
-
         # Detector mass and geometry
         self.FV_mass = 3281 # kg
         self.Xe136_mass = 136 # g / mol
@@ -38,9 +36,13 @@ class detector:
         self.radius = 0.5665 # m
         self.volume = np.pi * self.radius**2 * self.height # m^3
 
-        #TODO: add Xe enrichment?
         
         
+    def update_geometry(self, H, D):
+        self.height = H
+        self.radius = D/2.
+        self.volume = np.pi * (D/2.)**2 * H
+    
     # Two empirical energy resolution functions from Brain's solar nu paper
     def empirical_combined_energy_resolution(self, E):
         E = E * 1000. # input unit: MeV, convert to keV
