@@ -53,6 +53,9 @@ class spectralFit:
         self.fitted_values              = None
         self.fitted_errors              = None
         self.fval                       = 0
+
+        self.Ethr                       = 0.5
+        self.Ethr_index                 = 0
         
         ## Sensitivity files
         self.other_exp_filename         = []
@@ -145,6 +148,9 @@ class spectralFit:
     
     def _set_channel(self, cha):
         self.channel = cha
+
+    def _set_energy_threshold(self, E):
+        self.Ethr = E
     
     def _set_dmsquare_fit(self, dm_square):
         self.dm_square_fit = dm_square
@@ -164,14 +170,21 @@ class spectralFit:
     def _set_fit_channel(self, cha):
         self.channel = cha
 
+    def energy_cut(self):
+        if self.channel == 'ES':
+            E_idx = self.asimov_dataset.index(self.Ethr, axis=1)
+            self.Ethr_index = E_idx
         
     def chi_square(self, alpha_flux, alpha_xsec, alpha_efficiency, alpha_background):
 
-        measured = self.asimov_dataset.values
-        
-        predicted_signal0 = self.signal_PDF.values
+        if self.channel == 'ES':
+            measured = self.asimov_dataset.values[:, self.Ethr_index:-1]
+            predicted_signal0 = self.signal_PDF.values[:, self.Ethr_index:-1]
+        elif self.channel == 'CC':
+            measured = self.asimov_dataset.values
+            predicted_signal0 = self.signal_PDF.values
         if self.channel == "ES":
-            predicted_background0 = self.background_PDF.values
+            predicted_background0 = self.background_PDF.values[:, self.Ethr_index:-1]
             predicted = predicted_signal0 * (1+alpha_flux+alpha_xsec+alpha_efficiency) + predicted_background0*(1+alpha_background)
         elif self.channel == 'CC':
             predicted = predicted_signal0 * (1+alpha_flux+alpha_xsec+alpha_efficiency)
