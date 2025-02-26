@@ -50,8 +50,8 @@ class xsection:
 
     ### Load the data points from Brian's paper and interpolate to get the total cross section
     def load_csv(self):
-        self.Ev1, self.xsec1 = np.loadtxt('/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/Cs136_1+590keV_totXsec.csv', delimiter=',', unpack=True)
-        self.Ev2, self.xsec2 = np.loadtxt('/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/Cs136_1+850keV_totXsec.csv', delimiter=',', unpack=True)
+        self.Ev1, self.xsec1 = np.loadtxt('/fs/ddn/sdf/group/nexo/users/miaoyu/Sterile_nu/sensitivity/data/Cs136_1+590keV_totXsec.csv', delimiter=',', unpack=True)
+        self.Ev2, self.xsec2 = np.loadtxt('/fs/ddn/sdf/group/nexo/users/miaoyu/Sterile_nu/sensitivity/data/Cs136_1+850keV_totXsec.csv', delimiter=',', unpack=True)
         self.load_flag = True
 
     def interp_xsec_state1(self, E):
@@ -70,6 +70,7 @@ class xsection:
     def total_xsec_CC(self, Ev):
         #return self.interp_xsec_state1(Ev)
         y = self.interp_xsec_state1(Ev)
+        return y
         
     
     
@@ -85,9 +86,27 @@ class xsection:
         res = MeV_to_cm(1.0)**2 * res
         return res
     
+    def differential_xsec_ES_nux(self, Enu, Te):
+        # neutrino energy in unit of MeV
+        Enu_min = 0.5*(Te+np.sqrt(Te*(Te+2*self.me)))
+        Q_plus = 0.231
+        Q_minus = -0.5 + Q_plus
+        dsigmadTe = 2 * self.GF**2 * self.me / np.pi * (Q_minus**2 + Q_plus**2 * (1 - Te/Enu)**2 - Q_minus*Q_plus*self.me*Te/Enu**2 )
+        dsigmadTe = dsigmadTe * self.Zi
+        res = np.where(Enu>Enu_min, dsigmadTe, 0.)
+        res = MeV_to_cm(1.0)**2 * res
+        return res
+    
     
     def total_xsec_ES(self, Enu):
         Te_max = 2*Enu**2 / (2*Enu+self.me)
         f = lambda Te, E: self.differential_xsec_ES(E, Te)
+        res, err = integrate.quad(f, 0, Te_max, args=(Enu))
+        return res
+
+
+    def total_xsec_ES_nux(self, Enu):
+        Te_max = 2*Enu**2 / (2*Enu+self.me)
+        f = lambda Te, E: self.differential_xsec_ES_nux(E, Te)
         res, err = integrate.quad(f, 0, Te_max, args=(Enu))
         return res
