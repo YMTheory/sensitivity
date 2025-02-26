@@ -31,7 +31,7 @@ class detector:
         self.FV_mass = 3281 # kg
         self.Xe136_mass = 136 # g / mol
         self.NA = 6.022e23 # mol^-1
-        self.N_Xe136 = self.FV_mass / self.Xe136_mass * self.NA 
+        self.N_Xe136 = self.FV_mass*1000 / self.Xe136_mass * self.NA 
         self.height = 1.183 # m
         self.radius = 0.5665 # m
         self.volume = np.pi * self.radius**2 * self.height # m^3
