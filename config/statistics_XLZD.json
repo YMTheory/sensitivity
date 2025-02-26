@@ -1,3 +1,9 @@
 {
-    "14cmSource_100cmDist": 550.562200792352
+    "14cmSource_100cmDist": 550.562200792352,
+    "ESbackground": 687033.69,
+    "bb2nbackground": 648719.08,
+    "rn222background": 21323.70,
+    "kr85background": 9787.91,
+    "solarppbackground": 5116.15,
+    "solarBe7highbackground": 2086.84,
 }
