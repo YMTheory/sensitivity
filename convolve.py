@@ -3,14 +3,13 @@ import numpy as np
 def gauss(x, mu, sigma):
     return 1 / np.sqrt(2*np.pi*sigma**2) * np.exp(-(x-mu)**2/2/sigma**2)
 
-def convolve_energy_resolution(edges, conts, A):
+def convolve_energy_resolution(edges, conts, A, factor=10):
     # The energy resolution formula used here is sigma/E = A/sqrt(E)
     # The original bin edges and conts ( N_edges = N_conts + 1)
     # This is only for uniform binning for now...
     
     # The input edges+conts combination is the fine binning
     # 1 for fine binning, 2 for coarse binning, bin width a factor time
-    factor = 10
     width1 = edges[1] - edges[0]
     width2 = width1 * factor
     conts_smeared = np.zeros(len(conts))
