@@ -34,16 +34,20 @@ from neutrino_source import neutrino_source
 from oscillation import *
 from xsection import xsection
 from background import bkg
+from background_loader import BkgLoader
 
 from unit_conversion import *
 
 class MC_generator:
-    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='ES', seed=42, binning_file='/p/lustre1/yu47/Sterile_Neutrino/sensitivity/config/binning_3cm.json'):
+    def __init__(self, source, det, dm2=1.0, sin2theta_square=0.1, int_type='ES', seed=42, binning_file='/fs/ddn/sdf/group/nexo/users/miaoyu/Sterile_nu/sensitivity/config/binning_3cm.json'):
         self.source = source
         self.det = det
         self.xsec = xsection()
         self.interaction =  int_type # 'ES' or CC, only two options now
         self.bkg = bkg()
+
+        self.loader = BkgLoader()
+        self.loader.load_file()
         
         #### calculate baseline ranges:
         self.baseline_min = np.abs(self.det.position[2] - self.source.position[2]) - self.det.height/2. - self.source.height/2.
@@ -73,7 +77,7 @@ class MC_generator:
         self.nbin            = binning_dict['nbin']
         
         ### Load 
-        self.osc_event_rate_file = '/p/lustre1/yu47/Sterile_Neutrino/sensitivity/data/event_rate_bl10cm_Ev750keV.h5'
+        self.osc_event_rate_file = '/fs/ddn/sdf/group/nexo/users/miaoyu/Sterile_nu/sensitivity/data/event_rate_bl10cm_Ev750keV.h5'
         self.osc_event_rate_func = None
         
         
@@ -537,8 +541,10 @@ class MC_generator:
         return energies
 
     def sample_electron_energy_bkg(self, Temin=0, Temax=0.7, n_samples=10000, Ev=0.75):
-        Evals = np.linspace(Temin, Temax, 1000)
-        dcs_values2 = self.bkg.background_spectrum(self.det, self.det.run_time, 'total', Evals)
+        #Evals = np.linspace(Temin, Temax, 1000)
+        #dcs_values2 = self.bkg.background_spectrum(self.det, self.det.run_time, 'total', Evals)
+        Evals = np.arange(Temin, Temax, 0.0007)
+        dcs_values2 = self.loader.spectrum(self.det.name+"_total", Evals)
         #dcs_values2 = dcs_values2 / np.sum(dcs_values2) * (self.n_2nbb+self.n_solarpp+self.n_Kr85+self.n_Rn222)
         cdf = np.cumsum(dcs_values2)
         cdf /= cdf[-1]
@@ -551,6 +557,7 @@ class MC_generator:
     
 
     def monte_carlo_sampling_ESbkg(self, n_event=1e5):
+        '''
         x_source, y_source, z_source = [], [], []
         delta_n = int(n_event - len(x_source))
         while delta_n > 0:
@@ -564,7 +571,8 @@ class MC_generator:
             
         x_source = np.array(x_source)[0:n_event]        
         y_source = np.array(y_source)[0:n_event]        
-        z_source = np.array(z_source)[0:n_event]        
+        z_source = np.array(z_source)[0:n_event]      
+        '''  
 
         x_detector, y_detector, z_detector = [], [], []
         delta_n = int(n_event - len(x_detector))
@@ -586,36 +594,45 @@ class MC_generator:
         pairs = []
         x3, y3, z3 = self.source.position[0], self.source.position[1], self.source.position[2]
         for i in range(n_event):
-            x1, y1, z1 = x_source[i], y_source[i], z_source[i]
+            #x1, y1, z1 = x_source[i], y_source[i], z_source[i]
             x2, y2, z2 = x_detector[i], y_detector[i], z_detector[i]
-            bl0 = np.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)
+            #bl0 = np.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2)
             bl = np.sqrt((x2-x3)**2 + (y2-y3)**2 + (z2-z3)**2)
+            bl0 = bl
             #weight = self.flux_scaling(bl0) * electron_neutrino_survival_probability(self.dm2, self.sin2theta_square, self.source.energies[0], bl0)
-            weight = self.flux_scaling(bl0)
+            #weight = self.flux_scaling(bl0)
+            weight = 1.0
             E = energies[i]
             # I have made a mistake here that I should not use the real baseline here, as we do not know the precise position in the source.
             pairs.append([bl0, bl, weight, E])
 
+        pairs = np.array(pairs)
         return pairs
 
 
         
     def monte_carlo_sampling(self, n_event=1e5, return_pos=False, int_type='CC'):
-        # First, randomly sample points within the source and detector volume separately.
-        x_source, y_source, z_source = [], [], []
-        delta_n = int(n_event - len(x_source))
-        while delta_n > 0:
-            x_source0, y_source0, z_source0 = self.generate_in_cubic(*self.source.position, self.source.height, self.source.diameter, int(delta_n*1.5))
-            for x, y, z in zip(x_source0, y_source0, z_source0):
-                if self.Is_in_source(x, y, z):
-                    x_source.append(x)
-                    y_source.append(y)
-                    z_source.append(z)
+        if not self.source.geometry:
+            print('No source geometry, all neutrinos are generated in the source center.')
+            x_source = np.ones(n_event) * self.source.position[0]
+            y_source = np.ones(n_event) * self.source.position[1]
+            z_source = np.ones(n_event) * self.source.position[2]
+        else:
+            # First, randomly sample points within the source and detector volume separately.
+            x_source, y_source, z_source = [], [], []
             delta_n = int(n_event - len(x_source))
-            
-        x_source = np.array(x_source)[0:n_event]        
-        y_source = np.array(y_source)[0:n_event]        
-        z_source = np.array(z_source)[0:n_event]        
+            while delta_n > 0:
+                x_source0, y_source0, z_source0 = self.generate_in_cubic(*self.source.position, self.source.height, self.source.diameter, int(delta_n*1.5))
+                for x, y, z in zip(x_source0, y_source0, z_source0):
+                    if self.Is_in_source(x, y, z):
+                        x_source.append(x)
+                        y_source.append(y)
+                        z_source.append(z)
+                delta_n = int(n_event - len(x_source))
+                
+            x_source = np.array(x_source)[0:n_event]        
+            y_source = np.array(y_source)[0:n_event]        
+            z_source = np.array(z_source)[0:n_event]        
         
         
         x_detector, y_detector, z_detector = [], [], []
