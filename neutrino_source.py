@@ -13,6 +13,8 @@ class neutrino_source:
         self.energies = energies
         self.ratios = ratios
         self.time = time
+
+        self.geometry = True
         
         self.height = height # unit: m
         self.diameter = diameter # unit: m
