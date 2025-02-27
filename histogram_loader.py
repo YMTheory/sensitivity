@@ -7,6 +7,8 @@ import os
 
 
 def get_oscillation_parameters(dm_square, sin2theta_square):
+    if dm_square == 0.0 and sin2theta_square == 0.0:
+        return dm_square, sin2theta_square
     dm_square_arr           = np.logspace(-2, 1, 100)
     sin2theta_square_arr    = np.logspace(-2, 0, 100)
     
