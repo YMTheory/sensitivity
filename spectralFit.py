@@ -18,14 +18,18 @@ class spectralFit:
         self.asimov_dataset_filename    = None
         self.asimov_dataset             = None
         self.asimov_dataset_loadflag    = False
+        self.asimov_dataset_projected   = None
         
         self.signal_PDF_filename        = None
         self.signal_PDF                 = None
+        self.signal_PDF_projected       = None
         self.signal_PDF_loadflag        = False
         self.background_PDF_filename    = None
         self.background_PDF             = None
+        self.background_PDF_projected   = None
         self.background_PDF_loadflag    = False
         self.PDF                        = None
+        self.PDF_projected              = None
 
         ## Fitting parameters        
         self.dm_square_fit              = 0.0
@@ -35,6 +39,7 @@ class spectralFit:
 
         ## Fitting channel
         self.channel                    = 'CC'
+        self.fit_dimension              = 2
 
         ## Systematic uncertainties
         self.sigma_flux                 = 0.02
@@ -75,6 +80,7 @@ class spectralFit:
             with open(self.asimov_dataset_filename, 'rb') as f:
                 self.asimov_dataset = pickle.load(f)
             self.asimov_dataset_loadflag = True
+            self.asimov_dataset_projected = self.asimov_dataset.project(axes=[0])
         except Exception as e:
             print(f'ERROR occurs at load_asimov_dataset -> {e}')
 
@@ -86,6 +92,7 @@ class spectralFit:
             with open(self.signal_PDF_filename, 'rb') as f:
                 self.signal_PDF = pickle.load(f)
             self.signal_PDF_loadflag = True
+            self.signal_PDF_projected = self.signal_PDF.project(axes=[0])
         except Exception as e:
             print(f'ERROR occurs load_signal_PDF -> {e}')
 
@@ -97,6 +104,7 @@ class spectralFit:
             with open(self.background_PDF_filename, 'rb') as f:
                 self.background_PDF = pickle.load(f)
             self.background_PDF_loadflag = True
+            self.background_PDF_projected = self.background_PDF.project(axes=[0])
         except Exception as e:
             print(f'ERROR occurs load_background_PDF -> {e}')
 
@@ -118,6 +126,30 @@ class spectralFit:
             else:
                 self.PDF = hl.Hist(self.signal_PDF.bins, self.signal_PDF.values + self.background_PDF.values)
 
+    def _set_flux_uncertainty(self, sigma):
+        self.sigma_flux = sigma
+    
+    def _set_cross_section_uncertainty(self, sigma):
+        self.sigma_xsec = sigma
+    
+    def _set_efficiency_uncertainty(self, sigma):
+        self.sigma_efficiency = sigma
+    
+    def _set_background_rate_uncertainty(self, sigma):
+        self.sigma_background = sigma
+
+    def _get_flux_uncertainty(self):
+        return self.sigma_flux
+    
+    def _get_cross_section_uncertainty(self):
+        return self.sigma_xsec
+    
+    def _get_efficiency_uncertainty(self):
+        return self.sigma_efficiency
+    
+    def _get_background_rate_uncertainty(self):
+        return self.sigma_background
+        
 
     def _add_other_experiment_filename(self, filename):
         self.other_exp_filename.append( filename )
@@ -149,6 +181,9 @@ class spectralFit:
     def _set_channel(self, cha):
         self.channel = cha
 
+    def _set_fit_dimension(self, d):
+        self.fit_dimension = d
+
     def _set_energy_threshold(self, E):
         self.Ethr = E
     
@@ -178,14 +213,22 @@ class spectralFit:
     def chi_square(self, alpha_flux, alpha_xsec, alpha_efficiency, alpha_background):
 
         if self.channel == 'ES':
-            measured = self.asimov_dataset.values[:, self.Ethr_index:-1]
-            predicted_signal0 = self.signal_PDF.values[:, self.Ethr_index:-1]
+            if self.fit_dimension == 2:
+                measured = self.asimov_dataset.values[:, self.Ethr_index:-1]
+                predicted_signal0 = self.signal_PDF.values[:, self.Ethr_index:-1]
+            elif self.fit_dimension == 1:
+                measured = self.asimov_dataset_projected.values[self.Ethr_index:-1]
+                predicted_signal0 = self.signal_PDF_projected.values[self.Ethr_index:-1]
         elif self.channel == 'CC':
             measured = self.asimov_dataset.values
             predicted_signal0 = self.signal_PDF.values
         if self.channel == "ES":
-            predicted_background0 = self.background_PDF.values[:, self.Ethr_index:-1]
-            predicted = predicted_signal0 * (1+alpha_flux+alpha_xsec+alpha_efficiency) + predicted_background0*(1+alpha_background)
+            if self.fit_dimension == 2:
+                predicted_background0 = self.background_PDF.values[:, self.Ethr_index:-1]
+                predicted = predicted_signal0 * (1+alpha_flux+alpha_xsec+alpha_efficiency) + predicted_background0*(1+alpha_background)
+            elif self.fit_dimension == 1:
+                predicted_background0 = self.background_PDF_projected.values[self.Ethr_index:-1]
+                predicted = predicted_signal0 * (1+alpha_flux+alpha_xsec+alpha_efficiency) + predicted_background0*(1+alpha_background)
         elif self.channel == 'CC':
             predicted = predicted_signal0 * (1+alpha_flux+alpha_xsec+alpha_efficiency)
 
@@ -199,6 +242,7 @@ class spectralFit:
         dchi2 += alpha_efficiency**2/self.sigma_efficiency**2
         dchi2 += alpha_background**2/self.sigma_background**2
         return dchi2
+
 
     def minimize_chi_square(self, alpha_flux0=0, alpha_xsec0=0, alpha_efficiency0=0, alpha_background0=0):
         is_fit_valid = False
@@ -240,6 +284,48 @@ class spectralFit:
         self.fval               = m.fval
         self.fitted_values      = m.values
         self.fitted_errors      = m.errors
+    
+
+    def delta_chisquare_decomposition(self):
+        if self.channel == 'ES':
+            if self.fit_dimension == 2:
+                measured = self.asimov_dataset.values[:, self.Ethr_index:-1]
+                predicted_signal0 = self.signal_PDF.values[:, self.Ethr_index:-1]
+            elif self.fit_dimension == 1:
+                measured = self.asimov_dataset_projected.values[self.Ethr_index:-1]
+                predicted_signal0 = self.signal_PDF_projected.values[self.Ethr_index:-1]
+        elif self.channel == 'CC':
+            measured = self.asimov_dataset.values
+            predicted_signal0 = self.signal_PDF.values
+        if self.channel == "ES":
+            if self.fit_dimension == 2:
+                predicted_background0 = self.background_PDF.values[:, self.Ethr_index:-1]
+                predicted = predicted_signal0 * (1+self.alpha_flux+self.alpha_xsec+self.alpha_efficiency) + predicted_background0*(1+self.alpha_background)
+            elif self.fit_dimension == 1:
+                predicted_background0 = self.background_PDF_projected.values[self.Ethr_index:-1]
+                predicted = predicted_signal0 * (1+self.alpha_flux+self.alpha_xsec+self.alpha_efficiency) + predicted_background0*(1+self.alpha_background)
+        elif self.channel == 'CC':
+            predicted = predicted_signal0 * (1+self.alpha_flux+self.alpha_xsec+self.alpha_efficiency)
+
+        stat_shape_err2 = measured
+        if self.channel == 'ES' and self.fit_dimension == 2:
+            dchi2 = np.zeros(measured.shape)
+            for i in range(measured.shape[0]):
+                for j in range(measured.shape[1]):
+                    if stat_shape_err2[i, j] != 0:
+                        dchi2[i, j] = (measured[i,j]-predicted[i,j])**2 / stat_shape_err2[i,j]
+        else:
+            dchi2 = np.zeros(len(measured))
+            for i in range(len(measured)):
+                if stat_shape_err2[i] != 0:
+                    dchi2[i] = (measured[i]-predicted[i])**2 / stat_shape_err2[i]
+            
+        penalty_flux = self.alpha_flux**2/self.sigma_flux**2
+        penalty_xsec = self.alpha_xsec**2/self.sigma_xsec**2
+        penalty_efficiency = self.alpha_efficiency**2/self.sigma_efficiency**2
+        penalty_background = self.alpha_background**2/self.sigma_background**2
+        return dchi2, penalty_flux, penalty_xsec, penalty_efficiency, penalty_background
+        
     
 
     def parse_oscillation_parameters(self, dm_square, sin2theta_square):
